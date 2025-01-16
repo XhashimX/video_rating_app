@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ar">
+<head>
+    <meta charset="utf-8">
+    <title>تصفح المجلدات</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body.dark-mode {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .dark-mode .btn-success {
+            background-color: #28a745;
+            border-color: #218838;
+        }
+        .dark-mode .btn-secondary {
+            background-color: #444444;
+            border-color: #555555;
+        }
+        .folder, .file {
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .folder:hover, .file:hover {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">تصفح المجلدات</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        <div class="mb-3">
+            {% if current_path %}
+                {% set parent_path = current_path.rsplit('/', 1)[0] %}
+                <a href="{{ url_for('browse', folder_path=parent_path) }}" class="btn btn-primary">العودة للمجلد السابق</a>
+            {% endif %}
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <h4>المجلدات</h4>
+                {% for folder in folders %}
+                    <div class="folder">
+                        <form method="post" action="{{ url_for('select_folder_post', folder_path=(current_path ~ '/' ~ folder) if current_path else folder) }}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>{{ folder }}</span>
+                                <button type="submit" class="btn btn-success btn-sm">اختيار هذا المجلد</button>
+                            </div>
+                        </form>
+                    </div>
+                {% endfor %}
+                {% if not folders %}
+                    <p>لا توجد مجلدات في هذا المسار.</p>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <h4>الملفات</h4>
+                {% for file in files %}
+                    <div class="file">
+                        <a href="{{ url_for('serve_video', filename=file | quote) }}" target="_blank">{{ file }}</a>
+                    </div>
+                {% endfor %}
+                {% if not files %}
+                    <p>لا توجد ملفات في هذا المسار.</p>
+                {% endif %}
+            </div>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary mt-4">العودة إلى الصفحة الرئيسية</a>
+    </div>
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

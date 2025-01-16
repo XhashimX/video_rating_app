@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ar">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختر الفائزين</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 0; /* إزالة الحشوات */
+        }
+
+        .video-card {
+            margin: 10px auto; /* ترك مسافة صغيرة فوق وتحت البطاقة */
+            border: 1px solid #444;
+            border-radius: 10px;
+            background-color: #1c1c1c;
+            width: 100%; /* استخدام العرض الكامل المتاح */
+            max-width: 800px; /* يمكن تعديل هذا حسب الحاجة */
+            padding: 10px; /* تقليل الحشوات داخل البطاقة */
+        }
+
+        .rank-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .rank-buttons button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        button.active {
+            background-color: #28a745 !important;
+            color: white;
+            font-weight: bold;
+        }
+
+        video {
+            display: block;
+            margin: 0;
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+        .next-button {
+            margin-top: 10px;
+        }
+
+        h1, h5 {
+            color: #ffffff;
+        }
+
+        p.text-muted {
+            color: #aaa;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid px-0"> <!-- إزالة الحشوات الأفقية باستخدام px-0 -->
+        <h1 class="text-center mb-4">اختر الفائزين بين الفيديوهات التالية:</h1>
+
+        <form method="post" action="{{ url_for('select_winner') }}">
+            <input type="hidden" name="mode" value="{{ mode }}">
+            <input type="hidden" name="num_videos" value="{{ num_videos }}">
+            <input type="hidden" name="value" value="{{ value }}">
+
+            {% for video in competition_videos %}
+                <input type="hidden" name="videos" value="{{ video.id }}|{{ video.rating }}">
+                <div class="video-card" id="video-card-{{ loop.index }}">
+                    <h5 class="text-center mb-2">
+                        الفيديو {{ loop.index }}: {{ video.title.split('_', 1)[1] if '_' in video.title else video.title }}
+                    </h5>
+                    <p class="text-center text-muted">التقييم الحالي: {{ video.rating }}</p>
+                    
+                    <video controls>
+                        <source src="{{ url_for('serve_video', filename=video.id_encoded) }}" type="video/mp4">
+                        متصفحك لا يدعم تشغيل الفيديو.
+                    </video>
+
+                    <div class="rank-buttons mt-3">
+                        {% for rank in range(1, num_videos + 1) %}
+                            <button 
+                                type="button" 
+                                class="btn btn-outline-primary rank-btn" 
+                                data-rank="{{ rank }}" 
+                                data-index="{{ loop.index }}">
+                                {{ rank }}
+                            </button>
+                        {% endfor %}
+                        <button 
+                            type="button" 
+                            class="btn btn-primary next-button" 
+                            data-next="{{ loop.index + 1 }}">
+                            التالي
+                        </button>
+                    </div>
+                    <input type="hidden" name="rank_{{ loop.index }}" class="rank-input" value="">
+                </div>
+            {% endfor %}
+         
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-success">إرسال النتائج</button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">العودة إلى الصفحة الرئيسية</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // التحكم بالأزرار
+            const rankButtons = document.querySelectorAll(".rank-btn");
+            const nextButtons = document.querySelectorAll(".next-button");
+
+            rankButtons.forEach(function (button) {
+                button.addEventListener("click", function () {
+                    const rank = this.dataset.rank;
+                    const videoIndex = this.dataset.index;
+
+                    // تعطيل جميع الأزرار الأخرى لهذه البطاقة
+                    const parent = this.closest(".video-card");
+                    parent.querySelectorAll(".rank-btn").forEach(function (btn) {
+                        btn.classList.remove("active");
+                    });
+
+                    // تمكين الزر الحالي
+                    this.classList.add("active");
+
+                    // تحديث قيمة الـ input المخفي
+                    const rankInput = parent.querySelector(".rank-input");
+                    rankInput.value = rank;
+                });
+            });
+
+            // التنقل إلى الفيديو التالي عند الضغط على زر "التالي"
+            nextButtons.forEach(function (button) {
+                button.addEventListener("click", function () {
+                    const nextIndex = this.dataset.next;
+                    const nextCard = document.getElementById(`video-card-${nextIndex}`);
+
+                    if (nextCard) {
+                        nextCard.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                });
+            });
+
+            // وقف الفيديوهات الأخرى عند تشغيل فيديو
+            const videos = document.querySelectorAll("video");
+            videos.forEach(function (video) {
+                video.addEventListener("play", function () {
+                    videos.forEach(function (otherVideo) {
+                        if (otherVideo !== video) {
+                            otherVideo.pause();
+                        }
+                    });
+
+                    // التمرير إلى الفيديو ليصبح في منتصف الشاشة
+                    video.scrollIntoView({ behavior: "smooth", block: "center" });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

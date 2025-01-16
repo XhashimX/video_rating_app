@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ar">
+<head>
+    <meta charset="utf-8">
+    <title>أفضل الفيديوهات</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">أفضل الفيديوهات</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="post" action="{{ url_for('rename_all_videos') }}">
+            <button type="submit" class="btn btn-primary mb-3">إعادة تسمية جميع الفيديوهات</button>
+        </form>
+
+        <table class="table table-dark table-striped">
+            <thead>
+                <tr>
+                    <th>الترتيب</th>
+                    <th>اسم الفيديو</th>
+                    <th>التقييم</th>
+                    <th>تشغيل</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for video in top_videos %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ video[0] }}</td>
+                        <td>{{ video[1] }}</td>
+                        <td>
+                            <a href="{{ url_for('serve_video', filename=video[2]) }}" class="btn btn-success btn-sm" target="_blank">
+                                تشغيل
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
