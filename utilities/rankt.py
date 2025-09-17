@@ -4,7 +4,7 @@ import os
 from collections import OrderedDict # للحفاظ على ترتيب الإدخال عند الكتابة لـ JSON (اختياري لـ Python 3.7+)
 
 # --- تعريف المسارات ---
-BASE_PATH = "/storage/emulated/0/myhome/video_rating_app/utilities/"
+BASE_PATH = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/"
 INPUT_FILENAME = "elo_videos_A1000 elo tik.json"
 OUTPUT_FILENAME = "elo_videos_A1000_smart_ranked.json"
 

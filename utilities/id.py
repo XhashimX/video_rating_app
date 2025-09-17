@@ -3,8 +3,8 @@ import json
 import re
 
 # paths
-folder_path = "/storage/emulated/0/Download/NS/TikTok/Elo tik/A1000 elo tik"
-json_path = "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
+folder_path = "C:/Users/Stark/Download/myhome/video_rating_app/NS/TikTok/Elo tik/A1000 elo tik"
+json_path = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
 unknown_file = "Unknown.txt"
 id_file = "Id.txt"
 

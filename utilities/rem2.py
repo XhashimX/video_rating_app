@@ -5,13 +5,13 @@ import sys
 
 # --- تحديد المسارات ---
 # المسار إلى ملف النص الذي يحوي أسماء الملفات
-list_file_path = "/storage/emulated/0/myhome/video_rating_app/utilities/filtered_elo_videos_A1000 elo tik_titles.txt"
+list_file_path = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/filtered_elo_videos_A1000 elo tik_titles.txt"
 
 # المسار إلى المجلد الذي يحتوي على الفيديوهات الأصلية
-source_dir = "/storage/emulated/0/Download/NS/TikTok/Elo tik/A1000 elo tik"
+source_dir = "C:/Users/Stark/Download/myhome/video_rating_app/NS/TikTok/Elo tik/A1000 elo tik"
 
 # المسار إلى المجلد الذي تريد نقل الفيديوهات إليه
-dest_dir = "/storage/emulated/0/Download/NS/TikTok/Elo tik/New folder"
+dest_dir = "C:/Users/Stark/Download/myhome/video_rating_app/NS/TikTok/Elo tik/New folder"
 
 print(f"ملف قائمة الفيديوهات: {list_file_path}")
 print(f"مجلد المصدر: {source_dir}")

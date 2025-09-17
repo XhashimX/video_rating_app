@@ -5,9 +5,9 @@ import random
 
 # Define the input and output file paths
 # Ensure these paths are correct for your environment
-ARCHIVE_FILE = '/storage/emulated/0/myhome/video_rating_app/utilities/tournamentarchive.json'
-PROCESSED_ITEMS_FILE = '/storage/emulated/0/myhome/video_rating_app/utilities/processed_items.json' # Output file for sorted item data (now includes videos/images)
-TOP_TOURNAMENT_FILE = '/storage/emulated/0/myhome/video_rating_app/utilities/top.json' # Output file for the weight range tournament
+ARCHIVE_FILE = 'C:/Users/Stark/Download/myhome/video_rating_app/utilities/tournamentarchive.json'
+PROCESSED_ITEMS_FILE = 'C:/Users/Stark/Download/myhome/video_rating_app/utilities/processed_items.json' # Output file for sorted item data (now includes videos/images)
+TOP_TOURNAMENT_FILE = 'C:/Users/Stark/Download/myhome/video_rating_app/utilities/top.json' # Output file for the weight range tournament
 
 # Define common video and image file extensions
 VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm']

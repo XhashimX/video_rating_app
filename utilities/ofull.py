@@ -7,16 +7,16 @@ from itertools import combinations
 
 # --- Basic Settings ---
 DATABASE_FILES = [
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo liv.json",
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1400 elo ani.json",
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A2000 elo ani.json",
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo ani.json",
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json",
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_Dib.json",
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo pic.json"
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo liv.json",
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1400 elo ani.json",
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A2000 elo ani.json",
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo ani.json",
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json",
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_Dib.json",
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo pic.json"
 ]
 
-FILL_DATABASE_PATH = "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
+FILL_DATABASE_PATH = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
 
 # --- Helper Functions ---
 def load_json_file(filepath):
@@ -341,7 +341,7 @@ def function_make_competition(input_json_path=None):
     Main function to create competitions with filtering, limited count, and grouping preferences.
     """
     print("\n--- Function: Make Competition ---")
-    default_file = "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
+    default_file = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
     if not input_json_path:
         use_default = input(f"Do you want to create competitions for file '{default_file}'? (y/n): ").strip().lower()
         if use_default == 'y':

@@ -9,10 +9,10 @@ import re
 from pathlib import Path
 
 # --- إعدادات ---
-DOWNLOAD_FOLDER = "/storage/emulated/0/Download/"
+DOWNLOAD_FOLDER = "C:/Users/Stark/Download/myhome/video_rating_app/"
 # --- الإضافة الجديدة هنا ---
 # تعريف المجلد الإضافي الذي سيتم دمجه
-DIB_FOLDER = "/storage/emulated/0/Download/NS/TikTok/Elo tik/Dib/"
+DIB_FOLDER = "C:/Users/Stark/Download/myhome/video_rating_app/NS/TikTok/Elo tik/Dib/"
 CACHE_FILE = "image_cache.json"
 
 def extract_model_name(exif_data):

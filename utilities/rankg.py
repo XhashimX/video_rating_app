@@ -4,7 +4,7 @@ import math
 # -----------------------------
 # 1. إعداد المسارات والثوابت
 # -----------------------------
-INPUT_PATH  = "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
+INPUT_PATH  = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
 OUTPUT_PATH = "sorted_videos.json"
 
 # أوزان الاقتراح الأوّل (Linear Index)

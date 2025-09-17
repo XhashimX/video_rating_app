@@ -6,12 +6,12 @@ from itertools import combinations
 
 # --- Basic Settings ---
 DATABASE_FILES = [
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo liv.json",
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1400 elo ani.json",
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A2000 elo ani.json",
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo ani.json",
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json",
-    "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo pic.json"
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo liv.json",
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1400 elo ani.json",
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A2000 elo ani.json",
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo ani.json",
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json",
+    "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo pic.json"
 ]
 
 # --- Helper Functions ---

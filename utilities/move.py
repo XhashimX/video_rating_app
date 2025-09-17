@@ -5,8 +5,8 @@ import shutil
 from collections import OrderedDict
 
 # المسارات الثابتة
-VIDEO_SOURCE_BASE_DIR = "/storage/emulated/0/Download/NS/TikTok/Elo tik/A1000 elo tik"
-VIDEO_DEST_DIR = "/storage/emulated/0/Download/NS/TikTok/Elo tik/rank"
+VIDEO_SOURCE_BASE_DIR = "C:/Users/Stark/Download/myhome/video_rating_app/NS/TikTok/Elo tik/A1000 elo tik"
+VIDEO_DEST_DIR = "C:/Users/Stark/Download/myhome/video_rating_app/NS/TikTok/Elo tik/rank"
 
 def load_json_data(filepath):
     """تحميل بيانات JSON من ملف."""

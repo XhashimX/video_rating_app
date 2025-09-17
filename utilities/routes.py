@@ -11,18 +11,33 @@ from flask import send_from_directory
 def init_routes(app):
     app.template_filter('quote')(url_quote_filter)
 
+    # START: MODIFIED SECTION
     @app.route('/select_folder', methods=['GET', 'POST'])
     def select_folder():
         if request.method == 'POST':
-            folder_path = request.form.get('folder_path')
-            if folder_path and os.path.isdir(folder_path):
+            folder_path_raw = request.form.get('folder_path')
+            
+            if not folder_path_raw:
+                flash("لم يتم إدخال أي مسار.", "danger")
+                return redirect(url_for('select_folder'))
+
+            # --- خطوة التنظيف والتصحيح ---
+            # 1. إزالة علامات الاقتباس التي قد يضيفها المتصفح
+            folder_path = folder_path_raw.strip().strip('"')
+            # 2. استبدال الشرطة المائلة المزدوجة بواحدة (احتياطي)
+            folder_path = folder_path.replace('\\\\', '\\')
+            
+            # الآن نتحقق من المسار النظيف
+            if os.path.isdir(folder_path):
                 session['selected_folder'] = os.path.abspath(folder_path)
                 flash(f"تم اختيار المجلد: {folder_path}", "success")
                 return redirect(url_for('index'))
             else:
-                flash("المجلد غير صالح. يرجى إدخال مسار مجلد صحيح.", "danger")
+                flash(f"المجلد غير صالح أو لا يمكن الوصول إليه: {folder_path}", "danger")
                 return redirect(url_for('select_folder'))
+                
         return render_template('select_folder.html')
+    # END: MODIFIED SECTION
 
     @app.route('/reset_session')
     def reset_session():
@@ -141,4 +156,3 @@ def init_routes(app):
             print(f"Error serving video: {e}")
             flash("حدث خطأ أثناء تشغيل الفيديو.", "danger")
             return redirect(url_for('index'))
-

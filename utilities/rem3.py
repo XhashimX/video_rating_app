@@ -3,8 +3,8 @@ import os
 import sys
 
 # --- تحديد المسارات ---
-json_file_path = "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_New folder.json"
-video_dir = "/storage/emulated/0/Download/NS/TikTok/Elo tik/New folder"
+json_file_path = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_New folder.json"
+video_dir = "C:/Users/Stark/Download/myhome/video_rating_app/NS/TikTok/Elo tik/New folder"
 target_tag = "Re" # الوسم المطلوب للفلترة (غير حساس لحالة الأحرف)
 
 print(f"ملف بيانات JSON: {json_file_path}")

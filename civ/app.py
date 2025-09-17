@@ -18,8 +18,8 @@ NOTES_FILE = "notes.txt"
 CACHE_FILE = "image_cache.json" 
 
 # إعدادات المجلدات
-DOWNLOAD_FOLDER = "/storage/emulated/0/Download/"
-TIKTOK_FOLDERS = "/storage/emulated/0/Download/NS/TikTok/Elo tik/"
+DOWNLOAD_FOLDER = "C:/Users/Stark/Download/myhome/video_rating_app/"
+TIKTOK_FOLDERS = "C:/Users/Stark/Download/myhome/video_rating_app/NS/TikTok/Elo tik/"
 
 def load_favorites():
     """تحميل قائمة مسارات الصور المميزة من الملف"""

@@ -62,8 +62,8 @@ def calculate_strength_score_3(video_data, max_times_shown, bonus_values, penalt
 
 def main():
     """Main function to load data, calculate scores, rank, and save results."""
-    input_file_path = "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
-    output_file_path = "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_ranked.json"
+    input_file_path = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
+    output_file_path = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_ranked.json"
 
     video_data = load_video_data(input_file_path)
 

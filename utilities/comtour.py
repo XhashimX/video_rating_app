@@ -3,8 +3,8 @@ import glob
 import os
 
 # المسارات
-tournament_file = "/storage/emulated/0/myhome/video_rating_app/utilities/tournamentarchive.json"
-elo_files_pattern = "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_*.json"
+tournament_file = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/tournamentarchive.json"
+elo_files_pattern = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_*.json"
 
 # تحميل ملف tournamentarchive.json
 with open(tournament_file, "r", encoding="utf-8") as f:

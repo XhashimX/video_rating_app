@@ -3,8 +3,8 @@ import os
 from collections import defaultdict
 
 # المسارات
-competition_file = "/storage/emulated/0/myhome/video_rating_app/utilities/topcut_elo_videos_A1000 elo tik_3234.json"
-reference_file = "/storage/emulated/0/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
+competition_file = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/topcut_elo_videos_A1000 elo tik_3234.json"
+reference_file = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
 
 # تحميل الملفات
 with open(competition_file, "r", encoding="utf-8") as f:

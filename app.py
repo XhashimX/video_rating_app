@@ -28,7 +28,7 @@ JSON_FOLDER = os.path.join("utilities")
 STATUS_FOLDER = os.path.join("utilities", "status")
 
 # تعريف مسار ملف البيانات الجديدة
-PROCESSED_VIDEOS_FILE = '/storage/emulated/0/myhome/video_rating_app/utilities/processed_videos.json'
+PROCESSED_VIDEOS_FILE = 'C:/Users/Stark/Download/myhome/video_rating_app/utilities/processed_videos.json'
 
 def load_processed_videos_data():
     """

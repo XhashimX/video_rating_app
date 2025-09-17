@@ -1,10 +1,10 @@
-# /storage/emulated/0/myhome/video_rating_app/utilities/tournaments_manager.py
+# C:/Users/Stark/Download/myhome/video_rating_app/utilities/tournaments_manager.py
 
 import json
 import os
 import random
 
-JSON_FOLDER = '/storage/emulated/0/myhome/video_rating_app/utilities'
+JSON_FOLDER = 'C:/Users/Stark/Download/myhome/video_rating_app/utilities'
 TOUR_ARCHIVE_PATH = os.path.join(JSON_FOLDER, 'tournamentarchive.json')
 
 
