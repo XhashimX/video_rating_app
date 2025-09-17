@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="ar">
+  <head>
+    <meta charset="utf-8" />
+    <title>إدارة ملفات البطولات</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Cairo", sans-serif;
+        background-color: #0d1117;
+        color: #c9d1d9;
+        padding-top: 20px;
+        direction: rtl;
+        text-align: right;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: auto;
+        background-color: #161b22;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        border: 1px solid #30363d;
+      }
+
+      h1, h2, h3, h4, h5, h6 {
+        color: #58a6ff;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        font-weight: 700;
+      }
+
+      .list-group-item {
+        background-color: #21262d;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 2px;
+        border-radius: 6px;
+        padding: 12px 16px;
+      }
+
+      .list-group-item:hover {
+        background-color: #30363d;
+        border-color: #58a6ff;
+        transform: translateX(-2px);
+      }
+
+      .list-group-item.active {
+        background-color: #1f6feb;
+        border-color: #1f6feb;
+        color: white;
+      }
+
+      .alert {
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: none;
+        padding: 16px 20px;
+        font-weight: 500;
+      }
+
+      .alert-success {
+        background-color: #238636;
+        color: white;
+      }
+
+      .alert-danger {
+        background-color: #da3633;
+        color: white;
+      }
+
+      .alert-warning {
+        background-color: #bf8700;
+        color: white;
+      }
+
+      .json-container {
+        background-color: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        max-height: 600px;
+        overflow-y: auto;
+        font-family: 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        position: relative;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      .json-container::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .json-container::-webkit-scrollbar-track {
+        background: #21262d;
+        border-radius: 4px;
+      }
+
+      .json-container::-webkit-scrollbar-thumb {
+        background: #58a6ff;
+        border-radius: 4px;
+      }
+
+      .json-key {
+        color: #79c0ff;
+        font-weight: 600;
+      }
+      .json-string {
+        color: #a5d6ff;
+      }
+      .json-number {
+        color: #79c0ff;
+      }
+      .json-boolean {
+        color: #ffa657;
+      }
+      .json-null {
+        color: #8b949e;
+      }
+
+      .copy-button {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        background: linear-gradient(135deg, #238636, #2ea043);
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        color: white;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(35, 134, 54, 0.3);
+      }
+
+      .copy-button:hover {
+        background: linear-gradient(135deg, #2ea043, #238636);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(35, 134, 54, 0.4);
+      }
+
+      .competition-entry {
+        border: 1px solid #30363d;
+        margin-bottom: 12px;
+        padding: 16px;
+        border-radius: 8px;
+        background-color: #21262d;
+        transition: all 0.2s ease;
+      }
+
+      .competition-entry:hover {
+        background-color: #262c36;
+        border-color: #58a6ff;
+      }
+
+      .competition-entry.selected {
+        background-color: #1f6feb;
+        border-color: #1f6feb;
+        color: white;
+      }
+
+      .competition-entry label {
+        font-weight: 600;
+        margin-right: 12px;
+        cursor: pointer;
+        display: block;
+        padding: 4px 0;
+      }
+
+      .competition-entry input[type="checkbox"] {
+        margin-left: 8px;
+        transform: scale(1.2);
+        accent-color: #1f6feb;
+      }
+
+      .video-list {
+        margin-top: 8px;
+        padding: 12px;
+        background-color: #0d1117;
+        border-radius: 6px;
+        border: 1px solid #30363d;
+      }
+
+      .video-item {
+        padding: 4px 0;
+        color: #8b949e;
+        font-size: 13px;
+        word-break: break-all;
+      }
+
+      .video-item:not(:last-child) {
+        border-bottom: 1px solid #30363d;
+        margin-bottom: 4px;
+        padding-bottom: 8px;
+      }
+
+      .paste-section {
+        margin-top: 30px;
+        padding: 24px;
+        background-color: #21262d;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+      }
+
+      .paste-section h4 {
+        color: #58a6ff;
+        margin-bottom: 20px;
+        text-align: right;
+      }
+
+      .paste-section textarea {
+        width: 100%;
+        min-height: 200px;
+        background-color: #0d1117;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 16px;
+        resize: vertical;
+        font-family: 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .paste-section textarea:focus {
+        outline: none;
+        border-color: #58a6ff;
+        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+      }
+
+      .button-group {
+        margin-top: 20px;
+        text-align: center;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #1f6feb, #0969da);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: linear-gradient(135deg, #0969da, #1f6feb);
+        color: white;
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #da3633, #cf222e);
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: linear-gradient(135deg, #cf222e, #da3633);
+        color: white;
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, #238636, #2ea043);
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: linear-gradient(135deg, #2ea043, #238636);
+        color: white;
+      }
+
+      .btn-secondary {
+        background: linear-gradient(135deg, #6e7681, #8b949e);
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: linear-gradient(135deg, #8b949e, #6e7681);
+        color: white;
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+      }
+
+      .modal-content {
+        background-color: #161b22;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+      }
+
+      .modal-header {
+        border-bottom: 1px solid #30363d;
+        padding: 20px 24px;
+      }
+
+      .modal-footer {
+        border-top: 1px solid #30363d;
+        padding: 20px 24px;
+      }
+
+      .modal-title {
+        color: #58a6ff;
+        font-weight: 700;
+      }
+
+      .competitor-item {
+        background-color: #21262d;
+        border: 1px solid #30363d;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .competitor-item:hover {
+        background-color: #30363d;
+        border-color: #58a6ff;
+      }
+
+      .competitor-item input[type="radio"] {
+        margin-left: 12px;
+        transform: scale(1.1);
+        accent-color: #1f6feb;
+      }
+
+      .competitor-item label {
+        cursor: pointer;
+        font-weight: 500;
+        word-break: break-all;
+      }
+
+      .form-check-input:checked {
+        background-color: #1f6feb;
+        border-color: #1f6feb;
+      }
+
+      .form-check-input:focus {
+        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        border-color: #58a6ff;
+      }
+
+      .stats-info {
+        background-color: #0d1117;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        border: 1px solid #30363d;
+        text-align: center;
+        color: #8b949e;
+        font-size: 14px;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 15px;
+          margin: 10px;
+        }
+        
+        .button-group {
+          flex-direction: column;
+        }
+        
+        .btn {
+          width: 100%;
+          justify-content: center;
+        }
+        
+        .col-md-4, .col-md-8 {
+          margin-bottom: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="text-center">
+        <i class="fas fa-trophy"></i> إدارة ملفات البطولات JSON
+      </h1>
+
+      <div class="message-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          <i class="fas fa-info-circle"></i>
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+      </div>
+
+      <div class="row">
+        <div class="col-md-4">
+          <h3><i class="fas fa-folder-open"></i> ملفات البطولات المتاحة</h3>
+          {% if json_files %}
+          <div class="stats-info">
+            <i class="fas fa-file-alt"></i> عدد الملفات: {{ json_files|length }}
+          </div>
+          {% endif %}
+          <ul class="list-group">
+            {% for file in json_files %}
+            <li class="list-group-item {% if file == selected_file %}active{% endif %}" 
+                onclick="loadTournament('{{ file }}')" 
+                id="file-{{ loop.index0 }}">
+              <i class="fas fa-file-code"></i> {{ file }}
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="col-md-8">
+          {% if selected_file %}
+          <h3 id="selected-file-title">
+            <i class="fas fa-file-alt"></i> محتوى الملف: <strong>{{ selected_file }}</strong>
+          </h3>
+
+          {% if file_content and file_content != '[]' %}
+          <div class="stats-info">
+            <i class="fas fa-chart-bar"></i> 
+            عدد المسابقات: <strong id="competitions-count">0</strong> | 
+            إجمالي المتنافسين: <strong id="total-competitors">0</strong>
+          </div>
+
+          <div class="json-container">
+            <button class="copy-button" onclick="copyToClipboard()">
+              <i class="far fa-copy"></i> نسخ
+            </button>
+            <pre id="json-display">{{ file_content }}</pre>
+          </div>
+
+          <form id="tournament-form" method="POST" action="{{ url_for('manage_tournaments_actions') }}">
+            <input type="hidden" name="selected_file" value="{{ selected_file }}" />
+            <input type="hidden" name="action" id="form-action" value="" />
+            <input type="hidden" name="competition_indices" id="competition-indices" value="" />
+            <input type="hidden" name="swap_comp1_index" id="swap-comp1-index" value="" />
+            <input type="hidden" name="swap_comp1_competitor_index" id="swap-comp1-competitor-index" value="" />
+            <input type="hidden" name="swap_comp2_index" id="swap-comp2-index" value="" />
+            <input type="hidden" name="swap_comp2_competitor_index" id="swap-comp2-competitor-index" value="" />
+
+            <h4><i class="fas fa-tasks"></i> إجراءات على المسابقات المحددة</h4>
+            
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="select-all" onclick="toggleAllCheckboxes(this)" />
+              <label class="form-check-label" for="select-all">
+                <i class="fas fa-check-square"></i> تحديد الكل
+              </label>
+            </div>
+
+            <div id="competitions-list">
+              <!-- Competitions will be rendered here -->
+            </div>
+
+            <div class="button-group">
+              <button type="button" class="btn btn-danger" onclick="performAction('delete')" id="delete-btn" disabled>
+                <i class="fas fa-trash-alt"></i> حذف المسابقات المحددة
+              </button>
+              <button type="button" class="btn btn-primary" onclick="prepareSwap()" id="swap-btn" disabled>
+                <i class="fas fa-exchange-alt"></i> تبديل المتنافسين
+              </button>
+            </div>
+          </form>
+
+          <div class="paste-section">
+            <h4><i class="fas fa-paste"></i> لصق مسابقات جديدة</h4>
+            <form id="paste-form" method="POST" action="{{ url_for('manage_tournaments_actions') }}">
+              <input type="hidden" name="selected_file" value="{{ selected_file }}" />
+              <input type="hidden" name="action" value="paste" />
+              
+              <textarea id="paste-json" name="pasted_json" 
+                        placeholder='الصق هنا بيانات JSON للمسابقات (قائمة من الكائنات [{"videos": [...]}, ...])'></textarea>
+              
+              <div class="button-group">
+                <button type="submit" class="btn btn-success">
+                  <i class="fas fa-paste"></i> لصق ومعالجة
+                </button>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="paste_mode" id="paste-mode-append" value="append" checked />
+                  <label class="form-check-label" for="paste-mode-append">
+                    <i class="fas fa-plus"></i> إضافة
+                  </label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="paste_mode" id="paste-mode-replace" value="replace" />
+                  <label class="form-check-label" for="paste-mode-replace">
+                    <i class="fas fa-sync-alt"></i> استبدال الكل
+                  </label>
+                </div>
+              </div>
+            </form>
+          </div>
+          {% else %}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            الملف فارغ أو لا يحتوي على مسابقات صحيحة.
+          </div>
+          {% endif %}
+          
+          {% elif json_files %}
+          <div class="text-center" style="padding: 60px 20px;">
+            <i class="fas fa-hand-pointer fa-3x" style="color: #58a6ff; margin-bottom: 20px;"></i>
+            <p style="font-size: 18px; color: #8b949e;">الرجاء اختيار ملف بطولة من القائمة على اليسار.</p>
+          </div>
+          {% else %}
+          <div class="text-center" style="padding: 60px 20px;">
+            <i class="fas fa-folder-open fa-3x" style="color: #da3633; margin-bottom: 20px;"></i>
+            <p style="font-size: 18px; color: #8b949e;">لا توجد ملفات بطولات (.json) في المجلد المحدد.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Swap Modal -->
+    <div class="modal fade" id="swapModal" tabindex="-1" aria-labelledby="swapModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="swapModalLabel">
+              <i class="fas fa-exchange-alt"></i> تبديل المتنافسين
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p style="color: #8b949e; margin-bottom: 20px;">
+              حدد متنافسًا واحدًا من المسابقة الأولى ومتنافسًا واحدًا من المسابقة الثانية لتبديل مواقعهما.
+            </p>
+            <div class="row">
+              <div class="col-md-6">
+                <h6>المسابقة الأولى (<span id="swap-comp1-index-display"></span>)</h6>
+                <div id="swap-comp1-competitors"></div>
+              </div>
+              <div class="col-md-6">
+                <h6>المسابقة الثانية (<span id="swap-comp2-index-display"></span>)</h6>
+                <div id="swap-comp2-competitors"></div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              <i class="fas fa-times"></i> إلغاء
+            </button>
+            <button type="button" class="btn btn-primary" onclick="performSwap()" id="confirm-swap-btn" disabled>
+              <i class="fas fa-check"></i> تأكيد التبديل
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      let lastChecked = null;
+      let competitionData = null;
+
+      document.addEventListener("DOMContentLoaded", function () {
+        if ({{ selected_file is not none and file_content is not none and (file_content | length) > 0 }}) {
+          try {
+            const rawContent = `{{ file_content | safe }}`;
+            if (rawContent && rawContent.trim() !== '' && rawContent.trim() !== '[]') {
+              competitionData = JSON.parse(rawContent);
+              renderCompetitionsList(competitionData);
+              updateStats(competitionData);
+              formatJsonDisplay();
+            }
+          } catch (e) {
+            console.error("Error parsing initial file_content:", e);
+            alert("خطأ في تحليل محتوى الملف.");
+          }
+        }
+
+        const competitionsListDiv = document.getElementById("competitions-list");
+        if (competitionsListDiv) {
+          competitionsListDiv.addEventListener("click", function (event) {
+            if (event.target.classList.contains("competition-checkbox")) {
+              handleCheckboxClick(event);
+            }
+          });
+        }
+
+        const swapModal = document.getElementById("swapModal");
+        if (swapModal) {
+          swapModal.addEventListener('change', function() {
+            updateSwapButtonState();
+          });
+        }
+      });
+
+      function loadTournament(filename) {
+        window.location.href = "{{ url_for('manage_tournaments') }}?file=" + encodeURIComponent(filename);
+      }
+
+      function formatJsonDisplay() {
+        const jsonDisplay = document.getElementById("json-display");
+        if (!jsonDisplay) return;
+
+        let content = jsonDisplay.textContent;
+        try {
+          const data = JSON.parse(content);
+          const formattedJson = JSON.stringify(data, null, 2);
+          
+          let highlightedJson = formattedJson
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+          highlightedJson = highlightedJson.replace(
+            /(".*?"):\s/g,
+            '<span class="json-key">$1</span>: '
+          );
+          highlightedJson = highlightedJson.replace(
+            /".*?"/g,
+            '<span class="json-string">$&</span>'
+          );
+          highlightedJson = highlightedJson.replace(
+            /\b(true|false)\b/g,
+            '<span class="json-boolean">$&</span>'
+          );
+          highlightedJson = highlightedJson.replace(
+            /\b(null)\b/g,
+            '<span class="json-null">$&</span>'
+          );
+          highlightedJson = highlightedJson.replace(
+            /\b(-?\d+(\.\d+)?([eE][+-]?\d+)?)\b/g,
+            '<span class="json-number">$&</span>'
+          );
+
+          jsonDisplay.innerHTML = highlightedJson;
+        } catch (e) {
+          console.log("JSON formatting failed, keeping original");
+        }
+      }
+
+      function updateStats(data) {
+        if (!Array.isArray(data)) return;
+        
+        const competitionsCount = data.length;
+        let totalCompetitors = 0;
+        
+        data.forEach(comp => {
+          if (comp.videos && Array.isArray(comp.videos)) {
+            totalCompetitors += comp.videos.length;
+          }
+        });
+
+        const countElement = document.getElementById("competitions-count");
+        const totalElement = document.getElementById("total-competitors");
+        
+        if (countElement) countElement.textContent = competitionsCount;
+        if (totalElement) totalElement.textContent = totalCompetitors;
+      }
+
+      function copyToClipboard() {
+        const jsonDisplay = document.getElementById("json-display");
+        const textToCopy = jsonDisplay.textContent || jsonDisplay.innerText;
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          const copyButton = document.querySelector(".copy-button");
+          const originalText = copyButton.innerHTML;
+          copyButton.innerHTML = '<i class="fas fa-check"></i> تم النسخ';
+          copyButton.style.background = 'linear-gradient(135deg, #238636, #2ea043)';
+          
+          setTimeout(() => {
+            copyButton.innerHTML = originalText;
+            copyButton.style.background = 'linear-gradient(135deg, #238636, #2ea043)';
+          }, 2000);
+        }).catch((err) => {
+          console.error("Failed to copy text: ", err);
+          alert("فشل في نسخ النص. الرجاء المحاولة مرة أخرى.");
+        });
+      }
+
+      function renderCompetitionsList(data) {
+        const listContainer = document.getElementById("competitions-list");
+        listContainer.innerHTML = "";
+
+        if (!Array.isArray(data)) {
+          listContainer.innerHTML = "<p class='alert alert-warning'>بيانات الملف ليست في صيغة قائمة (Array).</p>";
+          return;
+        }
+
+        if (data.length === 0) {
+          listContainer.innerHTML = "<p class='alert alert-info'>لا توجد مسابقات في هذا الملف.</p>";
+          return;
+        }
+
+        data.forEach((comp, index) => {
+          const div = document.createElement("div");
+          div.classList.add("competition-entry");
+          div.setAttribute("data-index", index);
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.id = "comp-" + index;
+          checkbox.classList.add("form-check-input", "competition-checkbox");
+          checkbox.value = index;
+
+          const label = document.createElement("label");
+          label.classList.add("form-check-label");
+          label.htmlFor = "comp-" + index;
+          
+          const videosCount = comp.videos ? comp.videos.length : 0;
+          label.innerHTML = `<strong>مسابقة ${index + 1}</strong> (${videosCount} متنافس)`;
+
+          const videosList = document.createElement("div");
+          videosList.classList.add("video-list");
+          
+          if (comp.videos && Array.isArray(comp.videos)) {
+            comp.videos.forEach((video, videoIndex) => {
+              const videoItem = document.createElement("div");
+              videoItem.classList.add("video-item");
+              videoItem.innerHTML = `<i class="fas fa-video"></i> ${videoIndex + 1}. ${video}`;
+              videosList.appendChild(videoItem);
+            });
+          } else {
+            videosList.innerHTML = '<div class="video-item">لا يوجد فيديوهات</div>';
+          }
+
+          div.appendChild(checkbox);
+          div.appendChild(label);
+          div.appendChild(videosList);
+          listContainer.appendChild(div);
+        });
+
+        updateActionButtons();
+      }
+
+      function handleCheckboxClick(event) {
+        const currentCheckbox = event.target;
+        const checkboxes = document.querySelectorAll(".competition-checkbox");
+
+        if (event.shiftKey && lastChecked) {
+          const currentIndex = Array.from(checkboxes).indexOf(currentCheckbox);
+          const lastIndex = Array.from(checkboxes).indexOf(lastChecked);
+
+          const start = Math.min(currentIndex, lastIndex);
+          const end = Math.max(currentIndex, lastIndex);
+
+          for (let i = start; i <= end; i++) {
+            checkboxes[i].checked = currentCheckbox.checked;
+            const entry = checkboxes[i].closest('.competition-entry');
+            if (currentCheckbox.checked) {
+              entry.classList.add('selected');
+            } else {
+              entry.classList.remove('selected');
+            }
+          }
+        } else {
+          const entry = currentCheckbox.closest('.competition-entry');
+          if (currentCheckbox.checked) {
+            entry.classList.add('selected');
+          } else {
+            entry.classList.remove('selected');
+          }
+        }
+
+        lastChecked = currentCheckbox;
+        updateActionButtons();
+      }
+
+      function toggleAllCheckboxes(source) {
+        const checkboxes = document.querySelectorAll(".competition-checkbox");
+        checkboxes.forEach((checkbox) => {
+          checkbox.checked = source.checked;
+          const entry = checkbox.closest('.competition-entry');
+          if (source.checked) {
+            entry.classList.add('selected');
+          } else {
+            entry.classList.remove('selected');
+          }
+        });
+        lastChecked = null;
+        updateActionButtons();
+      }
+
+      function getSelectedCompetitionIndices() {
+        const selectedIndices = [];
+        document.querySelectorAll(".competition-checkbox:checked").forEach((checkbox) => {
+          selectedIndices.push(parseInt(checkbox.value, 10));
+        });
+        return selectedIndices;
+      }
+
+      function updateActionButtons() {
+        const selectedCount = getSelectedCompetitionIndices().length;
+        const deleteBtn = document.getElementById("delete-btn");
+        const swapBtn = document.getElementById("swap-btn");
+
+        deleteBtn.disabled = selectedCount === 0;
+        swapBtn.disabled = selectedCount !== 2;
+      }
+
+      function performAction(actionType) {
+        const selectedIndices = getSelectedCompetitionIndices();
+
+        if (selectedIndices.length === 0) {
+          alert("الرجاء تحديد مسابقة واحدة على الأقل.");
+          return;
+        }
+
+        let confirmMessage = "";
+        if (actionType === "delete") {
+          confirmMessage = `هل أنت متأكد أنك تريد حذف ${selectedIndices.length} مسابقة محددة؟ هذا الإجراء لا يمكن التراجع عنه.`;
+        } else {
+          console.error("Unknown action type:", actionType);
+          return;
+        }
+
+        if (confirm(confirmMessage)) {
+          document.getElementById("form-action").value = actionType;
+          document.getElementById("competition-indices").value = selectedIndices.join(",");
+          document.getElementById("tournament-form").submit();
+        }
+      }
+
+      function prepareSwap() {
+        const selectedIndices = getSelectedCompetitionIndices();
+        if (selectedIndices.length !== 2) {
+          alert("الرجاء تحديد مسابقتين بالضبط لعملية التبديل.");
+          return;
+        }
+
+        const compIndex1 = selectedIndices[0];
+        const compIndex2 = selectedIndices[1];
+
+        if (!competitionData || competitionData.length <= Math.max(compIndex1, compIndex2)) {
+          alert("خطأ في تحميل بيانات المسابقات للتبديل.");
+          console.error("competitionData missing or insufficient for swap preparation.");
+          return;
+        }
+
+        const comp1 = competitionData[compIndex1];
+        const comp2 = competitionData[compIndex2];
+
+        if (!comp1 || !comp2 || !Array.isArray(comp1.videos) || !Array.isArray(comp2.videos)) {
+          alert("بيانات المسابقات المحددة غير صحيحة.");
+          console.error("Invalid competition data structure for swap:", comp1, comp2);
+          return;
+        }
+
+        document.getElementById("swap-comp1-index").value = compIndex1;
+        document.getElementById("swap-comp2-index").value = compIndex2;
+
+        renderCompetitorOptions(comp1, compIndex1, "swap-comp1-competitors");
+        renderCompetitorOptions(comp2, compIndex2, "swap-comp2-competitors");
+
+        document.getElementById("swap-comp1-index-display").textContent = compIndex1 + 1;
+        document.getElementById("swap-comp2-index-display").textContent = compIndex2 + 1;
+
+        const swapModal = new bootstrap.Modal(document.getElementById("swapModal"));
+        swapModal.show();
+        updateSwapButtonState();
+      }
+
+      function renderCompetitorOptions(comp, compIndex, containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+
+        if (!comp.videos || comp.videos.length === 0) {
+          container.innerHTML = "<p class='alert alert-warning'>لا يوجد متنافسون في هذه المسابقة.</p>";
+          return;
+        }
+
+        comp.videos.forEach((videoName, competitorIndex) => {
+          const div = document.createElement("div");
+          div.classList.add("form-check", "competitor-item");
+
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = containerId === "swap-comp1-competitors" ? "selected_competitor_comp1" : "selected_competitor_comp2";
+          input.id = `comp${compIndex}_comp${competitorIndex}`;
+          input.classList.add("form-check-input");
+          input.value = competitorIndex;
+
+          const label = document.createElement("label");
+          label.classList.add("form-check-label");
+          label.htmlFor = `comp${compIndex}_comp${competitorIndex}`;
+          label.innerHTML = `<strong>المتنافس ${competitorIndex + 1}:</strong><br><small>${videoName}</small>`;
+
+          div.appendChild(input);
+          div.appendChild(label);
+          container.appendChild(div);
+        });
+      }
+
+      function updateSwapButtonState() {
+        const radio1Selected = document.querySelector('input[name="selected_competitor_comp1"]:checked');
+        const radio2Selected = document.querySelector('input[name="selected_competitor_comp2"]:checked');
+        document.getElementById('confirm-swap-btn').disabled = !(radio1Selected && radio2Selected);
+      }
+
+      function performSwap() {
+        const compIndex1 = document.getElementById("swap-comp1-index").value;
+        const compIndex2 = document.getElementById("swap-comp2-index").value;
+
+        const selectedCompetitor1Radio = document.querySelector('input[name="selected_competitor_comp1"]:checked');
+        const selectedCompetitor2Radio = document.querySelector('input[name="selected_competitor_comp2"]:checked');
+
+        if (!selectedCompetitor1Radio || !selectedCompetitor2Radio) {
+          alert("الرجاء تحديد متنافس واحد من كل مسابقة.");
+          return;
+        }
+
+        const competitorIndex1 = selectedCompetitor1Radio.value;
+        const competitorIndex2 = selectedCompetitor2Radio.value;
+
+        document.getElementById("swap-comp1-competitor-index").value = competitorIndex1;
+        document.getElementById("swap-comp2-competitor-index").value = competitorIndex2;
+        document.getElementById("form-action").value = "swap";
+
+        const swapModal = bootstrap.Modal.getInstance(document.getElementById("swapModal"));
+        swapModal.hide();
+
+        if (confirm(`هل أنت متأكد أنك تريد تبديل المتنافس ${parseInt(competitorIndex1, 10) + 1} من المسابقة ${parseInt(compIndex1, 10) + 1} مع المتنافس ${parseInt(competitorIndex2, 10) + 1} من المسابقة ${parseInt(compIndex2, 10) + 1}؟`)) {
+          document.getElementById("tournament-form").submit();
+        } else {
+          document.getElementById("form-action").value = "";
+          document.getElementById("swap-comp1-index").value = "";
+          document.getElementById("swap-comp1-competitor-index").value = "";
+          document.getElementById("swap-comp2-index").value = "";
+          document.getElementById("swap-comp2-competitor-index").value = "";
+        }
+      }
+    </script>
+  </body>
+</html>

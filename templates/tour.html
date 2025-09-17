@@ -1,0 +1,770 @@
+<!doctype html>
+
+<html lang="ar">
+  <head>
+    <meta charset="utf-8" />
+    <title>مسابقة الفيديو - المسابقة</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+<style>
+  body.dark-mode {
+    background-color: #121212;
+    color: #e0e0e0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .container {
+    max-width: 900px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: #f8f9fa;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .card {
+    background-color: #292929;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .card:hover {
+    transform: translateY(-5px);
+  }
+
+  .form-label {
+    color: #ced4da;
+    font-weight: 500;
+  }
+
+  .form-control,
+  .form-select {
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #444;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    background-color: #444;
+    color: #fff;
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+
+  .btn-success,
+  .btn-primary,
+  .btn-secondary {
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .btn-secondary:hover {
+    filter: brightness(1.2);
+  }
+
+  .alert {
+    border-radius: 8px;
+  }
+
+  .file-preview {
+    max-width: 200px;
+    max-height: 200px;
+    border: 1px solid #555;
+    margin-right: 10px;
+    border-radius: 8px;
+  }
+
+  table td {
+    vertical-align: middle;
+  }
+
+  .preview {
+    display: inline-block;
+    margin: 5px;
+    text-align: center;
+  }
+
+  .video-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    padding: 1rem 0;
+  }
+
+  .video-card {
+    background: #1f1f1f;
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    width: 200px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease-in-out;
+    border: 1px solid #333;
+  }
+
+  .video-card:hover {
+    transform: scale(1.05);
+  }
+
+  .video-card .ranking {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: #ddd;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+  }
+
+  .small-video {
+    width: 180px;
+    height: auto;
+    border-radius: 8px;
+  }
+  
+  .small-image {
+    width: 180px;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  .loading-placeholder {
+    background: #333;
+    width: 180px;
+    height: 180px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+  }
+
+  .btn-success::before {
+    font-family: "Font Awesome 6 Free";
+    content: "\f067";
+    margin-right: 0.5rem;
+    font-weight: 900;
+  }
+
+  .btn-primary::before {
+    font-family: "Font Awesome 6 Free";
+    content: "\f044";
+    margin-right: 0.5rem;
+    font-weight: 900;
+  }
+
+  .btn-secondary::before {
+    font-family: "Font Awesome 6 Free";
+    content: "\f015";
+    margin-right: 0.5rem;
+    font-weight: 900;
+  }
+  
+  /* تعديلات الأزرار لتكون أكثر داكنة وصغيرة */
+  .btn-custom-rename,
+  .btn-custom-delete {
+    padding: 0.25rem 0.6rem; /* أصغر Padding */
+    font-size: 0.8rem; /* خط أصغر */
+    border-radius: 6px; /* حواف أكثر استدارة بقليل */
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    display: inline-flex; /* لجعل الأيقونة والنص متجاورين */
+    align-items: center; /* لمحاذاة عمودية */
+    white-space: nowrap; /* لمنع الكلمات من الالتفاف */
+    margin-right: 5px; /* مسافة بين الأزرار إذا كانت متجاورة */
+  }
+
+  .btn-custom-rename {
+    background-color: #4a4a4a; /* لون رمادي داكن للخلفية */
+    border-color: #555; /* حدود أغمق */
+    color: #e0e0e0; /* لون نص فاتح */
+  }
+
+  .btn-custom-rename:hover {
+    background-color: #5a5a5a; /* لون أفتح عند التحويم */
+    border-color: #666;
+    color: #fff;
+  }
+
+  .btn-custom-delete {
+    background-color: #8b0000; /* أحمر داكن للحذف */
+    border-color: #a00000; /* حدود أغمق */
+    color: #e0e0e0;
+  }
+
+  .btn-custom-delete:hover {
+    background-color: #a00000; /* أحمر أفتح عند التحويم */
+    border-color: #b00000;
+    color: #fff;
+  }
+
+  /* أيقونات الأزرار الجديدة */
+  .btn-custom-rename .fas,
+  .btn-custom-delete .fas {
+    margin-right: 0.3rem; /* مسافة أقل للأيقونة */
+    font-size: 0.7rem; /* حجم أيقونة أصغر قليلا */
+  }
+
+  .tournament-name {
+    font-size: 1.2rem;
+    color: #bbb;
+    font-weight: 600;
+    font-family: "Roboto", sans-serif;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    flex-wrap: wrap; 
+  }
+  .tournament-name form {
+      margin-left: 10px; /* مسافة بين الاسم والأزرار */
+      margin-top: 5px; /* مسافة بسيطة للأزرار إذا نزلت لأسفل */
+      white-space: nowrap; 
+  }
+
+  .home-button-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+  }
+</style>
+  </head>
+
+  <body class="dark-mode">
+    <div class="home-button-container">
+      <a href="{{ url_for('index') }}" class="btn btn-secondary"
+        >العودة للصفحة الرئيسية</a
+      >
+    </div>
+    <div class="container mt-5">
+      <h1 class="text-center mb-4">إدارة المسابقة</h1>
+
+      <!-- إضافة خيارات الترتيب والعرض -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5>خيارات العرض والترتيب</h5>
+          <form method="POST">
+            <div class="row">
+              <div class="col-md-6">
+                <label for="view_type" class="form-label">نوع العرض:</label>
+                <select class="form-select" name="view_type" id="view_type">
+                  <option value="tournaments" {% if current_view == 'tournaments' %}selected{% endif %}>البطولات</option>
+                  <option value="videos" {% if current_view == 'videos' %}selected{% endif %}>الفيديوهات الفردية</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="sort_type" class="form-label">نوع الترتيب:</label>
+                <select class="form-select" name="sort_type" id="sort_type">
+                  <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>الأحدث</option>
+                  <option value="asc_weight" {% if current_sort == 'asc_weight' %}selected{% endif %}>تصاعدي حسب الوزن</option>
+                  <option value="desc_weight" {% if current_sort == 'desc_weight' %}selected{% endif %}>تنازلي حسب الوزن</option>
+                  <option value="most_frequent" {% if current_sort == 'most_frequent' %}selected{% endif %}>الأكثر تكراراً</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">تطبيق</button>
+          </form>
+        </div>
+      </div>
+      <!-- نهاية خيارات الترتيب والعرض -->
+
+{% with messages = get_flashed_messages(with_categories=true) %} {% if
+  messages %}
+  <div class="mb-4">
+    {% for category, message in messages %}
+    <div
+      class="alert alert-{{ category }} alert-dismissible fade show"
+      role="alert"
+    >
+      {{ message }}
+      <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="alert"
+      ></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %} {% endwith %}
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card">
+        <h3>إنشاء مسابقة جديدة</h3>
+        <form action="{{ url_for('tour_create') }}" method="POST">
+          <div class="mb-3">
+            <label for="json_file" class="form-label">اختر ملف JSON:</label>
+            <select
+              class="form-select"
+              id="json_file"
+              name="json_file"
+              required
+            >
+              {% for file in available_files %}
+              <option value="{{ file }}">{{ file }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="num_participants" class="form-label"
+              >عدد المشاركين:</label
+            >
+            <input
+              type="number"
+              class="form-control"
+              id="num_participants"
+              name="num_participants"
+              required
+            />
+            <label for="num_videos">عدد الفيديوهات لكل مباراة:</label>
+            <input
+              type="number"
+              id="num_videos"
+              name="num_videos"
+              min="2"
+              value="2"
+            />
+            <br />
+            <label for="ranking_type">نوع التصنيف:</label>
+            <select id="ranking_type" name="ranking_type">
+              <option value="winner_only">Winner Only</option>
+              <option value="ranked_type">Ranked Type</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-success">
+            إنشاء المسابقة
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card">
+        <h3>متابعة مسابقة موجودة</h3>
+        <form
+          id="continueTournamentForm"
+          action="{{ url_for('tour_continue') }}"
+          method="POST"
+        >
+          <div class="mb-3">
+            <label for="tournament_file" class="form-label"
+              >اختر ملف المسابقة:</label
+            >
+            <select
+              class="form-select"
+              id="tournament_file"
+              name="tournament_file"
+              required
+            >
+              {% for file in tournament_files %}
+              <option value="{{ file }}">{{ file }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            متابعة المسابقة
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-5">
+    <h2 class="text-center">
+      {% if current_view == 'videos' %}
+        الفيديوهات الفردية
+      {% else %}
+        أرشيف المسابقات المنتهية
+      {% endif %}
+    </h2>
+    
+    {% if current_view == 'videos' %}
+      <!-- عرض الفيديوهات الفردية -->
+      {% if video_weights %}
+      <div class="video-container" id="videoContainer">
+        {% for video_name, weight in video_weights %}
+        <div class="video-card">
+          <div class="ranking">{{ video_name }}</div>
+          <div class="ranking">الوزن: {{ "%.2f"|format(weight) }}</div>
+          <div class="ranking">التكرار: {{ video_counts[video_name] }}</div>
+          <div class="preview">
+            {% if video_name is string and (video_name.lower().endswith('.jpg') or video_name.lower().endswith('.jpeg') or video_name.lower().endswith('.png') or video_name.lower().endswith('.gif')) %}
+                <img src="{{ url_for('serve_video', filename=video_name) }}" class="small-image" alt="{{ video_name }}">
+            {% else %}
+                <div class="loading-placeholder" data-video-src="{{ url_for('serve_video', filename=video_name) }}">
+                    <i class="fas fa-video fa-2x"></i>
+                </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-center text-muted">لا توجد فيديوهات متاحة.</p>
+      {% endif %}
+      
+    {% else %}
+      <!-- عرض البطولات (الكود الأصلي) -->
+      {% if tournament_archive %}
+      <div class="video-container" id="videoContainer">
+        {% for tournament_id, tournament_data in tournament_archive %}
+        <div class="w-100 text-center tournament-name">
+          {{ tournament_id }} (وزن: {{ "%.2f"|format(get_tournament_weight(tournament_id)) if get_tournament_weight else 0 }})
+          
+          <!-- زر إعادة التسمية -->
+          <form action="{{ url_for('delete_tournament', tournament_id=tournament_id) }}" method="POST" style="display:inline;" onsubmit="return handleRename('{{ tournament_id }}', this)">
+              <input type="hidden" name="action" value="rename">
+              <input type="hidden" name="new_name" value="">
+              <button type="submit" class="btn btn-custom-rename">
+                  <i class="fas fa-edit"></i> إعادة تسمية
+              </button>
+          </form>
+          
+          <!-- زر الحذف -->
+          <form action="{{ url_for('delete_tournament', tournament_id=tournament_id) }}" method="POST" style="display:inline;" onsubmit="return confirmDelete('{{ tournament_id }}')">
+              <input type="hidden" name="action" value="delete">
+              <button type="submit" class="btn btn-custom-delete">
+                  <i class="fas fa-trash"></i> حذف
+              </button>
+          </form>
+        </div>
+
+        {% if tournament_data.get('top1') %}
+        <div class="video-card">
+          <div class="ranking">TOP 1 🏆</div>
+          <div class="preview">
+            {% if tournament_data['top1']['video'] %}
+              {% set filename = tournament_data['top1']['video'] %}
+              {% if filename is string and (filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg') or filename.lower().endswith('.png') or filename.lower().endswith('.gif')) %}
+                <img src="{{ url_for('serve_video', filename=filename) }}" class="small-image" alt="TOP 1">
+              {% else %}
+                <div
+                  class="loading-placeholder"
+                  data-video-src="{{ url_for('serve_video', filename=filename) }}"
+                >
+                  <i class="fas fa-video fa-2x"></i>
+                </div>
+              {% endif %}
+            {% else %}
+              <p class="text-muted">لا يوجد فيديو TOP 1</p>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %} 
+        
+        {% if tournament_data.get('top2') %}
+        <div class="video-card">
+          <div class="ranking">TOP 2 🥈</div>
+          <div class="preview">
+            {% if tournament_data['top2']['video'] %}
+              {% set filename = tournament_data['top2']['video'] %}
+              {% if filename is string and (filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg') or filename.lower().endswith('.png') or filename.lower().endswith('.gif')) %}
+                <img src="{{ url_for('serve_video', filename=filename) }}" class="small-image" alt="TOP 2">
+              {% else %}
+                <div
+                  class="loading-placeholder"
+                  data-video-src="{{ url_for('serve_video', filename=filename) }}"
+                >
+                  <i class="fas fa-video fa-2x"></i>
+                </div>
+              {% endif %}
+            {% else %}
+              <p class="text-muted">لا يوجد فيديو TOP 2</p>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %} 
+        
+        {% if tournament_data.get('top3') %}
+        <div class="video-card">
+          <div class="ranking">TOP 3 🥉</div>
+          <div class="preview">
+            {% if tournament_data['top3']['video'] %}
+              {% set filename = tournament_data['top3']['video'] %}
+              {% if filename is string and (filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg') or filename.lower().endswith('.png') or filename.lower().endswith('.gif')) %}
+                <img src="{{ url_for('serve_video', filename=filename) }}" class="small-image" alt="TOP 3">
+              {% else %}
+                <div
+                  class="loading-placeholder"
+                  data-video-src="{{ url_for('serve_video', filename=filename) }}"
+                >
+                  <i class="fas fa-video fa-2x"></i>
+                </div>
+              {% endif %}
+            {% else %}
+              <p class="text-muted">لا يوجد فيديو TOP 3</p>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %} 
+        
+        {% if tournament_data.get('top4') %}
+        <div class="video-card">
+          <div class="ranking">TOP 4</div>
+          <div class="preview">
+            {% if tournament_data['top4']['video'] %}
+              {% set filename = tournament_data['top4']['video'] %}
+              {% if filename is string and (filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg') or filename.lower().endswith('.png') or filename.lower().endswith('.gif')) %}
+                <img src="{{ url_for('serve_video', filename=filename) }}" class="small-image" alt="TOP 4">
+              {% else %}
+                <div
+                  class="loading-placeholder"
+                  data-video-src="{{ url_for('serve_video', filename=filename) }}"
+                >
+                  <i class="fas fa-video fa-2x"></i>
+                </div>
+              {% endif %}
+            {% else %}
+              <p class="text-muted">لا يوجد فيديو TOP 4</p>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %} 
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-center text-muted">
+        لا يوجد أرشيف للمسابقات المنتهية حتى الآن.
+      </p>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  document
+    .getElementById("continueTournamentForm")
+    .addEventListener("submit", function () {
+      let tournamentFile = document.getElementById("tournament_file").value;
+      localStorage.setItem("selected_folder", tournamentFile);
+    });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    let selectedFolder =
+      localStorage.getItem("selected_folder") ||
+      "{{ selected_folder|default('') }}";
+    if (selectedFolder) {
+      console.log("تم اكتشاف ملف البطولة: " + selectedFolder);
+      localStorage.removeItem("selected_folder");
+      setTimeout(function () {
+        fetch("/get_tournament_content/" + selectedFolder)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("خطأ في استلام بيانات البطولة");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            console.log("تم جلب بيانات البطولة:", data);
+            let form = document.createElement("form");
+            form.method = "POST";
+            form.action = "/competition";
+
+            let input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "json_data";
+            input.value = JSON.stringify(data);
+            form.appendChild(input);
+
+            document.body.appendChild(form);
+            form.submit();
+          })
+          .catch((error) => {
+            console.error("حدث خطأ أثناء جلب بيانات البطولة:", error);
+          });
+      }, 500);
+    }
+  });
+</script>
+
+<script>
+  // 1. نفصل منطق التحميل في دالة ليمكن استدعائها عند الحاجة
+  function startLoading(placeholders) {
+    let idx = 0;
+    const batchSize = 4; // عدد الفيديوهات المراد تحميلها في كل دفعة
+
+    function loadNextBatch() {
+      let cnt = 0; // عداد للفيديوهات التي تم تحميلها في الدفعة الحالية
+
+      while (
+        cnt < batchSize &&
+        idx < placeholders.length
+      ) {
+        const ph = placeholders[idx];
+        const videoSrc = ph.dataset.videoSrc;
+
+        // إنشاء عنصر <video> كما كان موجوداً
+        const video = document.createElement("video");
+        video.className = "small-video";
+        video.controls = true;
+        video.muted = true; // يبدأ كتم الصوت
+        video.autoplay = false; // لا يتم التشغيل التلقائي
+        video.playsInline = true; // لتشغيل الفيديو في نفس المكان على iOS Safari
+        video.preload = "metadata"; // يحمل فقط البيانات الوصفية في البداية
+
+        // إضافة مستمع للأحداث لتشغيل الفيديو لثانية ثم إيقافه
+        video.onloadeddata = function () {
+          this.play();
+          setTimeout(() => this.pause(), 1000);
+        };
+
+        const source = document.createElement("source");
+        source.src = videoSrc;
+        source.type = "video/mp4";
+        video.appendChild(source);
+
+        ph.replaceWith(video); // استبدال العنصر النائب بالفيديو
+
+        idx++;
+        cnt++;
+      }
+
+      // جدولة الدفعة التالية فقط إن كان هناك المزيد من الفيديوهات للتحميل
+      if (idx < placeholders.length) {
+        setTimeout(loadNextBatch, 1000); // تحميل الدفعة التالية بعد ثانية واحدة
+      }
+    }
+
+    loadNextBatch(); // بدء تحميل الدفعة الأولى
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    // 2. نشغل التحميل فقط عند النقر على اسم البطولة (tournament-name)
+    document.querySelectorAll(".tournament-name").forEach(function (nameEl) {
+      // متغير لتتبع ما إذا كانت هذه البطولة قد تم تحميل فيديوهاتها بالفعل
+      let loaded = false; 
+      
+      nameEl.addEventListener("click", function (event) { // إضافة event كباراميتر
+        // التأكد من أن النقر ليس على الأزرار داخل الـ tournament-name
+        if (event.target.closest('form')) {
+          return;
+        }
+
+        if (loaded) { // إذا كانت الفيديوهات قد حملت بالفعل، لا تفعل شيئاً
+          return;
+        }
+
+        // نجمع كل الـ placeholders التابعة لهذه البطولة
+        const placeholders = [];
+        let el = nameEl.nextElementSibling; // نبدأ من العنصر التالي لـ tournament-name
+
+        // نمر على العناصر حتى نصل إلى اسم بطولة أخرى أو نهاية الأرشيف
+        while (el && !el.classList.contains("tournament-name")) {
+          // نبحث عن أي .loading-placeholder داخل الـ .video-card
+          const ph = el.querySelector(".loading-placeholder");
+          if (ph) {
+            placeholders.push(ph);
+          }
+          el = el.nextElementSibling;
+        }
+
+        // 3. نبدأ التحميل عند أول نقرة
+        if (placeholders.length) {
+          startLoading(placeholders);
+          loaded = true; // نعين إلى true لمنع التحميل مرة أخرى لهذه البطولة
+        }
+      });
+    });
+
+    // تشغيل التحميل للفيديوهات الفردية مباشرة عند تحميل الصفحة (إذا كان العرض فيديوهات فردية)
+    const currentView = document.getElementById('view_type') ? document.getElementById('view_type').value : null;
+    if (currentView === 'videos') {
+        const videoPlaceholders = document.querySelectorAll('#videoContainer .loading-placeholder');
+        if (videoPlaceholders.length) {
+            startLoading(Array.from(videoPlaceholders));
+        }
+    }
+  });
+</script>
+
+<script>
+  // دالة التعامل مع إعادة التسمية
+  function handleRename(tournamentId, form) {
+      const newName = prompt("أدخل الاسم الجديد للبطولة:", tournamentId);
+      if (newName && newName.trim() !== "" && newName !== tournamentId) {
+          form.querySelector('input[name="new_name"]').value = newName.trim();
+          return true; // إرسال النموذج إذا تم إدخال اسم جديد
+      }
+      return false; // إلغاء إرسال النموذج
+  }
+
+  // دالة تأكيد الحذف
+  function confirmDelete(tournamentId) {
+      return confirm("هل أنت متأكد أنك تريد حذف البطولة " + tournamentId + "؟");
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    // التعامل مع قائمة ملفات JSON الخاصة بإنشاء مسابقة جديدة
+    const jsonSelect = document.getElementById("json_file");
+    if (jsonSelect) {
+      const optionsArray = Array.from(jsonSelect.options);
+      // عكس الترتيب بحيث يصبح أحدث ملف أولاً
+      optionsArray.reverse();
+      jsonSelect.innerHTML = "";
+      optionsArray.forEach((option) => {
+        jsonSelect.add(option);
+      });
+      // استرجاع الملف المختار سابقًا من localStorage إن وُجد
+      const storedJsonFile = localStorage.getItem("selected_json_file");
+      if (storedJsonFile) {
+        jsonSelect.value = storedJsonFile;
+      }
+      // عند تغيير الاختيار، حفظ القيمة في localStorage
+      jsonSelect.addEventListener("change", function () {
+        localStorage.setItem("selected_json_file", jsonSelect.value);
+      });
+    }
+
+    // التعامل مع قائمة ملفات JSON الخاصة بمتابعة مسابقة موجودة
+    const tournamentSelect = document.getElementById("tournament_file");
+    if (tournamentSelect) {
+      const optionsArray = Array.from(tournamentSelect.options);
+      // عكس الترتيب بحيث يصبح أحدث ملف أولاً
+      optionsArray.reverse();
+      tournamentSelect.innerHTML = "";
+      optionsArray.forEach((option) => {
+        tournamentSelect.add(option);
+      });
+      // استرجاع الملف المختار سابقًا من localStorage إن وُجد
+      const storedTournamentFile = localStorage.getItem(
+        "selected_tournament_file",
+      );
+      if (storedTournamentFile) {
+        tournamentSelect.value = storedTournamentFile;
+      }
+      // عند تغيير الاختيار، حفظ القيمة في localStorage
+      tournamentSelect.addEventListener("change", function () {
+        localStorage.setItem(
+          "selected_tournament_file",
+          tournamentSelect.value,
+        );
+      });
+    }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

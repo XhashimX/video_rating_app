@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Chat (Termux - محسن v2 - تخزين خادم)</title>
+
+    <!-- highlight.js CDN -->
+    <!-- تم تغيير الستايل الافتراضي ليتناسب أكثر مع الوضع الفاتح/الداكن -->
+    <link id="hljs-style" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- marked.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@latest/marked.min.js"></script>
+
+    <style>
+        /* --- Base & Dark Mode --- */
+        :root {
+            --bg-color: #f0f0f0; --text-color: #333; --container-bg: #fff;
+            --input-bg: #fff; --input-border: #ccc; --chatbox-bg: #f9f9f9;
+            --message-user-bg: #d1eaff; --message-model-bg: #e2e3e5;
+            --button-bg: #007bff; --button-text: #fff; --button-hover-bg: #0056b3;
+            --secondary-button-bg: #6c757d; --secondary-button-hover-bg: #5a6268;
+            --border-color: #eee; --link-color: #007bff; --error-color: #dc3545;
+            --success-color: #28a745;
+            --sidebar-bg: #e9ecef; --sidebar-hover-bg: #dee2e6; --active-chat-bg: #cce5ff;
+            --code-bg: #f3f3f3; --code-text: #383a42; --copy-btn-bg: rgba(80, 80, 80, 0.7);
+            --copy-btn-hover-bg: rgba(50, 50, 50, 0.9);
+            --toggle-btn-bg: var(--secondary-button-bg);
+            --action-btn-bg: rgba(100, 100, 100, 0.6); --action-btn-hover-bg: rgba(70, 70, 70, 0.8);
+            --edit-textarea-bg: #fff; --edit-textarea-border: #aaa;
+        }
+        body.dark-mode {
+            --bg-color: #121212; --text-color: #e0e0e0; --container-bg: #1e1e1e;
+            --input-bg: #2a2a2a; --input-border: #555; --chatbox-bg: #252525;
+            --message-user-bg: #00558a; --message-model-bg: #3a3a3a;
+            --button-bg: #0d6efd; --button-hover-bg: #0b5ed7;
+            --secondary-button-bg: #5c636a; --secondary-button-hover-bg: #4a4f54;
+            --border-color: #333; --link-color: #60a5fa; --error-color: #f87171;
+            --success-color: #4ade80;
+            --sidebar-bg: #2a2a2a; --sidebar-hover-bg: #3a3a3a; --active-chat-bg: #00406b;
+            --code-bg: #2b2b2b; --code-text: #f8f8f2; --copy-btn-bg: rgba(180, 180, 180, 0.7);
+             --copy-btn-hover-bg: rgba(210, 210, 210, 0.9);
+             --toggle-btn-bg: var(--secondary-button-bg);
+             --action-btn-bg: rgba(200, 200, 200, 0.6); --action-btn-hover-bg: rgba(230, 230, 230, 0.8);
+             --edit-textarea-bg: #333; --edit-textarea-border: #666;
+        }
+
+        /* --- Layout --- */
+        body {
+            font-family: sans-serif; margin: 0; padding: 0;
+            background-color: var(--bg-color); color: var(--text-color);
+            display: flex; height: 100vh; overflow: hidden; position: relative;
+        }
+        .sidebar, .settings-area {
+            background-color: var(--sidebar-bg); padding: 15px;
+            display: flex; flex-direction: column;
+            transition: width 0.3s ease, padding 0.3s ease, opacity 0.3s ease, border 0.3s ease;
+            overflow-y: auto; overflow-x: hidden; flex-shrink: 0;
+            height: 100%; box-sizing: border-box;
+        }
+        .sidebar { width: 220px; border-left: 1px solid var(--border-color); }
+        .settings-area { width: 280px; border-right: 1px solid var(--border-color); }
+
+        .sidebar.collapsed, .settings-area.collapsed {
+            width: 0 !important; padding-left: 0 !important; padding-right: 0 !important;
+            opacity: 0; border: none;
+        }
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; height: 100%; }
+        .container {
+            flex: 1; background: var(--container-bg); padding: 15px;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* --- Sidebar/Settings Content --- */
+        .sidebar h2, .settings-area h2 { margin-top: 0; font-size: 1.1em; margin-bottom: 10px;}
+        .sidebar button#new-chat-btn { width: 100%; margin-bottom: 15px; }
+        #chat-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow-y: auto;}
+        #chat-list li { padding: 8px 10px; margin-bottom: 5px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; word-break: break-word; position: relative; }
+        #chat-list li:hover { background-color: var(--sidebar-hover-bg); }
+        #chat-list li.active { background-color: var(--active-chat-bg); font-weight: bold; }
+        .chat-name { flex-grow: 1; margin-right: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .delete-chat-btn { background: none; border: none; color: var(--error-color); cursor: pointer; font-size: 1.1em; padding: 0 5px; display: none; /* Hide by default */ margin-left: 5px; }
+        #chat-list li:hover .delete-chat-btn { display: inline; }
+
+        label { display: block; margin-top: 8px; margin-bottom: 3px; font-weight: bold; font-size: 0.9em;}
+        input[type="number"], input[type="checkbox"], select, textarea {
+            width: 100%; padding: 8px; margin-bottom: 8px;
+            border: 1px solid var(--input-border); border-radius: 4px;
+            box-sizing: border-box; font-size: 0.95em;
+            background-color: var(--input-bg); color: var(--text-color);
+        }
+        input[type="checkbox"] { width: auto; margin-left: 5px;} /* Adjust checkbox */
+        .settings-area button { width: 100%; margin-bottom: 8px; }
+        .settings-area label[for="import-chats-input"] { margin-bottom: 8px; cursor: pointer;} /* Style the file input label */
+
+
+        /* --- Chat Area --- */
+        .container h1 { text-align: center; color: var(--text-color); margin-top: 5px; margin-bottom: 15px; font-size: 1.3em;}
+        #chatbox {
+            border: 1px solid var(--border-color); padding: 10px; height: 100%;
+            overflow-y: scroll; background-color: var(--chatbox-bg); border-radius: 4px; flex: 1;
+            margin-bottom: 10px;
+        }
+        .message { margin-bottom: 12px; padding: 8px 12px; border-radius: 15px; word-wrap: break-word; max-width: 90%; clear: both; line-height: 1.4; position: relative; }
+        .user-message { background-color: var(--message-user-bg); text-align: left; float: right; border-bottom-right-radius: 0;}
+        .model-message { background-color: var(--message-model-bg); text-align: left; float: left; border-bottom-left-radius: 0;}
+        .message-content { /* New wrapper for actual text/code */ }
+        .message-actions { /* Container for buttons */
+            position: absolute; top: 1px; left: 5px; /* Adjust as needed */
+            display: none; /* Hidden by default */
+            gap: 3px;
+            background: rgba(0,0,0,0.05);
+            padding: 1px 3px;
+            border-radius: 4px;
+        }
+        .message:hover .message-actions { display: flex; }
+        .model-message .message-actions { left: unset; right: 5px; } /* Actions on other side for model */
+
+        .message-action-btn {
+            background-color: var(--action-btn-bg); color: var(--text-color);
+            border: none; border-radius: 3px; padding: 1px 4px; font-size: 0.8em;
+            cursor: pointer; opacity: 0.8; transition: opacity 0.2s;
+        }
+        .message-action-btn:hover { background-color: var(--action-btn-hover-bg); opacity: 1; }
+        .message-action-btn.copied { background-color: var(--success-color); color: white; }
+
+
+        .model-message strong { color: var(--link-color); }
+        .model-message pre { position: relative; background-color: var(--code-bg); color: var(--code-text); padding: 10px; padding-top: 30px; /* Space for button */ border-radius: 4px; overflow-x: auto; margin: 8px 0; }
+        .model-message code:not(pre code) { /* Inline code */ padding: 2px 4px; background-color: var(--code-bg); border-radius: 3px;}
+        .model-message pre .copy-code-btn { /* Kept for direct code copy */
+            position: absolute; top: 5px; right: 5px;
+            background-color: var(--copy-btn-bg); color: var(--button-text);
+            border: none; border-radius: 3px; padding: 2px 6px; font-size: 0.75em;
+            cursor: pointer; opacity: 0; transition: opacity 0.2s; z-index: 1;
+        }
+         .model-message pre:hover .copy-code-btn { opacity: 1; }
+         .copy-code-btn:hover { background-color: var(--copy-btn-hover-bg); }
+
+        /* Editing Styles */
+        .message.editing .message-content { display: none; } /* Hide original content */
+        .edit-container { display: none; flex-direction: column; margin-top: 5px; }
+        .message.editing .edit-container { display: flex; }
+        .edit-textarea {
+            width: 100%; min-height: 60px; resize: vertical;
+            border: 1px solid var(--edit-textarea-border); border-radius: 4px;
+            padding: 6px; font-family: inherit; font-size: 0.95em;
+            background-color: var(--edit-textarea-bg); color: var(--text-color);
+            margin-bottom: 5px; box-sizing: border-box;
+        }
+        .edit-controls button {
+            padding: 4px 8px; font-size: 0.85em; margin-left: 5px;
+            border: none; border-radius: 3px; cursor: pointer;
+        }
+        .edit-controls .save-edit-btn { background-color: var(--button-bg); color: var(--button-text); }
+        .edit-controls .save-edit-btn:hover { background-color: var(--button-hover-bg); }
+        .edit-controls .cancel-edit-btn { background-color: var(--secondary-button-bg); color: var(--button-text); }
+        .edit-controls .cancel-edit-btn:hover { background-color: var(--secondary-button-hover-bg); }
+        .edit-controls .regenerate-edit-btn { background-color: var(--success-color); color: var(--button-text); } /* Green? */
+
+
+        #chat-form { display: flex; margin-top: auto; }
+        #chat-form textarea { flex-grow: 1; margin-right: 5px; height: 60px; resize: none; }
+        #chat-form button { height: 60px; flex-shrink: 0;}
+
+        /* --- Controls & Info --- */
+        .error-message { color: var(--error-color); font-weight: bold; margin-top: 5px; font-size: 0.9em; text-align: center; min-height: 1.2em; }
+        .token-info { font-size: 0.8em; color: var(--text-color); opacity: 0.7; margin-top: 5px; text-align: center; padding: 3px; border-radius: 3px;}
+        #loading { display: none; text-align: center; margin-top: 10px; font-weight: bold; color: var(--link-color);}
+
+        /* Toggle Buttons */
+        .sidebar-toggle, .settings-toggle {
+             position: absolute; top: 10px;
+             background-color: var(--toggle-btn-bg); color: var(--button-text);
+             border: none; padding: 5px 8px; cursor: pointer;
+             z-index: 1001; border-radius: 4px; font-size: 1.2em; line-height: 1;
+        }
+        .sidebar-toggle { right: 10px; } /* Chat list toggle */
+        .settings-toggle { left: 10px; } /* Settings toggle */
+        #dark-mode-toggle { position: absolute; top: 10px; left: 50px; z-index: 1001; background: none; border: none; font-size: 1.5em; cursor: pointer;} /* Adjusted position */
+
+        /* Feature Controls */
+        .feature-controls { margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 10px;}
+        .feature-controls label { display: flex; align-items: center; margin-bottom: 5px; } /* Align checkbox and text */
+        .feature-controls input[type="checkbox"] { margin-right: 8px; }
+        .thinking-budget-control, .search-grounding-control { display: none; } /* Hide by default */
+        .thinking-budget-control label { margin-left: 25px; } /* Indent budget */
+        .thinking-budget-control input { margin-left: 25px; width: calc(100% - 25px);}
+
+    </style>
+</head>
+<body>
+    <!-- Toggle Buttons -->
+    <button id="settings-toggle" title="تبديل الإعدادات"><</button> <!-- Use arrows or icons -->
+    <button id="sidebar-toggle" title="تبديل المحادثات">></button>
+    <button id="dark-mode-toggle">🌙</button>
+
+    <!-- Settings Area (Left) -->
+    <div class="settings-area">
+        <h2>الإعدادات النشطة</h2>
+        <label for="model-select">المودل:</label>
+        <select id="model-select">
+             <!-- Options will be populated by JavaScript -->
+        </select>
+
+        <label for="temperature">الحرارة:</label>
+        <input type="number" id="temperature" value="1.0" min="0" max="2" step="0.1">
+
+        <label for="top-p">Top-P:</label>
+        <input type="number" id="top-p" value="1.0" min="0" max="1" step="0.1">
+
+        <label for="top-k">Top-K:</label>
+        <input type="number" id="top-k" value="1" min="1" step="1">
+
+        <label for="max-tokens">أقصى توكنز للإخراج:</label>
+        <input type="number" id="max-tokens" value="65536" min="1" readonly title="يتم تحديده تلقائياً بناءً على المودل">
+
+        <!-- Feature Controls Section -->
+        <div class="feature-controls">
+             <label for="thinking-enabled" class="thinking-controls" style="display: none;">
+                 <input type="checkbox" id="thinking-enabled"> تفعيل التفكير
+             </label>
+             <div class="thinking-budget-control">
+                 <label for="thinking-budget">ميزانية التفكير (0-24576):</label>
+                 <input type="number" id="thinking-budget" min="0" max="24576" step="1024">
+             </div>
+
+            <label for="search-enabled" class="search-grounding-control" style="display: none;">
+                <input type="checkbox" id="search-enabled"> تفعيل بحث Google
+            </label>
+        </div>
+        <!-- End Feature Controls -->
+
+        <button id="update-settings" style="margin-top: 15px;">تطبيق الإعدادات للمحادثة الحالية</button>
+        <button id="clear-history" class="secondary">مسح سجل المحادثة الحالية</button>
+         <p style="font-size: 0.8em; color: grey; margin-top: 15px;">مفتاح API مُخزن بأمان على الخادم.</p>
+         <p style="font-size: 0.8em; color: var(--error-color); margin-top: 5px;">ملاحظة: المحادثات تُخزن على الخادم.</p>
+
+        <!-- Backup and Restore Section -->
+        <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+            <h4>النسخ الاحتياطي والاستعادة (على الخادم)</h4>
+            <button id="export-chats-btn" class="secondary" style="width: 100%; margin-bottom: 5px;">تصدير كل المحادثات (JSON)</button>
+            <label for="import-chats-input" class="secondary" style="display: block; width: 100%; padding: 8px; text-align: center; cursor: pointer; background-color: var(--secondary-button-bg); color: var(--button-text); border-radius: 4px;">
+                استيراد محادثات من ملف (JSON)...
+            </label>
+            <input type="file" id="import-chats-input" accept=".json,.txt" style="display: none;">
+             <p style="font-size: 0.75em; color: grey; margin-top: 5px;">سيؤدي الاستيراد إلى استبدال جميع المحادثات الحالية على الخادم.</p>
+        </div>
+        <!-- End of Backup and Restore Section -->
+
+    </div>
+
+    <!-- Main Content (Chat) -->
+    <div class="main-content">
+        <div class="container">
+            <h1 id="chat-title">Gemini Chat</h1>
+            <div id="chatbox">
+                <!-- Messages loaded by JS -->
+                <p>جاري تحميل المحادثات...</p>
+            </div>
+            <div id="token-info">التوكنز: -</div>
+            <div id="loading">جاري المعالجة...</div>
+            <div id="error-box" class="error-message"></div>
+            <form id="chat-form">
+                <textarea id="prompt" placeholder="اكتب رسالتك هنا..." required disabled></textarea>
+                <button type="submit" id="send-button" disabled>إرسال</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar (Chat List - Right) -->
+    <div class="sidebar">
+        <h2>المحادثات</h2>
+        <button id="new-chat-btn" class="secondary">محادثة جديدة +</button>
+        <ul id="chat-list">
+            <!-- Loaded by JS -->
+             <li>جاري تحميل المحادثات...</li>
+        </ul>
+    </div>
+
+
+    <script>
+        // --- Global State & Config (Client-side view) ---
+        let modelConfigData = {}; // Holds model capabilities loaded from server
+        let availableModelsList = []; // Holds list of model names loaded from server
+
+        let chatsMetadata = {}; // Stores { chatId: { id, name, last_modified } } metadata from server
+        let currentChatState = null; // Stores the full state (history, config, etc.) of the actively displayed chat
+        let currentChatId = null; // Tracks the ID of the currently active chat
+
+        let currentEditState = { // Track ongoing edit
+            messageElement: null,
+            originalText: '',
+            messageIndex: -1
+        };
+
+        let isRenamingChat = false; // متغير جديد لمنع التبديل أثناء إعادة التسمية
+
+
+        // --- DOM Elements ---
+        const chatForm = document.getElementById('chat-form');
+        const promptInput = document.getElementById('prompt');
+        const chatbox = document.getElementById('chatbox');
+        const modelSelect = document.getElementById('model-select');
+        const temperatureInput = document.getElementById('temperature');
+        const topPInput = document.getElementById('top-p');
+        const topKInput = document.getElementById('top-k');
+        const maxTokensInput = document.getElementById('max-tokens');
+        const tokenInfo = document.getElementById('token-info');
+        const errorBox = document.getElementById('error-box');
+        const loadingIndicator = document.getElementById('loading');
+        const clearHistoryButton = document.getElementById('clear-history');
+        const updateSettingsButton = document.getElementById('update-settings');
+        const chatList = document.getElementById('chat-list');
+        const newChatButton = document.getElementById('new-chat-btn');
+        const chatTitle = document.getElementById('chat-title');
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const sendButton = document.getElementById('send-button');
+        const hljsStyleSheet = document.getElementById('hljs-style');
+        // Toggles
+        const settingsToggle = document.getElementById('settings-toggle');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const settingsArea = document.querySelector('.settings-area');
+        const sidebarArea = document.querySelector('.sidebar');
+        // Feature Controls
+        const thinkingControlsLabel = document.querySelector('.thinking-controls');
+        const thinkingEnabledCheckbox = document.getElementById('thinking-enabled');
+        const thinkingBudgetControlDiv = document.querySelector('.thinking-budget-control');
+        const thinkingBudgetInput = document.getElementById('thinking-budget');
+        const searchControlLabel = document.querySelector('.search-grounding-control');
+        const searchEnabledCheckbox = document.getElementById('search-enabled');
+        // Import/Export
+        const exportChatsButton = document.getElementById('export-chats-btn');
+        const importChatsInput = document.getElementById('import-chats-input');
+
+
+        // --- Helper Functions ---
+
+        function displayError(message) { errorBox.textContent = message; }
+        function displayTokenInfo(info) { tokenInfo.textContent = info ? `التوكنز: ${info}` : 'التوكنز: -'; }
+
+        function setLoading(isLoading) {
+             loadingIndicator.style.display = isLoading ? 'block' : 'none';
+
+             const UIElementsToDisable = [
+                 promptInput, sendButton, updateSettingsButton, clearHistoryButton,
+                 exportChatsButton, importChatsInput, newChatButton, modelSelect,
+                 temperatureInput, topPInput, topKInput,
+                 thinkingEnabledCheckbox, thinkingBudgetInput, searchEnabledCheckbox
+                 // chatList items could be made non-interactive too via CSS if needed
+             ];
+
+             UIElementsToDisable.forEach(el => {
+                 if (el) el.disabled = isLoading;
+             });
+
+            // After loading finishes, other functions like `displayActiveChatUI` (which calls `updateSettingsPanel`)
+            // will set the correct enabled/disabled states based on the current context (e.g., if a chat is active).
+        }
+
+
+        // Basic Markdown to HTML (newlines, basic emphasis, NO code handling here)
+        // Keeping this simple version for user messages if needed, but marked.js for model is preferred.
+        function formatBasicMarkdown(text) {
+             let html = text.replace(/</g, "<").replace(/>/g, ">"); // Basic escaping
+             // html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+             // html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+             return html.replace(/\n/g, '<br>');
+        }
+
+        // Display Message with actions & Highlight.js
+        function displayMessage(sender, text, historyIndex, isHistoryLoad = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'model-message');
+            messageDiv.dataset.rawText = text; // Store raw text for copying/editing
+            messageDiv.dataset.index = historyIndex; // Store index for branching/editing
+
+            // --- Action Buttons Container ---
+            const actionsDiv = document.createElement('div');
+            actionsDiv.classList.add('message-actions');
+
+            // Copy Message Button (All messages)
+            const copyMsgBtn = document.createElement('button');
+            copyMsgBtn.classList.add('message-action-btn', 'copy-message-btn');
+            copyMsgBtn.title = 'نسخ الرسالة';
+            copyMsgBtn.innerHTML = '📄'; // Emoji for copy
+            actionsDiv.appendChild(copyMsgBtn);
+
+            // Branch Button (All messages - Note: Requires backend support)
+            const branchBtn = document.createElement('button');
+            branchBtn.classList.add('message-action-btn', 'branch-btn');
+            branchBtn.title = 'تفريع محادثة من هنا';
+            branchBtn.innerHTML = '🌿'; // Emoji for branch
+            actionsDiv.appendChild(branchBtn);
+
+            // Edit Button (All messages)
+            const editBtn = document.createElement('button');
+            editBtn.classList.add('message-action-btn', 'edit-message-btn'); // More generic class name
+            editBtn.title = 'تعديل الرسالة';
+            editBtn.innerHTML = '✏️'; // Emoji for edit
+            actionsDiv.appendChild(editBtn);
+
+
+            messageDiv.appendChild(actionsDiv); // Add actions container
+
+            // --- Message Content Container ---
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('message-content');
+
+            if (sender === 'user') {
+                 // Use marked.js for user messages too for consistent formatting
+                 contentDiv.innerHTML = marked.parse(text);
+            } else { // model
+                // The "Gemini:" prefix is now part of the text from the server or formatted by marked.js if it's bolded
+                // Let marked.js handle the entire structure.
+                // If you want "Gemini:" prefix specifically styled, ensure it's part of the markdown `**Gemini:**<br>`
+                // or add it here before marked.parse if it's not in `text`.
+                // For simplicity, assuming `text` may or may not contain it.
+                // contentDiv.innerHTML = `<strong>Gemini:</strong><br>`; // Removed, let marked handle it
+
+                // Use marked.js to convert the entire Markdown text to HTML
+                let htmlContent = marked.parse(text);
+                contentDiv.innerHTML = htmlContent; // Use += if you had a prefix
+
+                // After marked.js, find code blocks for highlighting and copy button
+                contentDiv.querySelectorAll('pre code').forEach((block) => {
+                     const pre = block.parentElement;
+
+                     const copyCodeBtn = document.createElement('button');
+                     copyCodeBtn.classList.add('copy-code-btn'); // Specific class
+                     copyCodeBtn.title = 'نسخ الكود';
+                     copyCodeBtn.innerHTML = '📋'; // Emoji for copy
+                     copyCodeBtn.dataset.code = block.textContent; // Text to copy
+                     pre.appendChild(copyCodeBtn); // Add button to <pre>
+
+                    // Apply highlighting
+                    setTimeout(() => { // Ensure element is in DOM
+                        try {
+                             hljs.highlightElement(block);
+                        } catch (e) {
+                             console.error("Highlighting failed:", e);
+                        }
+                    }, 0);
+                 });
+            }
+            messageDiv.appendChild(contentDiv);
+
+             // --- Edit Container (Hidden by default) ---
+             const editContainer = document.createElement('div');
+             editContainer.classList.add('edit-container');
+             // Hide regenerate button for model messages (not supported by backend /regenerate logic for model messages)
+             const regenerateButtonStyle = sender === 'model' ? 'style="display: none;"' : '';
+             editContainer.innerHTML = `
+                 <textarea class="edit-textarea">${text}</textarea>
+                 <div class="edit-controls">
+                     <button class="save-edit-btn">حفظ</button>
+                     <button class="regenerate-edit-btn" ${regenerateButtonStyle}>حفظ وإعادة التوليد</button>
+                     <button class="cancel-edit-btn">إلغاء</button>
+                 </div>
+             `;
+             messageDiv.appendChild(editContainer);
+
+
+            chatbox.appendChild(messageDiv);
+
+            if (!isHistoryLoad || chatbox.scrollHeight - chatbox.scrollTop - chatbox.clientHeight < 150) {
+                 chatbox.scrollTop = chatbox.scrollHeight;
+            }
+        }
+        // --- Clipboard Functions ---
+        async function copyToClipboard(text, buttonElement) {
+            try {
+                await navigator.clipboard.writeText(text);
+                const originalText = buttonElement.innerHTML;
+                buttonElement.innerHTML = '✅';
+                buttonElement.classList.add('copied');
+                buttonElement.disabled = true;
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalText;
+                    buttonElement.classList.remove('copied');
+                    buttonElement.disabled = false;
+                }, 1500);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                displayError('فشل نسخ النص.');
+            }
+        }
+
+
+        // --- Event Delegation for Message Actions & Code Copy ---
+        chatbox.addEventListener('click', (event) => {
+            const target = event.target;
+
+            if (target.classList.contains('copy-code-btn')) {
+                 const codeToCopy = target.dataset.code;
+                 if (codeToCopy) { copyToClipboard(codeToCopy, target); }
+                 return;
+            }
+
+            const actionButton = target.closest('.message-action-btn');
+            if (actionButton) {
+                const messageElement = actionButton.closest('.message');
+                const historyIndex = parseInt(messageElement.dataset.index, 10);
+                const rawText = messageElement.dataset.rawText;
+
+                if (actionButton.classList.contains('copy-message-btn')) {
+                    if (rawText) { copyToClipboard(rawText, actionButton); }
+                } else if (actionButton.classList.contains('branch-btn')) {
+                    handleBranchChat(historyIndex);
+                } else if (actionButton.classList.contains('edit-message-btn')) {
+                    handleEditMessageStart(messageElement, historyIndex);
+                }
+                return;
+            }
+
+             if (target.classList.contains('save-edit-btn')) {
+                  handleEditMessageSave(target.closest('.message'), false);
+             } else if (target.classList.contains('cancel-edit-btn')) {
+                  handleEditMessageCancel(target.closest('.message'));
+             } else if (target.classList.contains('regenerate-edit-btn')) {
+                  handleEditMessageSave(target.closest('.message'), true);
+             }
+        });
+
+
+        // --- State Management (Client-side view based on Server) ---
+        // No localStorage save/load functions needed here
+
+        // --- UI Update Functions ---
+
+        function populateModelSelect(models) {
+            modelSelect.innerHTML = '';
+            if (!models || models.length === 0) {
+                modelSelect.innerHTML = '<option value="">لا مودلات متاحة</option>';
+                modelSelect.disabled = true;
+                return;
+            }
+            modelSelect.disabled = false;
+            models.forEach(modelName => {
+                const option = document.createElement('option');
+                option.value = modelName;
+                option.textContent = modelName;
+                modelSelect.appendChild(option);
+            });
+        }
+
+
+        function updateSettingsPanel(chatState) {
+            if (availableModelsList.length === 0 && modelSelect.options.length === 0) { // Check if already populated
+                 populateModelSelect([]);
+            }
+
+            if (!chatState || !chatState.config || !chatState.model) {
+                 modelSelect.value = '';
+                 modelSelect.disabled = availableModelsList.length === 0;
+                 temperatureInput.value = 1.0;
+                 topPInput.value = 1.0;
+                 topKInput.value = 1;
+                 maxTokensInput.value = '';
+
+                 thinkingControlsLabel.style.display = 'none';
+                 thinkingBudgetControlDiv.style.display = 'none';
+                 searchControlLabel.style.display = 'none';
+                 thinkingEnabledCheckbox.checked = false; thinkingEnabledCheckbox.disabled = true;
+                 thinkingBudgetInput.value = ''; thinkingBudgetInput.disabled = true;
+                 searchEnabledCheckbox.checked = false; searchEnabledCheckbox.disabled = true;
+
+                 updateSettingsButton.disabled = true;
+                 clearHistoryButton.disabled = true;
+                 promptInput.disabled = true;
+                 sendButton.disabled = true;
+                 return;
+            }
+
+            promptInput.disabled = false;
+            sendButton.disabled = false;
+            updateSettingsButton.disabled = false;
+            clearHistoryButton.disabled = false;
+
+            modelSelect.value = chatState.model;
+            modelSelect.disabled = availableModelsList.length === 0;
+
+            temperatureInput.value = chatState.config.temperature;
+            topPInput.value = chatState.config.topP;
+            topKInput.value = chatState.config.topK;
+
+            const modelInfo = modelConfigData[chatState.model] || {};
+            maxTokensInput.value = chatState.config.maxOutputTokens || modelInfo.max_tokens || 65536;
+
+            const supportsThinking = modelInfo.supports_thinking ?? false;
+            const supportsBudget = modelInfo.supports_budget ?? false;
+
+            if (supportsThinking) {
+                thinkingControlsLabel.style.display = 'flex';
+                thinkingEnabledCheckbox.disabled = false;
+                thinkingEnabledCheckbox.checked = chatState.thinking_enabled ?? false;
+
+                if (supportsBudget) {
+                    thinkingBudgetControlDiv.style.display = 'block';
+                    thinkingBudgetInput.disabled = !thinkingEnabledCheckbox.checked;
+                    thinkingBudgetInput.value = (chatState.thinking_budget !== null && chatState.thinking_budget !== undefined) ? chatState.thinking_budget : '';
+                } else {
+                    thinkingBudgetControlDiv.style.display = 'none';
+                    thinkingBudgetInput.disabled = true;
+                    thinkingBudgetInput.value = '';
+                }
+            } else {
+                thinkingControlsLabel.style.display = 'none';
+                thinkingBudgetControlDiv.style.display = 'none';
+                thinkingEnabledCheckbox.checked = false;
+                thinkingEnabledCheckbox.disabled = true;
+                thinkingBudgetInput.value = '';
+                thinkingBudgetInput.disabled = true;
+            }
+
+             const supportsSearch = modelInfo.supports_search ?? false;
+             if (supportsSearch) {
+                  searchControlLabel.style.display = 'flex';
+                  searchEnabledCheckbox.disabled = false;
+                  searchEnabledCheckbox.checked = chatState.search_enabled ?? false;
+             } else {
+                  searchControlLabel.style.display = 'none';
+                  searchEnabledCheckbox.checked = false;
+                  searchEnabledCheckbox.disabled = true;
+             }
+        }
+
+        function updateChatList() {
+             chatList.innerHTML = '';
+             if (!chatsMetadata || Object.keys(chatsMetadata).length === 0) {
+                  const li = document.createElement('li');
+                  li.textContent = 'لا توجد محادثات.';
+                  chatList.appendChild(li);
+                  return;
+             }
+             // --- START MODIFICATION ---
+             // Sort by last_modified timestamp in descending order (newest first)
+             const sortedChatMetas = Object.values(chatsMetadata).sort((a, b) => {
+                 return (b.last_modified || 0) - (a.last_modified || 0);
+             });
+             // --- END MODIFICATION ---
+
+             sortedChatMetas.forEach(chatMeta => {
+                 const li = document.createElement('li');
+                 li.dataset.id = chatMeta.id;
+                 li.classList.toggle('active', chatMeta.id === currentChatId);
+
+                 const nameSpan = document.createElement('span');
+                 nameSpan.classList.add('chat-name');
+                 nameSpan.textContent = chatMeta.name || `محادثة ${chatMeta.id.substring(0, 4)}`;
+                 nameSpan.title = (chatMeta.name || `محادثة ${chatMeta.id.substring(0, 4)}`) + "\n(انقر نقرًا مزدوجًا لإعادة التسمية)"; // إضافة تلميح
+                 li.appendChild(nameSpan);
+
+                 const deleteBtn = document.createElement('button');
+                 deleteBtn.classList.add('delete-chat-btn');
+                 deleteBtn.dataset.id = chatMeta.id;
+                 deleteBtn.innerHTML = '×';
+                 deleteBtn.title = "حذف المحادثة";
+                 li.appendChild(deleteBtn);
+
+                 chatList.appendChild(li);
+             });
+        }
+
+        function loadChatHistory(history) {
+            chatbox.innerHTML = '';
+            cancelEdit();
+            if (history && Array.isArray(history)) {
+                history.forEach((msg, index) => {
+                    if (msg && msg.role && msg.parts && msg.parts[0] && typeof msg.parts[0].text === 'string') {
+                         displayMessage(msg.role, msg.parts[0].text, index, true);
+                    } else {
+                        console.warn("Skipping invalid message structure in history:", msg);
+                    }
+                });
+                setTimeout(() => {
+                    chatbox.scrollTop = chatbox.scrollHeight;
+                }, 0);
+            } else {
+                 chatbox.innerHTML = "<p>لا يوجد سجل لهذه المحادثة.</p>";
+            }
+        }
+
+        function displayActiveChatUI(chatFullState) {
+            cancelEdit();
+            if (!chatFullState) {
+                currentChatState = null;
+                currentChatId = null;
+                chatTitle.textContent = "Gemini Chat";
+                chatbox.innerHTML = "<p>اختر محادثة أو أنشئ واحدة جديدة.</p>";
+                updateSettingsPanel(null);
+                displayTokenInfo(null);
+                displayError('');
+                updateChatList(); // Update list to show no active chat
+                return;
+            }
+            
+            // --- START MODIFICATION ---
+            // Update metadata for the active chat to ensure it has the latest last_modified timestamp
+            if (chatsMetadata[chatFullState.id]) {
+                chatsMetadata[chatFullState.id].last_modified = chatFullState.last_modified;
+            }
+            // --- END MODIFICATION ---
+
+            currentChatState = chatFullState;
+            currentChatId = chatFullState.id;
+
+            updateChatList();
+            updateSettingsPanel(currentChatState);
+            loadChatHistory(currentChatState.history);
+            chatTitle.textContent = currentChatState.name || `محادثة ${currentChatState.id.substring(0, 4)}`;
+            displayTokenInfo(null);
+            displayError('');
+        }
+
+
+        // --- Server Communication Handlers ---
+
+        async function fetchInitialAppStateAndUpdateUI() {
+            setLoading(true);
+            displayError('');
+            try {
+                const response = await fetch('/get_initial_app_state');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: "فشل تحميل الحالة الأولية." }));
+                    throw new Error(errorData.error || `خطأ في الخادم: ${response.status}`);
+                }
+                const initialState = await response.json();
+
+                modelConfigData = initialState.model_config || {};
+                availableModelsList = initialState.available_models || [];
+                populateModelSelect(availableModelsList);
+
+                chatsMetadata = {};
+                if (initialState.all_chats_metadata && Array.isArray(initialState.all_chats_metadata)) {
+                    initialState.all_chats_metadata.forEach(chatMeta => {
+                        chatsMetadata[chatMeta.id] = chatMeta;
+                    });
+                }
+                // updateChatList(); // Called by displayActiveChatUI or switchActiveChat
+
+                if (initialState.active_chat_id && initialState.active_chat_full_state) {
+                    displayActiveChatUI(initialState.active_chat_full_state);
+                    console.log(`Initial load: Activated chat ID: ${initialState.active_chat_id}`);
+                } else if (Object.keys(chatsMetadata).length > 0) {
+                     // --- START MODIFICATION ---
+                     // Sort by recency to find the newest chat
+                     const firstChatId = Object.values(chatsMetadata).sort((a, b) => (b.last_modified || 0) - (a.last_modified || 0))[0].id;
+                     // --- END MODIFICATION ---
+                     console.log(`Initial load: No active chat specified, activating first chat: ${firstChatId}`);
+                     await switchActiveChat(firstChatId);
+                }
+                else {
+                     console.log("Initial load: No chats found on server. Displaying empty state.");
+                     displayActiveChatUI(null);
+                     chatbox.innerHTML = "<p>لا توجد محادثات. أنشئ محادثة جديدة للبدء.</p>";
+                }
+
+
+            } catch (error) {
+                console.error("Initial load error:", error);
+                displayError(`خطأ في تحميل التطبيق: ${error.message}`);
+                chatTitle.textContent = "Gemini Chat - خطأ";
+                updateSettingsPanel(null);
+                modelSelect.innerHTML = '<option>خطأ تحميل المودلات</option>';
+                modelSelect.disabled = true;
+                chatbox.innerHTML = "<p>حدث خطأ أثناء تحميل المحادثات.</p>";
+                chatList.innerHTML = '<li>فشل التحميل</li>';
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // *** NEW/MODIFIED FUNCTION ***
+        async function fetchChatState(chatId) {
+            if (!chatId) {
+                console.error("fetchChatState called with no chatId");
+                return;
+            }
+            setLoading(true);
+            // displayError(''); // <--- تم حذف هذا السطر
+            try {
+                const response = await fetch(`/get_chat_state/${chatId}`);
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `فشل تحميل حالة المحادثة (الحالة: ${response.status})`);
+                }
+                const stateData = await response.json();
+                if (!stateData || !stateData.chat_state) {
+                    throw new Error("لم يتم استلام بيانات محادثة صالحة عند تحديث الحالة.");
+                }
+                displayActiveChatUI(stateData.chat_state);
+                console.log(`Successfully fetched and displayed state for chat ID: ${chatId}`);
+            } catch (error) {
+                console.error("Fetch chat state error:", error);
+                displayError(`خطأ في تحديث حالة المحادثة: ${error.message}`);
+                if(currentChatState) { // Try to restore previous valid state if possible
+                    displayActiveChatUI(currentChatState);
+                } else {
+                    displayActiveChatUI(null); // Fallback to empty if no known good state
+                }
+            } finally {
+                setLoading(false);
+            }
+        }
+
+
+        async function switchActiveChat(chatIdToSwitch) {
+            if (!chatIdToSwitch || chatIdToSwitch === currentChatId) return;
+
+            // *** NEW *** Check for unsaved edits AND renaming
+            if (isRenamingChat) {
+                 displayError("لا يمكن التبديل أثناء إعادة تسمية محادثة.");
+                 return;
+            }
+            if (currentEditState.messageElement) {
+                if (confirm("لديك تعديلات غير محفوظة. هل تريد تجاهلها والانتقال إلى محادثة أخرى؟")) {
+                    cancelEdit();
+                } else {
+                    return; // User cancelled the switch
+                }
+            }
+
+            setLoading(true);
+            displayError('');
+            chatbox.innerHTML = "<p>جاري تحميل المحادثة...</p>";
+            displayTokenInfo(null);
+
+            try {
+                const switchResp = await fetch(`/switch_chat/${chatIdToSwitch}`, { method: 'POST' });
+                if (!switchResp.ok) {
+                    const errData = await switchResp.json().catch(() => ({}));
+                    throw new Error(errData.error || `فشل إبلاغ الخادم بتبديل المحادثة (الحالة: ${switchResp.status})`);
+                }
+                // No need to get state from switchResp, fetch it explicitly
+                await fetchChatState(chatIdToSwitch); // Use the new function
+                console.log(`Switched to chat ID: ${chatIdToSwitch}`);
+                displayError("تم التبديل بنجاح.");
+                setTimeout(() => displayError(''), 2000); // Hide success message after 2 seconds
+
+
+            } catch (error) {
+                console.error("Switch chat error:", error);
+                displayError(`خطأ تبديل المحادثة: ${error.message}`);
+                 if(currentChatState){
+                      displayActiveChatUI(currentChatState);
+                 } else {
+                      displayActiveChatUI(null);
+                 }
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function handleNewChat() {
+            // *** NEW *** Check for unsaved edits AND renaming
+            if (isRenamingChat) {
+                 displayError("لا يمكن إنشاء محادثة جديدة أثناء إعادة تسمية محادثة.");
+                 return;
+            }
+            if (currentEditState.messageElement) {
+                if (confirm("لديك تعديلات غير محفوظة. هل تريد تجاهلها وإنشاء محادثة جديدة؟")) {
+                    cancelEdit();
+                } else {
+                    return;
+                }
+            }
+
+            setLoading(true);
+            displayError('');
+            try {
+                const selectedModel = modelSelect.value || undefined;
+                const response = await fetch('/create_new_chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: selectedModel })
+                });
+                const data = await response.json();
+                if (!response.ok || !data.new_chat_state) {
+                    throw new Error(data.error || "فشل إنشاء محادثة جديدة من الخادم");
+                }
+
+                const newChatStateFromServer = data.new_chat_state;
+                chatsMetadata[newChatStateFromServer.id] = { 
+                    id: newChatStateFromServer.id, 
+                    name: newChatStateFromServer.name,
+                    last_modified: newChatStateFromServer.last_modified
+                };
+                displayActiveChatUI(newChatStateFromServer);
+
+                console.log("New chat created on server and activated:", newChatStateFromServer.id);
+                // *** MODIFIED *** Use displayError for notification
+                displayError("تم إنشاء محادثة جديدة بنجاح!");
+                setTimeout(() => displayError(''), 2000); // Hide success message after 2 seconds
+            } catch (error) {
+                console.error("New chat error:", error);
+                displayError(`خطأ إنشاء محادثة جديدة: ${error.message}`);
+                 // If creation failed, try to restore previous state or show empty
+                if(currentChatState) displayActiveChatUI(currentChatState);
+                else displayActiveChatUI(null);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function handleDeleteChat(chatIdToDelete) {
+            const chatMetaToDelete = chatsMetadata[chatIdToDelete];
+            if (!chatMetaToDelete || !confirm(`هل أنت متأكد من حذف المحادثة "${chatMetaToDelete.name || chatIdToDelete.substring(0,4)}..."؟ لا يمكن التراجع.`)) return;
+
+             // *** NEW *** Check for unsaved edits if deleting the current chat AND renaming
+             if (isRenamingChat) {
+                 displayError("لا يمكن حذف المحادثة أثناء إعادة تسمية أخرى.");
+                 return;
+             }
+            if (currentChatId === chatIdToDelete && currentEditState.messageElement) {
+                if (confirm("لديك تعديلات غير محفوظة في هذه المحادثة. هل تريد تجاهلها وحذف المحادثة؟")) {
+                    cancelEdit();
+                } else {
+                    return;
+                }
+            }
+
+            setLoading(true);
+            displayError('');
+            try {
+                const response = await fetch(`/delete_chat/${chatIdToDelete}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || `فشل حذف المحادثة: ${response.status}`);
+                }
+
+                delete chatsMetadata[data.deleted_chat_id];
+                console.log(`Chat ${data.deleted_chat_id} deleted from server.`);
+
+                if (data.new_active_chat_id && chatsMetadata[data.new_active_chat_id]) {
+                     await switchActiveChat(data.new_active_chat_id);
+                } else if (Object.keys(chatsMetadata).length > 0) {
+                    // --- START MODIFICATION ---
+                    // Sort by recency to find the newest remaining chat
+                    const firstRemainingId = Object.values(chatsMetadata).sort((a, b) => (b.last_modified || 0) - (a.last_modified || 0))[0].id;
+                    // --- END MODIFICATION ---
+                     await switchActiveChat(firstRemainingId);
+                } else {
+                    await handleNewChat(); // Creates a new chat and makes it active
+                }
+                // *** MODIFIED *** Use displayError for notification
+                displayError("تم حذف المحادثة بنجاح.");
+                setTimeout(() => displayError(''), 2000); // Hide success message after 2 seconds
+
+
+            } catch (error) {
+                console.error("Delete chat error:", error);
+                displayError(`خطأ حذف المحادثة: ${error.message}`);
+                await fetchInitialAppStateAndUpdateUI(); // Resync full state on error
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function handleBranchChat(messageIndex) {
+            if (!currentChatState || !currentChatId || messageIndex < 0 || messageIndex >= currentChatState.history.length) {
+                displayError("لا يمكن التفريع من رسالة غير صالحة.");
+                return;
+            }
+
+            // *** NEW *** Check for unsaved edits AND renaming
+             if (isRenamingChat) {
+                 displayError("لا يمكن تفريع المحادثة أثناء إعادة تسمية محادثة.");
+                 return;
+             }
+            if (currentEditState.messageElement) {
+                if (confirm("لديك تعديلات غير محفوظة. هل تريد تجاهلها وتفريع المحادثة؟")) {
+                    cancelEdit();
+                } else {
+                    return;
+                }
+            }
+
+            displayError("جاري تفريع المحادثة...");
+            setLoading(true);
+            try {
+                const response = await fetch(`/branch_chat/${currentChatId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message_index: messageIndex })
+                });
+                const data = await response.json();
+                if (!response.ok || !data.branched_chat_state) {
+                    throw new Error(data.error || `فشل تفريع المحادثة من الخادم (الحالة: ${response.status}).`);
+                }
+                const branchedState = data.branched_chat_state;
+                chatsMetadata[branchedState.id] = { 
+                    id: branchedState.id, 
+                    name: branchedState.name,
+                    last_modified: branchedState.last_modified
+                };
+                displayActiveChatUI(branchedState);
+                console.log(`Branched chat created on server: ${branchedState.id}`);
+                // *** MODIFIED *** Use displayError for notification
+                displayError("تم تفريع المحادثة بنجاح!");
+                setTimeout(() => displayError(''), 2000); // Hide success message after 2 seconds
+
+
+            } catch (error) {
+                console.error("Branch chat error:", error);
+                displayError(`خطأ تفريع المحادثة: ${error.message}`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+
+        // --- Editing Logic ---
+
+        function cancelEdit() {
+             if (currentEditState.messageElement) {
+                  currentEditState.messageElement.classList.remove('editing');
+                  const editControlsDiv = currentEditState.messageElement.querySelector('.edit-controls');
+                  if (editControlsDiv && editControlsDiv.innerHTML === '...') { // Restore if it was '...'
+                       const originalText = currentEditState.originalText;
+                       const sender = currentEditState.messageElement.classList.contains('user-message') ? 'user' : 'model';
+                       const regenerateButtonStyle = sender === 'model' ? 'style="display: none;"' : '';
+                       editControlsDiv.innerHTML = `
+                            <button class="save-edit-btn">حفظ</button>
+                            <button class="regenerate-edit-btn" ${regenerateButtonStyle}>حفظ وإعادة التوليد</button>
+                            <button class="cancel-edit-btn">إلغاء</button>
+                       `;
+                  }
+             }
+             currentEditState = { messageElement: null, originalText: '', messageIndex: -1 };
+        }
+
+        function handleEditMessageStart(messageElement, historyIndex) {
+            cancelEdit();
+
+            if (!currentChatState || historyIndex < 0 || historyIndex >= currentChatState.history.length) return;
+            // *** NEW *** Prevent editing during renaming
+            if (isRenamingChat) {
+                 displayError("لا يمكن تعديل رسالة أثناء إعادة تسمية محادثة.");
+                 return;
+            }
+
+            const originalText = currentChatState.history[historyIndex].parts[0].text;
+
+            currentEditState.messageElement = messageElement;
+            currentEditState.originalText = originalText;
+            currentEditState.messageIndex = historyIndex;
+
+            messageElement.classList.add('editing');
+            const textarea = messageElement.querySelector('.edit-textarea');
+            if (textarea) {
+                textarea.value = originalText;
+                textarea.focus();
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            }
+        }
+
+        function handleEditMessageCancel(messageElement) {
+             cancelEdit();
+        }
+
+        async function handleEditMessageSave(messageElement, regenerate = false) {
+             if (!currentChatState || !currentChatId) {
+                 displayError("لا توجد محادثة نشطة لحفظ التعديل.");
+                 cancelEdit();
+                 return;
+             }
+
+             const editIndex = currentEditState.messageIndex;
+             if (!messageElement || editIndex < 0 || editIndex >= currentChatState.history.length) {
+                  cancelEdit();
+                  return;
+             }
+
+             const editTextarea = messageElement.querySelector('.edit-textarea');
+             const newText = editTextarea.value.trim();
+
+             if (newText === currentEditState.originalText && !regenerate) {
+                 cancelEdit();
+                 return;
+             }
+
+             setLoading(true);
+             displayError('');
+             const editControlsDiv = messageElement.querySelector('.edit-controls');
+             const originalEditControlsHTML = editControlsDiv ? editControlsDiv.innerHTML : ''; // Store original to restore
+             if(editControlsDiv) editControlsDiv.innerHTML = '...';
+
+
+             try {
+                 if (regenerate) {
+                     // Optimistically update the message in the UI before sending to server
+                     // This prevents flicker if the user message changes significantly.
+                     currentChatState.history[editIndex].parts[0].text = newText;
+                     messageElement.dataset.rawText = newText;
+                     const contentDiv = messageElement.querySelector('.message-content');
+                     contentDiv.innerHTML = marked.parse(newText); // Re-render message content
+                     // Re-apply highlighting if needed (for model message, though regenerate is mostly for user)
+                     contentDiv.querySelectorAll('pre code').forEach((block) => {
+                         const pre = block.parentElement;
+                         const copyCodeBtn = pre.querySelector('.copy-code-btn');
+                         if(copyCodeBtn) copyCodeBtn.dataset.code = block.textContent; // Update copy content
+                         setTimeout(() => { hljs.highlightElement(block); }, 0);
+                     });
+                     
+                     // Clear subsequent messages from local history (optimistic truncation)
+                     currentChatState.history = currentChatState.history.slice(0, editIndex + 1);
+                     // Remove subsequent message elements from DOM
+                     while (chatbox.children.length > editIndex + 1) {
+                         chatbox.removeChild(chatbox.lastChild);
+                     }
+
+
+                     const regeneratePayload = {
+                         chat_id: currentChatId,
+                         truncate_length: editIndex + 1,
+                         edit_index: editIndex,
+                         new_text_for_edit: newText,
+                     };
+
+                     const response = await fetch(`/regenerate`, {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify(regeneratePayload),
+                     });
+                     const data = await response.json();
+
+                     if (!response.ok) {
+                          // On error, re-fetch the entire state to truly synchronize with the server
+                          await fetchChatState(currentChatId); 
+                          throw new Error(data.error || `فشل إعادة التوليد (الحالة: ${response.status})`);
+                     }
+                     
+                     // After successful regeneration, the server has updated history.
+                     // The safe way is to re-fetch and re-render the *entire* chat state.
+                     await fetchChatState(currentChatId); // Re-fetch to get complete updated history
+                     displayTokenInfo(data.token_info);
+                     if (data.error) { displayError(`ملاحظة من API بعد التجديد: ${data.error}`); }
+                     else {
+                         displayError("تم إعادة التوليد بنجاح!");
+                         setTimeout(() => displayError(''), 2000);
+                     }
+
+
+                 } else { // Just save (update text locally)
+                     currentChatState.history[editIndex].parts[0].text = newText;
+                     messageElement.dataset.rawText = newText;
+
+                     const contentDiv = messageElement.querySelector('.message-content');
+                     if (currentChatState.history[editIndex].role === 'user') {
+                        contentDiv.innerHTML = marked.parse(newText);
+                     } else {
+                        contentDiv.innerHTML = marked.parse(newText);
+                        contentDiv.querySelectorAll('pre code').forEach((block) => {
+                            const pre = block.parentElement;
+                            const copyCodeBtn = pre.querySelector('.copy-code-btn');
+                            if(copyCodeBtn) copyCodeBtn.dataset.code = block.textContent;
+                            setTimeout(() => { hljs.highlightElement(block); }, 0);
+                        });
+                     }
+
+                     displayError('تم تعديل الرسالة محلياً. هذا التغيير لا يُحفظ على الخادم حتى يتم إرسال رسالة جديدة أو إعادة توليد.');
+                     console.warn("Message text updated locally, but not saved to server as a direct /update_message_text endpoint is not implemented.");
+
+                     if(editControlsDiv) editControlsDiv.innerHTML = '✅ تم التعديل (مؤقت)';
+                     setTimeout(() => {
+                          cancelEdit();
+                     }, 2000); // Hide the temporary success message
+                     setLoading(false);
+                     return;
+                 }
+             } catch (error) {
+                 console.error("Edit/Regenerate error:", error);
+                 displayError(`خطأ: ${error.message}`);
+                 // In case of error during regen, re-fetch the full state to revert any bad optimistic changes
+                 await fetchChatState(currentChatId);
+             } finally {
+                 setLoading(false);
+                 // If the finally block is reached, and the success message isn't managing it
+                 if (editControlsDiv && editControlsDiv.innerHTML === '...') {
+                      editControlsDiv.innerHTML = originalEditControlsHTML;
+                 }
+                 // Ensure cancelEdit is called if it wasn't by the success path timeout
+                 if (!(newText !== currentEditState.originalText && !regenerate)) {
+                    cancelEdit();
+                 }
+             }
+        }
+
+
+        // *** NEW/MODIFIED FUNCTION for Update Settings Button ***
+        async function handleUpdateSettings() {
+            if (!currentChatId || !currentChatState) {
+                displayError("لا توجد محادثة نشطة لتحديث إعداداتها.");
+                return;
+            }
+            // *** NEW *** Prevent updating settings during renaming or editing
+            if (isRenamingChat) {
+                 displayError("لا يمكن تحديث الإعدادات أثناء إعادة تسمية محادثة.");
+                 return;
+            }
+            if (currentEditState.messageElement) {
+                 if (!confirm("لديك تعديلات غير محفوظة في الرسالة الحالية. هل أنت متأكد أنك تريد تطبيق إعدادات جديدة على المحادثة (سيتم إلغاء التعديل الحالي)؟")) {
+                    return;
+                 }
+                 cancelEdit();
+            }
+
+            setLoading(true);
+            displayError('');
+
+            const selectedModelValue = modelSelect.value;
+            const modelInfo = modelConfigData[selectedModelValue] || {};
+            const payload = {
+                model: selectedModelValue,
+                // name: chatTitle.textContent, // Chat name update could be a separate feature handled by dblclick
+                config: {
+                    temperature: parseFloat(temperatureInput.value),
+                    topP: parseFloat(topPInput.value),
+                    topK: parseInt(topKInput.value),
+                },
+                thinking_enabled: modelInfo.supports_thinking ? thinkingEnabledCheckbox.checked : false,
+                thinking_budget: (modelInfo.supports_budget && thinkingEnabledCheckbox.checked && thinkingBudgetInput.value.trim() !== '') ? parseInt(thinkingBudgetInput.value) : null,
+                search_enabled: modelInfo.supports_search ? searchEnabledCheckbox.checked : false,
+            };
+
+            try {
+                const response = await fetch(`/update_chat_config/${currentChatId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || `فشل تحديث الإعدادات (الحالة: ${response.status})`);
+                }
+
+                // The server responds with only the fields that were actually updated.
+                // It's safer to re-fetch the full state to ensure perfect sync,
+                // especially since changing model has cascading effects on other settings.
+                await fetchChatState(currentChatId);
+
+                displayError("تم تحديث إعدادات المحادثة بنجاح!");
+                setTimeout(() => displayError(''), 2000); // Hide success message after 2 seconds
+
+            } catch (error) {
+                console.error("Update settings error:", error);
+                displayError(`خطأ تحديث الإعدادات: ${error.message}`);
+                await fetchChatState(currentChatId); // Re-fetch to revert to server's truth
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // *** NEW/MODIFIED FUNCTION for Clear History Button ***
+        async function handleClearHistoryOnClient() {
+            if (!currentChatId || !currentChatState) {
+                displayError("لا توجد محادثة نشطة لمسح سجلها.");
+                return;
+            }
+             // *** NEW *** Prevent clearing history during renaming or editing
+             if (isRenamingChat) {
+                 displayError("لا يمكن مسح سجل المحادثة أثناء إعادة تسمية محادثة.");
+                 return;
+             }
+             if (!confirm("هل أنت متأكد أنك تريد مسح سجل هذه المحادثة؟ لا يمكن التراجع عن هذا الإجراء.")) {
+                 return;
+             }
+            if (currentEditState.messageElement) {
+                 if (!confirm("لديك تعديلات غير محفوظة في الرسالة الحالية. مسح السجل سيؤدي إلى فقدان هذه التعديلات. هل تريد المتابعة؟")) {
+                    return;
+                 }
+                 cancelEdit();
+            }
+
+            setLoading(true);
+            displayError('');
+            try {
+                const response = await fetch(`/clear_chat_history/${currentChatId}`, { method: 'POST' });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || `فشل مسح السجل (الحالة: ${response.status})`);
+                }
+
+                // Server cleared history. Update client state and UI.
+                // Fetching state is safest to ensure UI matches server after clear.
+                await fetchChatState(currentChatId);
+
+                displayError("تم مسح سجل المحادثة بنجاح!");
+                setTimeout(() => displayError(''), 2000); // Hide success message after 2 seconds
+
+            } catch (error) {
+                console.error("Clear history error:", error);
+                displayError(`خطأ مسح السجل: ${error.message}`);
+                if (currentChatId) await fetchChatState(currentChatId); // Try to resync
+            } finally {
+                setLoading(false);
+            }
+        }
+
+
+        // *** دالة جديدة لمعالجة إعادة تسمية الدردشة ***
+        async function handleRenameChat(chatId, newName) {
+            if (!chatId) {
+                console.error("handleRenameChat called with no chatId");
+                 updateChatList(); // Just redraw to remove input
+                 isRenamingChat = false;
+                return;
+            }
+
+            const currentMeta = chatsMetadata[chatId];
+            const originalName = currentMeta ? currentMeta.name : null;
+            const defaultName = `محادثة ${chatId.substring(0, 4)}`;
+            const nameToSave = newName.trim();
+
+            // Check if the name actually changed
+            if (nameToSave === originalName || (nameToSave === '' && originalName === null) || (nameToSave === '' && originalName === defaultName)) {
+                updateChatList(); // Just redraw the list
+                isRenamingChat = false;
+                return;
+            }
+
+
+            // تحديث الاسم بشكل متفائل في الواجهة
+            if (chatsMetadata[chatId]) {
+                chatsMetadata[chatId].name = nameToSave === '' ? null : nameToSave; // Store empty string as null name
+                chatsMetadata[chatId].last_modified = Date.now(); // Update timestamp to bring to top
+            }
+            updateChatList(); // أعد رسم القائمة بالاسم الجديد (المتفائل)
+
+            // إذا كانت هذه هي الدردشة النشطة، قم بتحديث العنوان الرئيسي أيضًا
+            if (currentChatId === chatId) {
+                 chatTitle.textContent = nameToSave === '' ? defaultName : nameToSave;
+                 if (currentChatState) {
+                    currentChatState.name = nameToSave === '' ? null : nameToSave;
+                    currentChatState.last_modified = chatsMetadata[chatId].last_modified;
+                 }
+            }
+
+
+            setLoading(true);
+            displayError('');
+
+            try {
+                // Use the existing update_chat_config endpoint
+                const payload = { name: nameToSave === '' ? null : nameToSave }; // Send null for empty name
+                const response = await fetch(`/update_chat_config/${chatId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    // إذا فشل، أعد الاسم الأصلي
+                    if (chatsMetadata[chatId]) {
+                        chatsMetadata[chatId].name = originalName;
+                    }
+                    updateChatList();
+                    // إذا كانت هذه هي الدردشة النشطة، قم بإعادة العنوان الرئيسي أيضًا
+                    if (currentChatId === chatId) {
+                         chatTitle.textContent = originalName || defaultName;
+                         if (currentChatState) currentChatState.name = originalName;
+                    }
+                    throw new Error(data.error || `فشل إعادة تسمية المحادثة (الحالة: ${response.status})`);
+                }
+
+                // On success, update metadata from server response to be sure
+                 if (data.updated_chat_metadata && chatsMetadata[data.updated_chat_metadata.id]) {
+                    chatsMetadata[data.updated_chat_metadata.id].name = data.updated_chat_metadata.name;
+                    chatsMetadata[data.updated_chat_metadata.id].last_modified = data.updated_chat_metadata.last_modified;
+                    updateChatList(); // Redraw with confirmed data
+                }
+
+                displayError("تمت إعادة تسمية المحادثة بنجاح!");
+                setTimeout(() => displayError(''), 2000);
+
+            } catch (error) {
+                console.error("Rename chat error:", error);
+                displayError(`خطأ إعادة التسمية: ${error.message}`);
+                // إعادة الاسم الأصلي في حالة الخطأ
+                if (chatsMetadata[chatId]) {
+                    chatsMetadata[chatId].name = originalName;
+                }
+                updateChatList();
+                 if (currentChatId === chatId) {
+                      chatTitle.textContent = originalName || defaultName;
+                       if (currentChatState) currentChatState.name = originalName;
+                 }
+            } finally {
+                setLoading(false);
+                isRenamingChat = false; // Always reset the flag
+            }
+        }
+
+
+        // --- Sidebar Toggle Logic ---
+        function setupSidebarToggle(toggleButton, sidebarElement, storageKey) {
+            const isCollapsed = localStorage.getItem(storageKey) === 'true';
+            sidebarElement.classList.toggle('collapsed', isCollapsed);
+
+            toggleButton.addEventListener('click', () => {
+                const collapsed = sidebarElement.classList.toggle('collapsed');
+                localStorage.setItem(storageKey, collapsed);
+            });
+        }
+        setupSidebarToggle(settingsToggle, settingsArea, 'settingsCollapsed');
+        setupSidebarToggle(sidebarToggle, sidebarArea, 'sidebarCollapsed');
+
+
+         // --- Dark Mode ---
+         function applyDarkModePreference() {
+             const prefersDark = localStorage.getItem('darkMode') === 'true';
+             document.body.classList.toggle('dark-mode', prefersDark);
+             darkModeToggle.textContent = prefersDark ? '☀️' : '🌙';
+
+              if (hljsStyleSheet) {
+                  const darkTheme = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css";
+                  const lightTheme = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css";
+                   hljsStyleSheet.href = prefersDark ? darkTheme : lightTheme;
+              }
+         }
+         darkModeToggle.addEventListener('click', () => {
+             const isDark = document.body.classList.toggle('dark-mode');
+             localStorage.setItem('darkMode', isDark);
+              applyDarkModePreference();
+         });
+
+        // --- Import/Export Functions ---
+        function exportChats() {
+            setLoading(true);
+            displayError('');
+            try {
+                window.location.href = '/export_all_chats';
+                console.log("Export request sent to server.");
+                // A brief timeout helps ensure loading indicator is seen, actual download might be slower
+                setTimeout(() => {
+                    setLoading(false);
+                    displayError("بدأ تنزيل ملف التصدير (تحقق من التنزيلات).");
+                    setTimeout(() => displayError(''), 3000);
+                }, 1000);
+            } catch (error) {
+                console.error("Error initiating export:", error);
+                displayError("حدث خطأ أثناء بدء تصدير المحادثات: " + error.message);
+                setLoading(false);
+            }
+        }
+
+
+        async function importChats(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                 importChatsInput.value = '';
+                return;
+            }
+            if (!confirm("تحذير: سيؤدي استيراد هذا الملف إلى استبدال جميع محادثاتك المخزنة على الخادم بشكل دائم. هل أنت متأكد أنك تريد المتابعة؟")) {
+                 importChatsInput.value = '';
+                return;
+            }
+             // *** NEW *** Prevent importing during renaming or editing
+             if (isRenamingChat || currentEditState.messageElement) {
+                 displayError("لا يمكن الاستيراد أثناء إعادة تسمية محادثة أو تعديل رسالة.");
+                 importChatsInput.value = '';
+                 return;
+             }
+
+            setLoading(true);
+            displayError('');
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const response = await fetch('/import_all_chats', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || `فشل استيراد الملف: ${response.status}`);
+                }
+                displayError("تم استيراد المحادثات بنجاح!");
+                setTimeout(() => displayError(''), 3000); // Hide success message after 3 seconds
+                await fetchInitialAppStateAndUpdateUI();
+
+            } catch (error) {
+                console.error("Error importing chats:", error);
+                displayError(`فشل استيراد الملف: ${error.message}. تأكد من أنه ملف JSON صالح تم تصديره من هذا التطبيق.`);
+            } finally {
+                importChatsInput.value = '';
+                setLoading(false);
+            }
+        }
+
+
+        // --- Initial Load & Event Listeners Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            applyDarkModePreference();
+            fetchInitialAppStateAndUpdateUI();
+
+            // Chat form submission
+            chatForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentChatId || !currentChatState) {
+                    displayError("يرجى اختيار أو إنشاء محادثة أولاً.");
+                    return;
+                }
+                // *** NEW *** Check for unsaved edits AND renaming
+                if (isRenamingChat) {
+                     displayError("لا يمكن إرسال رسالة جديدة أثناء إعادة تسمية محادثة.");
+                     return;
+                }
+                if (currentEditState.messageElement) {
+                    if (confirm("لديك تعديلات غير محفوظة. هل تريد تجاهلها وإرسال رسالة جديدة؟")) {
+                        cancelEdit();
+                    } else {
+                        return;
+                    }
+                }
+
+                const userPrompt = promptInput.value.trim();
+                if (!userPrompt) return;
+
+                promptInput.value = ''; // Clear input immediately
+                displayMessage('user', userPrompt, currentChatState.history.length); // Display user message optimistically
+                currentChatState.history.push({ role: 'user', parts: [{ text: userPrompt }] }); // Optimistically update local history
+
+                setLoading(true);
+                displayError(''); // Clear previous errors
+                displayTokenInfo(null);
+
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_prompt: userPrompt, chat_id: currentChatId })
+                    });
+                    const data = await response.json();
+
+                    if (!response.ok || !data.response) {
+                        // Revert optimistic update on error
+                        currentChatState.history.pop(); // Remove user message
+                        chatbox.removeChild(chatbox.lastChild); // Remove displayed user message
+
+                        throw new Error(data.error || "فشل الحصول على رد من الخادم.");
+                    }
+
+                    // --- START MODIFICATION ---
+                    // Server has updated the chat. Re-fetch its full state to get the new `last_modified` timestamp and any new name.
+                    // This is safer than updating individual parts on the client.
+                    await fetchChatState(currentChatId);
+                    // --- END MODIFICATION ---
+
+                    // The fetchChatState above handles displaying the history, but we still need to show token info and errors.
+                    displayTokenInfo(data.token_info);
+                    if (data.error) { displayError(`ملاحظة من API: ${data.error}`); }
+                    else { displayError(''); }
+
+
+                } catch (error) {
+                    console.error("Chat send error:", error);
+                    displayError(error.message);
+                     // To be perfectly safe on error, re-fetch full state, as optimistic updates might be off
+                    await fetchChatState(currentChatId);
+                } finally {
+                    setLoading(false);
+                    promptInput.focus();
+                }
+            });
+
+            // *** NEW/MODIFIED: Event listener for chat list (switching and deleting) ***
+            chatList.addEventListener('click', async (event) => {
+                if (isRenamingChat) return; // لا تفعل شيئًا إذا كنا في وضع إعادة التسمية
+
+                const target = event.target;
+
+                // Handle delete button click
+                const deleteButton = target.closest('.delete-chat-btn');
+                if (deleteButton) {
+                    const chatIdToDelete = deleteButton.dataset.id;
+                    if (chatIdToDelete) {
+                        handleDeleteChat(chatIdToDelete);
+                    }
+                    return;
+                }
+
+                // Handle chat selection click (on LI or its children like chat-name span)
+                const listItem = target.closest('li[data-id]');
+                if (listItem) {
+                    const chatIdToSwitch = listItem.dataset.id;
+                    // Only switch if it's a different chat
+                    if (chatIdToSwitch && chatIdToSwitch !== currentChatId) {
+                        await switchActiveChat(chatIdToSwitch);
+                    }
+                }
+            });
+
+            // *** إضافة معالج أحداث النقر المزدوج لـ chatList ***
+            chatList.addEventListener('dblclick', (event) => {
+                const nameSpan = event.target.closest('.chat-name');
+                if (!nameSpan) return;
+
+                const listItem = nameSpan.closest('li[data-id]');
+                if (!listItem) return;
+
+                const chatId = listItem.dataset.id;
+                 // Prevent renaming if another chat is being renamed or message is being edited
+                 if (isRenamingChat || currentEditState.messageElement) {
+                      displayError("لا يمكن إعادة تسمية محادثة الآن.");
+                      return;
+                 }
+
+                const currentName = chatsMetadata[chatId]?.name || `محادثة ${chatId.substring(0, 4)}`;
+
+                isRenamingChat = true; // ضع علامة أننا في وضع إعادة التسمية
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = currentName;
+                input.style.width = 'calc(100% - 40px)'; // اسمح ببعض المساحة لزر الحذف إذا كان ظاهرًا
+                input.style.boxSizing = 'border-box';
+                input.style.marginRight = '5px';
+                input.style.padding = '4px';
+                input.style.fontSize = '0.95em';
+
+
+                // استبدل span بالإدخال
+                nameSpan.style.display = 'none'; // إخفاء الـ span الأصلي
+                // ابحث عن مكان الإدخال بشكل صحيح قبل زر الحذف
+                const deleteBtn = listItem.querySelector('.delete-chat-btn');
+                if (deleteBtn) {
+                     listItem.insertBefore(input, deleteBtn);
+                } else {
+                     listItem.appendChild(input); // Fallback if no delete button
+                }
+
+
+                input.focus();
+                input.select();
+
+                const finishRename = () => {
+                    const newName = input.value;
+                    // إزالة حقل الإدخال وإظهار الـ span الأصلي (سيتم تحديثه بواسطة handleRenameChat)
+                    if (listItem.contains(input)) listItem.removeChild(input);
+                    nameSpan.style.display = '';
+                    document.removeEventListener('click', handleClickOutside);
+                    handleRenameChat(chatId, newName); // استدعاء الدالة لحفظ الاسم
+                };
+
+                const cancelRename = () => {
+                    if (listItem.contains(input)) listItem.removeChild(input);
+                    nameSpan.style.display = '';
+                    document.removeEventListener('click', handleClickOutside);
+                    isRenamingChat = false; // إعادة تعيين العلامة
+                    updateChatList(); // redraw list to restore original name if needed
+                }
+
+                input.addEventListener('blur', () => {
+                    // تأخير بسيط للسماح بمعالجة 'Enter' أولاً إذا تم الضغط عليه
+                    setTimeout(finishRename, 100);
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        input.blur(); // سيؤدي إلى finishRename
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        cancelRename();
+                    }
+                });
+
+                // لإلغاء التعديل إذا نقر المستخدم خارج حقل الإدخال
+                const handleClickOutside = (e) => {
+                    // تحقق مما إذا كان النقر خارج الـ li تمامًا
+                    const clickedInsideListItemButNotInputOrDelete = listItem.contains(e.target) && e.target !== input && !e.target.classList.contains('delete-chat-btn');
+
+                    if (!listItem.contains(e.target) || clickedInsideListItemButNotInputOrDelete) {
+                         // إذا كان النقر خارج العنصر li الذي يحتوي على الإدخال
+                         // أو داخل العنصر li ولكن ليس على حقل الإدخال أو زر الحذف
+                         // هذا يساعد على عدم إنهاء التعديل عند النقر على زر الحذف مثلاً
+                        finishRename();
+                    }
+                };
+                // أضف المستمع بعد قليل للتأكد من أن النقر المزدوج الأولي لا يؤدي إلى الإغلاق فورًا
+                setTimeout(() => document.addEventListener('click', handleClickOutside), 0);
+
+            });
+
+
+            // Button listeners
+            newChatButton.addEventListener('click', handleNewChat);
+            updateSettingsButton.addEventListener('click', handleUpdateSettings);
+            clearHistoryButton.addEventListener('click', handleClearHistoryOnClient);
+            exportChatsButton.addEventListener('click', exportChats);
+            importChatsInput.addEventListener('change', importChats);
+
+            // Listener for feature checkboxes that affect other inputs
+            modelSelect.addEventListener('change', () => {
+                if (currentChatState) {
+                    const selectedModel = modelSelect.value;
+                    const modelInfo = modelConfigData[selectedModel] || {};
+
+                    // Update max tokens based on selected model
+                    maxTokensInput.value = modelInfo.max_tokens || 65536;
+
+                    // Update thinking and search controls visibility and state based on selected model
+                    const supportsThinking = modelInfo.supports_thinking ?? false;
+                    const supportsBudget = modelInfo.supports_budget ?? false;
+                    const supportsSearch = modelInfo.supports_search ?? false;
+
+                    thinkingControlsLabel.style.display = supportsThinking ? 'flex' : 'none';
+                    thinkingEnabledCheckbox.disabled = !supportsThinking;
+                    if (!supportsThinking) {
+                        thinkingEnabledCheckbox.checked = false;
+                    }
+
+                    thinkingBudgetControlDiv.style.display = (supportsBudget && thinkingEnabledCheckbox.checked) ? 'block' : 'none';
+                    thinkingBudgetInput.disabled = !(supportsBudget && thinkingEnabledCheckbox.checked);
+                    if (!(supportsBudget && thinkingEnabledCheckbox.checked)) {
+                        thinkingBudgetInput.value = '';
+                    }
+
+                    searchControlLabel.style.display = supportsSearch ? 'flex' : 'none';
+                    searchEnabledCheckbox.disabled = !supportsSearch;
+                    if (!supportsSearch) {
+                        searchEnabledCheckbox.checked = false;
+                    }
+                    // Note: These changes here only affect the UI inputs.
+                    // The actual `currentChatState` values are updated when `handleUpdateSettings` is called.
+                    // For now, leave it like this for clarity, as `handleUpdateSettings` is expected to be called explicitly.
+                }
+            });
+
+            thinkingEnabledCheckbox.addEventListener('change', () => {
+                if (currentChatState && modelConfigData[modelSelect.value]?.supports_budget) {
+                    thinkingBudgetControlDiv.style.display = thinkingEnabledCheckbox.checked ? 'block' : 'none';
+                    thinkingBudgetInput.disabled = !thinkingEnabledCheckbox.checked;
+                    if (!thinkingEnabledCheckbox.checked) {
+                        thinkingBudgetInput.value = ''; // Clear budget if thinking is disabled
+                    }
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>

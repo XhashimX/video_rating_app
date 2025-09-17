@@ -1,59 +1,300 @@
 <!doctype html>
-<html lang="ar">
-<head>
-    <meta charset="utf-8">
-    <title>أفضل الفيديوهات</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="text-center mb-4">أفضل الفيديوهات</h1>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>أفضل الملفات</title>
+    
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Cairo", sans-serif;
+        background-color: #121212; 
+        color: #e0e0e0; 
+      }
+      .container {
+        padding: 20px;
+      }
+      h1 {
+        color: #20c997; 
+        margin-bottom: 1rem;
+      }
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="mb-4">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+      .file-preview {
+        max-width: 50px;
+        max-height: 50px;
+        border: 1px solid #495057; 
+        border-radius: 4px;
+        margin-bottom: 5px;
+        display: block;
+        object-fit: cover;
+      }
 
-        <form method="post" action="{{ url_for('rename_all_videos') }}">
-            <button type="submit" class="btn btn-primary mb-3">إعادة تسمية جميع الفيديوهات</button>
-        </form>
+      .video-card {
+        background-color: #1e1e1e; 
+        color: #fff;
+        border: 1px solid #343a40; 
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1); 
+      }
+      .video-info {
+        display: flex; 
+        align-items: center; 
+        margin-bottom: 0.5rem;
+      }
+      .video-info:last-child {
+        margin-bottom: 0; 
+      }
 
-        <table class="table table-dark table-striped">
-            <thead>
-                <tr>
-                    <th>الترتيب</th>
-                    <th>اسم الفيديو</th>
-                    <th>التقييم</th>
-                    <th>تشغيل</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for video in top_videos %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ video[0] }}</td>
-                        <td>{{ video[1] }}</td>
-                        <td>
-                            <a href="{{ url_for('serve_video', filename=video[2]) }}" class="btn btn-success btn-sm" target="_blank">
-                                تشغيل
-                            </a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+      .info-label {
+        font-weight: bold;
+        margin-right: 10px; 
+        width: 80px; 
+        text-align: right; 
+      }
+
+      .btn-success {
+        background-color: #198754; 
+        border-color: #198754;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.9rem;
+      }
+
+      
+      .btn-primary {
+        background-color: #0056b3; 
+        border-color: #0056b3;
+        width: 100%;
+        max-width: 300px;
+        display: block;
+        margin: 0 auto 1rem auto;
+      }
+
+      .alert {
+        color: #000; 
+      }
+
+      
+      .filter-buttons {
+        display: flex;
+        flex-wrap: wrap; 
+        justify-content: center; 
+        gap: 10px; 
+        margin-bottom: 20px; 
+      }
+
+      .filter-buttons .btn {
+        background-color: #343a40; 
+        border-color: #343a40;
+        color: #fff;
+        padding: 0.5rem 1rem; 
+        font-size: 1rem; 
+        border-radius: 5px; 
+        transition: background-color 0.3s ease; 
+      }
+
+      .filter-buttons .btn:hover,
+      .filter-buttons .btn:focus {
+        background-color: #495057; 
+        border-color: #495057;
+        outline: none; 
+      }
+      .filter-buttons .btn.active {
+        background-color: #20c997; 
+        border-color: #20c997;
+        color: #212529;
+      }
+
+      .hidden {
+        display: none; 
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="text-center">
+        <i class="fas fa-file-video"></i> أفضل الملفات
+      </h1>
+
+      <p class="text-center mb-3">عدد الملفات: {{ video_count }}</p>
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %}
+      <div class="mb-4">
+        {% for category, message in messages %}
+        <div
+          class="alert alert-{{ category }} alert-dismissible fade show"
+          role="alert"
+        >
+          <i class="fas fa-exclamation-triangle"></i>
+          {{ message }}
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+            aria-label="Close"
+          ></button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %}
+
+      <form
+        method="post"
+        action="{{ url_for('rename_all_videos') }}"
+        class="text-center"
+      >
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-sync-alt"></i> إعادة تسمية جميع الملفات
+        </button>
+      </form>
+
+      
+      <div class="filter-buttons">
+        <button class="btn" data-filter="top10">أعلى 10%</button>
+        <button class="btn" data-filter="top20">أعلى 20%</button>
+        <button class="btn" data-filter="under10">أقل من 10%</button>
+        <button class="btn" data-filter="under20">أقل من 20%</button>
+        <button class="btn" data-filter="all">الكل</button>
+        
+      </div>
+
+      
+      {% for video in all_videos %}
+      <div class="video-card" data-rank="{{ video[1] }}">
+        
+        <div class="video-info">
+          <span class="info-label">الترتيب:</span>
+          <span>{{ loop.index }}</span>
+        </div>
+        <div class="video-info">
+          <span class="info-label">اسم الملف:</span>
+          <span>{{ video[0] }}</span>
+        </div>
+        <div class="video-info">
+          <span class="info-label">التقييم:</span>
+          <span>{{ video[1] }}</span>
+        </div>
+        <div class="video-info">
+          <span class="info-label">عرض:</span>
+          {% if video[0].lower().endswith(('.jpg', '.jpeg', '.png', '.gif')) %}
+          <img
+            src="{{ url_for('serve_video', filename=video[2]) }}"
+            class="file-preview"
+          />
+          {% endif %}
+        </div>
+        <div class="video-info">
+          <span class="info-label">تشغيل:</span>
+          <a
+            href="{{ url_for('serve_video', filename=video[2]) }}"
+            class="btn btn-success btn-sm"
+            target="_blank"
+          >
+            <i class="fas fa-play"></i> تشغيل
+          </a>
+        </div>
+      </div>
+      {% endfor %}
     </div>
 
-    <!-- Bootstrap JS Bundle with Popper -->
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+
+    <script>
+          document.addEventListener('DOMContentLoaded', function() {
+          const filterButtons = document.querySelectorAll('.filter-buttons .btn');
+          const videoCards = document.querySelectorAll('.video-card');
+            let videoCount = {{ video_count }}; // Get the total video count from Jinja
+
+          filterButtons.forEach(button => {
+              button.addEventListener('click', function() {
+                  // Remove 'active' class from all buttons
+                  filterButtons.forEach(btn => btn.classList.remove('active'));
+                  // Add 'active' class to the clicked button
+                  this.classList.add('active');
+
+                  const filter = this.dataset.filter;
+                   let threshold;
+                   let top;
+
+                  switch (filter) {
+                      case 'top10':
+                         threshold = calculateThreshold(videoCount, 0.1, true); // Top 10%
+                          top = true;
+                          break;
+                      case 'top20':
+                           threshold = calculateThreshold(videoCount, 0.2, true); // Top 20%
+                           top = true;
+                          break;
+                      case 'under10':
+                          threshold = calculateThreshold(videoCount, 0.1, false); // Bottom 10%
+                          top = false;
+                          break;
+                      case 'under20':
+                          threshold = calculateThreshold(videoCount, 0.2, false); // Bottom 20%
+                           top=false
+                          break;
+                      case 'all':
+                          threshold = null; // No threshold for "all"
+                          break;
+                  }
+      			// console.log("videoCount:", videoCount); //Debug
+                  // console.log("threshold", threshold) // Debug
+
+                  videoCards.forEach(card => {
+                      const rank = parseFloat(card.dataset.rank);
+
+                      if (threshold === null) {
+                          card.classList.remove('hidden'); // Show all
+                      } else {
+                            if (top) {
+                                  if (rank >= threshold) {
+                                      card.classList.remove('hidden');
+                                  } else {
+                                      card.classList.add('hidden');
+                                  }
+                            }else{
+                               if (rank <= threshold) {
+                                  card.classList.remove('hidden');
+                             } else {
+                                   card.classList.add('hidden');
+                             }
+                          }
+                      }
+                  });
+              });
+          });
+
+           // Function to calculate the threshold rank
+          function calculateThreshold(totalVideos, percentage, isTop) {
+              const numVideosToShow = Math.max(1, Math.floor(totalVideos * percentage)); // Ensure at least 1 video
+               const allRanks = Array.from(document.querySelectorAll('.video-card')).map(card => parseFloat(card.dataset.rank));
+               allRanks.sort((a, b) => isTop ? b - a : a - b); // Sort descending for top, ascending for under
+               return allRanks[numVideosToShow - 1];  // Get the rank at the calculated index
+
+          }
+          // Initially, show all videos by triggering a click on the "all" button
+           document.querySelector('.filter-buttons .btn[data-filter="all"]').click();
+
+      });
+    </script>
+  </body>
 </html>

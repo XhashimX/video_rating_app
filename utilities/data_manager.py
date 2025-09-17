@@ -4,36 +4,45 @@ from datetime import datetime
 from flask import session, flash
 from .config import SCRIPT_FOLDER, BACKUP_FOLDER
 from urllib.parse import quote
-# مسار النسخ الاحتياطية الإضافي
+
 ADDITIONAL_BACKUP_FOLDER = "/storage/emulated/0/mybackup"
 
-# وظيفة لإنشاء نسخة احتياطية
-def create_backup(data):
+
+def create_backup(data, is_topcut=False, is_archive=False):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     folder_name = os.path.basename(session.get('selected_folder', ''))
-    backup_filename = f"elo_videos_{folder_name}_backup_{timestamp}.json"
+
+    if is_topcut:
+        backup_filename = f"topcut_backup_{timestamp}.json"
+    elif is_archive:
+        backup_filename = f"tournamentarchive_backup_{timestamp}.json"
+    else:
+        backup_filename = f"elo_videos_{folder_name}_backup_{timestamp}.json"
+
     backup_path = os.path.join(BACKUP_FOLDER, backup_filename)
 
-    # إضافة مسار النسخ الاحتياطي الثاني
     additional_backup_folder = "/storage/emulated/0/mybackup"
-    additional_backup_path = os.path.join(additional_backup_folder, backup_filename)
+    additional_backup_path = os.path.join(
+        additional_backup_folder, backup_filename)
 
     try:
-        # حفظ النسخة الاحتياطية في المجلد الافتراضي
         with open(backup_path, "w", encoding='utf-8') as backup_file:
             json.dump(data, backup_file, indent=4, ensure_ascii=False)
         print(f"Backup created: {backup_filename}")
 
-        # حفظ النسخة الاحتياطية في المجلد الثاني
         if not os.path.exists(additional_backup_folder):
             os.makedirs(additional_backup_folder)
         with open(additional_backup_path, "w", encoding='utf-8') as additional_backup_file:
-            json.dump(data, additional_backup_file, indent=4, ensure_ascii=False)
+            json.dump(
+                data,
+                additional_backup_file,
+                indent=4,
+                ensure_ascii=False)
         print(f"Backup also created at: {additional_backup_path}")
     except Exception as e:
         print(f"Error creating backup: {e}")
 
-# Function to load or create the database
+
 def load_data():
     selected_folder = session.get('selected_folder')
     if not selected_folder:
@@ -44,27 +53,43 @@ def load_data():
     data_file = os.path.join(SCRIPT_FOLDER, f"elo_videos_{folder_name}.json")
     print(f"Attempting to load data from: {data_file}")
 
-    # إذا كان الملف موجوداً، قم بتحميل البيانات
     if os.path.exists(data_file):
         try:
             with open(data_file, "r", encoding='utf-8') as file:
                 data = json.load(file)
             print(f"Data loaded successfully from {data_file}")
+
+            # يجب أن يتم استيراد update_video_list هنا لأنها دالة داخلية في ملف آخر
+            from .file_manager import update_video_list
+            data = update_video_list(data)
+
+            for video_id in data:
+                if 'times_shown' not in data[video_id]:
+                    data[video_id]['times_shown'] = 0
+                # التأكد من وجود 'name' عند التحميل إذا لم تكن موجودة بعد
+                if 'name' not in data[video_id]:
+                    data[video_id]['name'] = ''
+
             return data
         except Exception as e:
             print(f"Error loading data file: {e}")
             flash("تعذر تحميل بيانات المسابقة.", "danger")
             return {}
     else:
-        # إنشاء قاعدة بيانات جديدة وتحديثها مباشرة مع الفيديوهات الموجودة
         print(f"Data file {data_file} does not exist. Creating a new one...")
         try:
             data = {}
-            # استخدام update_video_list لإضافة الفيديوهات الموجودة
+            # يجب أن يتم استيراد update_video_list هنا لأنها دالة داخلية في ملف آخر
             from .file_manager import update_video_list
             data = update_video_list(data)
-            
-            # حفظ البيانات في الملف الجديد
+
+            # هذه الحلقة للتأكد من وجود 'times_shown' و 'name' عند إنشاء ملف جديد
+            for video_id in data:
+                if 'times_shown' not in data[video_id]:
+                    data[video_id]['times_shown'] = 0
+                if 'name' not in data[video_id]: # <--- إضافة هذا السطر هنا أيضاً
+                    data[video_id]['name'] = '' # <--- مع قيمة افتراضية
+
             with open(data_file, "w", encoding='utf-8') as file:
                 json.dump(data, file, indent=4, ensure_ascii=False)
             print(f"Created new data file at {data_file}")
@@ -75,7 +100,7 @@ def load_data():
             return {}
 
 
-# Function to save the database with automatic backup
+
 def save_data(data):
     selected_folder = session.get('selected_folder')
     if not selected_folder:
@@ -85,7 +110,6 @@ def save_data(data):
     folder_name = os.path.basename(selected_folder)
     data_file = os.path.join(SCRIPT_FOLDER, f"elo_videos_{folder_name}.json")
     try:
-        # حفظ البيانات كما هي دون تعديل الأسماء
         with open(data_file, "w", encoding='utf-8') as file:
             json.dump(data, file, indent=4, ensure_ascii=False)
         print(f"Data saved to {data_file}")

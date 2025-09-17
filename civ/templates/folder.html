@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}{{ folder_name }} - متصفح الصور{% endblock %}
+
+{% block content %}
+<a href="/" class="back-button">← العودة للصفحة الرئيسية</a>
+
+<h1>مجلد: {{ folder_name }}</h1>
+
+<!-- --- الإضافة الجديدة هنا: أزرار التحكم بالفرز --- -->
+<div class="folder-controls" style="margin-bottom: 20px; text-align: center;">
+    <button id="sort-alpha-btn" class="action-button" style="font-size: 0.9em;">فرز حسب الاسم (أ-ي)</button>
+    <button id="sort-date-btn" class="action-button" style="font-size: 0.9em; display:none;">فرز حسب التاريخ (الأحدث)</button>
+</div>
+<!-- --- نهاية الإضافة --- -->
+
+
+<div class="section">
+    {% if images %}
+        <div class="images-grid">
+            {% for image in images %}
+            <!-- --- تم تعديل بطاقة الصورة هنا --- -->
+            <div class="image-card" 
+                 data-image-path="{{ image.relative_path }}"
+                 data-image-name="{{ image.name | e }}"
+                 data-model-name="N/A"> <!-- لا يوجد موديل للصور العادية -->
+
+                <span class="favorite-star {% if image.is_favorite %}favorited{% endif %}" onclick="toggleFavorite(this, event)">★</span>
+
+                <div class="image-content" onclick="toggleExifData(this)">
+                    <img src="/image/{{ image.relative_path }}" alt="{{ image.name }}" loading="lazy">
+                    <div class="image-info">
+                        <div class="image-name">{{ image.name }}</div>
+                        <div class="exif-data"></div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-images">لا توجد صور PNG في هذا المجلد</div>
+    {% endif %}
+</div>
+
+<!-- --- الإضافة الجديدة هنا: سكريبت الفرز --- -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sortAlphaBtn = document.getElementById('sort-alpha-btn');
+    const sortDateBtn = document.getElementById('sort-date-btn');
+    const imagesGrid = document.querySelector('.images-grid');
+
+    // إذا لم تكن هناك صور، لا تفعل شيئًا
+    if (!imagesGrid) return;
+
+    // 1. احفظ الترتيب الأصلي (حسب التاريخ) عند تحميل الصفحة
+    const originalImageCards = Array.from(imagesGrid.querySelectorAll('.image-card'));
+
+    // 2. عند الضغط على زر "فرز حسب الاسم"
+    sortAlphaBtn.addEventListener('click', () => {
+        // احصل على جميع بطاقات الصور وحولها لمصفوفة لفرزها
+        const imageCards = Array.from(imagesGrid.querySelectorAll('.image-card'));
+
+        // قم بفرز المصفوفة أبجديًا بناءً على اسم الملف المخزن في data-image-name
+        imageCards.sort((a, b) => {
+            const nameA = a.dataset.imageName.toLowerCase();
+            const nameB = b.dataset.imageName.toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        // أعد إدراج البطاقات المرتبة في الحاوية
+        imagesGrid.innerHTML = ''; // أفرغ الحاوية أولاً
+        imageCards.forEach(card => imagesGrid.appendChild(card));
+
+        // قم بتبديل الأزرار
+        sortAlphaBtn.style.display = 'none';
+        sortDateBtn.style.display = 'inline-block';
+    });
+
+    // 3. عند الضغط على زر "فرز حسب التاريخ"
+    sortDateBtn.addEventListener('click', () => {
+        // أعد إدراج البطاقات بالترتيب الأصلي الذي حفظناه
+        imagesGrid.innerHTML = '';
+        originalImageCards.forEach(card => imagesGrid.appendChild(card));
+
+        // قم بتبديل الأزرار
+        sortDateBtn.style.display = 'none';
+        sortAlphaBtn.style.display = 'inline-block';
+    });
+});
+</script>
+<!-- --- نهاية الإضافة --- -->
+
+{% endblock %}

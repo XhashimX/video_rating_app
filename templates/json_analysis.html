@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ar">
+<head>
+    <meta charset="utf-8">
+    <title>JSON Analysis</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body.dark-mode {
+            background-color: #1e1e1e;
+            color: #dcdcdc;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        .dark-mode .btn-primary {
+            background-color: #0288d1;
+            border-color: #0288d1;
+        }
+        .analysis-result, .comparison-result {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .comparison-table th, .comparison-table td {
+            border: 1px solid #444;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .comparison-table th {
+            background-color: #333;
+            color: #fff;
+        }
+        .comparison-table tr:nth-child(even) {
+            background-color: #2c2c2c;
+        }
+        .comparison-table tr:nth-child(odd) {
+            background-color: #252525;
+        }
+        .comparison-table .file1, .comparison-table .file2 {
+            font-weight: bold;
+            color: #fff;
+        }
+        .comparison-table .file1 {
+            color: #e57373; /* أحمر فاتح */
+        }
+        .comparison-table .file2 {
+            color: #64b5f6; /* أزرق فاتح */
+        }
+        h1, h2 {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <div class="container mt-5 text-center">
+        <h1 class="mb-4">JSON Analysis</h1>
+        <p class="mb-2">Total Files: {{ total_files }}</p>
+        <p class="mb-4">Analyzed Files: {{ total_analyzed_files }}</p>
+
+        <!-- Analysis Form -->
+        <form method="post">
+            <div class="mb-3">
+                <select class="form-select" name="json_file" required>
+                    <option value="" disabled selected>Select a JSON File</option>
+                    {% for file in json_files %}
+                        <option value="{{ file }}" {% if selected_file == file %}selected{% endif %}>{{ file }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" name="analyze_file" class="btn btn-primary mb-4">Analyze</button>
+        </form>
+
+        <!-- Analysis Results -->
+        {% if analysis_results %}
+            <div class="text-start analysis-result">
+                <h2 class="mb-3">Analysis Results:</h2>
+
+                <h3 class="mb-2">1. General Statistics:</h3>
+                <ul>
+                    <li>Average File Size: <strong>{{ analysis_results.general.average_file_size }}</strong></li>
+                    <li>Average Rating (Mean): <strong>{{ analysis_results.general.average_rating_mean }}</strong></li>
+                    <li>Average Rating (Median): <strong>{{ analysis_results.general.average_rating_median }}</strong></li>
+                    <li>Highest Rating: <strong>{{ analysis_results.general.highest_rating }}</strong></li>
+                    <li>Lowest Rating: <strong>{{ analysis_results.general.lowest_rating }}</strong></li>
+                    <li>العدد الكلي للملفات: <strong>{{ analysis_results.general.total_files }}</strong></li>
+                </ul>
+
+                <h3 class="mb-2">2. Rating Percentages:</h3>
+                <ul>
+                    {% for key, value in analysis_results.rating_percentages.items() %}
+                        <li>Percentage of Ratings from {{ key.split('_')[1] }} to {{ key.split('_')[3] }}: <strong>{{ value }}</strong></li>
+                    {% endfor %}
+                </ul>
+
+                <h3 class="mb-2">3. Win/Loss Streak Statistics:</h3>
+                <ul>
+                    <li>Average Win Streak Length: <strong>{{ analysis_results.streak_statistics.average_win_streak }}</strong></li>
+                    <li>Average Loss Streak Length: <strong>{{ analysis_results.streak_statistics.average_loss_streak }}</strong></li>
+                    <li>Number of Images with Win Streak > 5: <strong>{{ analysis_results.streak_statistics.win_streak_5_plus }}</strong></li>
+                    <li>Number of Images with Loss Streak > 5: <strong>{{ analysis_results.streak_statistics.loss_streak_5_plus }}</strong></li>
+                </ul>
+
+                <h3 class="mb-2">4. File Size Analysis Based on Ratings:</h3>
+                <ul>
+                    {% for key, value in analysis_results.file_size_analysis.items() %}
+                        <li>Average File Size for Ratings from {{ key.split('_')[1] }} to {{ key.split('_')[3] }}: <strong>{{ value }}</strong></li>
+                    {% endfor %}
+                </ul>
+
+                <h3 class="mb-2">5. Standard Deviation:</h3>
+                <ul>
+                    <li>Standard Deviation of Ratings: <strong>{{ analysis_results.standard_deviation.std_rating }}</strong></li>
+                    <li>Standard Deviation of File Sizes: <strong>{{ analysis_results.standard_deviation.std_file_size }}</strong></li>
+                    <li>Standard Deviation of Win Streaks: <strong>{{ analysis_results.standard_deviation.std_win_streak }}</strong></li>
+                    <li>Standard Deviation of Loss Streaks: <strong>{{ analysis_results.standard_deviation.std_loss_streak }}</strong></li>
+                </ul>
+               
+                <h3 class="mb-2">6. النسب المئوية للتقييمات:</h3>
+                <ul>
+                    {% for key, value in analysis_results.percentile_ranges.items() %}
+                        <li>{{ key }}: <strong>{{ value }}</strong></li>
+                    {% endfor %}
+                </ul>
+                
+                {% if analysis_results.times_shown_analysis %}
+                <h3 class="mb-2">7. تحليل مرات الظهور:</h3>
+                <ul>
+                  {% for key, value in analysis_results.times_shown_analysis.counts.items() %}
+                    <li>{{ key }}: {{ value }}</li>
+                  {% endfor %}
+                  <li>متوسط مرات الظهور: {{ analysis_results.times_shown_analysis["متوسط مرات الظهور"] }}</li>
+                  <li>أدنى مرات ظهور: {{ analysis_results.times_shown_analysis["أدنى مرات ظهور"] }}</li>
+                  <li>أعلى مرات ظهور: {{ analysis_results.times_shown_analysis["أعلى مرات ظهور"] }}</li>
+                </ul>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Comparison Form -->
+        <form method="post">
+            <h2 class="mb-3">Compare Analysis Files</h2>
+            <div class="row">
+                <div class="col">
+                    <select class="form-select mb-3" name="file1" required>
+                        <option value="" disabled selected>Select File 1</option>
+                        {% for file in status_files %}
+                            <option value="{{ file }}">{{ file }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col">
+                    <select class="form-select mb-3" name="file2" required>
+                        <option value="" disabled selected>Select File 2</option>
+                        {% for file in status_files %}
+                            <option value="{{ file }}">{{ file }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <button type="submit" name="compare_files" class="btn btn-primary mb-4">Compare Files</button>
+        </form>
+
+        <!-- Comparison Results -->
+        {% if comparison_results %}
+            <div class="text-start mt-4 comparison-result">
+                <h2 class="mb-3">Comparison Results:</h2>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>ملف 1</th>
+                            <th>ملف 2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for comparison in comparison_results %}
+                        <tr>
+                            <td><span class="file1">{{ comparison.file1 }}</span></td>
+                            <td><span class="file2">{{ comparison.file2 }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

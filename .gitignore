@@ -1,0 +1,32 @@
+# ========================================================
+# Whitelist Strategy: Ignore everything by default,
+# then un-ignore specific file types and essential files.
+# ========================================================
+
+# Step 1: Ignore everything in the project root and subdirectories.
+*
+
+# Step 2: Un-ignore (whitelist) specific files that should ALWAYS be tracked.
+# The '!' character means "do not ignore".
+!/.gitignore
+!/app.py
+!/utilities/config.py # Assuming you have this file for configuration
+
+# Step 3: Un-ignore all directories so Git can look inside them.
+# We need this to find the files we want to keep.
+!*/
+
+# Step 4: Whitelist file extensions for source code.
+# Un-ignore all files ending with these extensions in any directory.
+!**/*.py
+!**/*.html
+!**/*.css
+!**/*.js
+
+# Step 5: Explicitly ignore things we NEVER want to track,
+# even if they match the extensions above (as a safeguard).
+/NS/
+/venv/
+/__pycache__/
+*.pyc
+*.json-backup

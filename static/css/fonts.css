@@ -1,0 +1,13 @@
+@font-face {
+  font-family: 'Cairo';
+  src: url('../fonts/Cairo-Regular.tff') format('tff');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cairo';
+  src: url('../fonts/Cairo-Bold.tff') format('tff');
+  font-weight: 700;
+  font-style: normal;
+}

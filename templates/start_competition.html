@@ -1,111 +1,631 @@
+
+
 <!doctype html>
 <html lang="ar">
-<head>
-    <meta charset="utf-8">
+  <head>
+    <meta charset="utf-8" />
     <title>بدء مسابقة</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        body.dark-mode {
-            background-color: #1a1a1a;
-            color: #e0e0e0;
-        }
-        .dark-mode .form-check-label {
-            color: #e0e0e0;
-        }
-        .dark-mode .btn-success {
-            background-color: #28a745;
-            border-color: #218838;
-        }
-        .dark-mode .btn-secondary {
-            background-color: #444444;
-            border-color: #555555;
-        }
+      body {
+        font-family: "Cairo", sans-serif;
+        background-color: #121212;
+        color: #e0e0e0;
+      }
+
+      .container {
+        max-width: 960px;
+        margin: auto;
+        background-color: #1e1e1e;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+      }
+
+      h1 {
+        color: #20c997;
+        margin-bottom: 1rem;
+        font-size: 2.5rem;
+        text-align: center;
+      }
+
+      .form-label {
+        color: #e0e0e0;
+      }
+
+      .form-control,
+      .form-select {
+        background-color: #343a40;
+        color: #fff;
+        border-color: #495057;
+      }
+      .form-control:focus,
+      .form-select:focus {
+        border-color: #20c997;
+        box-shadow: 0 0 0 0.25rem rgba(32, 201, 151, 0.25);
+      }
+
+      .form-text {
+        color: #adb5bd;
+      }
+
+      #competition-count {
+        color: #FFC107;
+        font-size: 1.2em;
+        font-weight: bold;
+      }
+
+      .btn {
+        padding: 0.3rem 0.6rem;
+        margin: 4px;
+        border-radius: 5px;
+        transition:
+          background-color 0.3s ease,
+          border-color 0.3s ease;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      .btn:hover,
+      .btn:focus {
+        opacity: 0.9;
+      }
+
+      .btn-success {
+        background-color: #198754;
+        border-color: #198754;
+        color: white;
+      }
+
+      .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        color: white;
+      }
+      
+      .btn-warning {
+        color: #000;
+        background-color: #ffc107;
+        border-color: #ffc107;
+      }
+      
+      .btn-danger {
+        color: #fff;
+        background-color: #dc3545;
+        border-color: #dc3545;
+      }
+      
+      /* START: MODIFIED SECTION - إضافة تنسيق للزر الجديد */
+      .btn-info {
+        color: #000;
+        background-color: #0dcaf0;
+        border-color: #0dcaf0;
+      }
+      /* END: MODIFIED SECTION */
+
+      .alert {
+        border-radius: 4px;
+        margin-bottom: 15px;
+        color: #000;
+      }
+
+      textarea.form-control {
+        min-height: 150px;
+      }
     </style>
-</head>
-<body class="dark-mode">
+  </head>
+  <body>
     <div class="container mt-5">
-        <h1 class="text-center mb-4">اختيار وضع المسابقة</h1>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="mb-4">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
+      <h1 class="text-center mb-4">
+        <i class="fas fa-gamepad"></i> اختيار وضع المسابقة
+      </h1>
+
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %}
+      <div class="mb-4">
+        {% for category, message in messages %}
+        <div
+          class="alert alert-{{ category }} alert-dismissible fade show"
+          role="alert"
+        >
+          <i class="fas fa-exclamation-triangle"></i>
+          {{ message }}
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+            aria-label="Close"
+          ></button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %}
+      <form method="post" action="{{ url_for('competition') }}">
+
+        <div class="mb-3">
+            <label for="tournament_file" class="form-label">اختر ملف بطولة:</label>
+            <!-- START: MODIFIED SECTION - إضافة الزر الثالث -->
+            <div class="input-group">
+                <select class="form-select" id="tournament_file" name="tournament_file">
+                    <option value="">-- اختر ملف بطولة --</option>
+                    {% for file in tournament_files %}
+                    <option value="{{ file }}">{{ file }}</option>
                     {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-        <form method="post" action="{{ url_for('competition') }}">
-            <div class="mb-3">
-                <label for="mode" class="form-label">اختر وضع المسابقة:</label>
-                <select class="form-select" id="mode" name="mode" required>
-                    <option value="" disabled selected>اختر الوضع</option>
-                    <option value="1">عشوائية</option>
-                    <option value="2">أفضل النسبة المئوية</option>
-                    <option value="3">فيديوهات أقل من قيمة معينة</option>
-                    <option value="4">فيديوهات أعلى من قيمة معينة</option>
-                    <option value="5">فيديوهات بين قيمتين</option> <!-- الوضع الجديد -->
                 </select>
+                <button type="button" class="btn btn-warning" id="filter-unplayed-btn" style="display: none;">
+                    <i class="fas fa-filter"></i> متابعة غير المكتمل
+                </button>
+                <button type="button" class="btn btn-info" id="regroup-btn" style="display: none;">
+                    <i class="fas fa-random"></i> إعادة تجميع
+                </button>
+                <button type="button" class="btn btn-danger" id="delete-tournament-btn" style="display: none;">
+                    <i class="fas fa-trash"></i> حذف الملف
+                </button>
             </div>
+            <!-- END: MODIFIED SECTION -->
+            <span id="competition-count" class="form-text text-muted"></span>
+        </div>
 
-            <!-- إدخال القيمة للوضع 3 أو 4 -->
-            <div class="mb-3" id="valueInput" style="display: none;">
-                <label for="value" class="form-label">أدخل القيمة:</label>
-                <input type="number" class="form-control" id="value" name="value" placeholder="مثال: 1500">
-            </div>
+        <div class="mb-3">
+          <label for="json_data" class="form-label"
+            >بيانات JSON للمنافسات:</label
+          >
+          <textarea
+            class="form-control"
+            id="json_data"
+            name="json_data"
+            rows="5"
+            placeholder="أدخل بيانات المنافسة هنا بتنسيق JSON"
+          ></textarea>
+          <small class="form-text text-muted">
+            مثال: [{"videos": ["video1", "video2"], "mode": 1, "num_videos": 2},
+            {"videos": ["video3", "video4"], "mode": 3, "value": 1200,
+            "num_videos": 2}]
+          </small>
+        </div>
 
-            <!-- إدخال القيم للوضع 5 -->
-            <div id="rangeInput" style="display: none;">
-                <div class="mb-3">
-                    <label for="min_value" class="form-label">القيمة الدنيا:</label>
-                    <input type="number" class="form-control" id="min_value" name="min_value" placeholder="مثال: 1000">
-                </div>
-                <div class="mb-3">
-                    <label for="max_value" class="form-label">القيمة القصوى:</label>
-                    <input type="number" class="form-control" id="max_value" name="max_value" placeholder="مثال: 2000">
-                </div>
-            </div>
+        <div class="mb-3">
+          <label for="mode" class="form-label">اختر وضع المسابقة:</label>
+          <select class="form-select" id="mode" name="mode" required>
+            <option value="1">عشوائية</option>
+            <option value="2">أفضل النسبة المئوية</option>
+            <option value="3">ملفات بتقييم أقل من قيمة معينة</option>
+            <option value="4">ملفات بتقييم أعلى من قيمة معينة</option>
+            <option value="5">ملفات بين قيمتين</option>
+            <option value="6">ملفات خارج قيمتين</option>
+            <option value="8">ملفات بين نطاقين منفصلين</option>
+            <option value="7">عشوائي ثم الأقرب تقييم</option>
+            <option value="9">ملفات بعدد مرات ظهور (نطاق)</option>
+            <option value="10">ملفات بوسوم (Tags) معينة</option>
+          </select>
+        </div>
 
-            <div class="mb-3">
-                <label for="num_videos" class="form-label">عدد الفيديوهات في المسابقة:</label>
-                <input type="number" class="form-control" id="num_videos" name="num_videos" min="2" required>
+
+        <div class="mb-3" id="valueInput" style="display: none">
+          <label for="value" class="form-label">أدخل القيمة:</label>
+          <input
+            type="number"
+            class="form-control"
+            id="value"
+            name="value"
+            placeholder="مثال: 1500"
+          />
+        </div>
+
+
+        <div class="mb-3" id="min-max-input" style="display: none">
+          <label for="min_value" class="form-label">القيمة الدنيا:</label>
+          <input
+            type="number"
+            class="form-control"
+            id="min_value"
+            name="min_value"
+            value="0"
+          />
+          <label for="max_value" class="form-label">القيمة القصوى:</label>
+          <input
+            type="number"
+            class="form-control"
+            id="max_value"
+            name="max_value"
+            value="1000"
+          />
+        </div>
+
+
+        <div class="mb-3" id="range-inputs" style="display: none">
+          <div class="mb-2">
+            <label class="form-label">النطاق الأول:</label>
+            <div class="row">
+              <div class="col-md-6">
+                <input
+                  type="number"
+                  class="form-control"
+                  id="min_value1"
+                  name="min_value1"
+                  placeholder="الحد الأدنى"
+                />
+              </div>
+              <div class="col-md-6">
+                <input
+                  type="number"
+                  class="form-control"
+                  id="max_value1"
+                  name="max_value1"
+                  placeholder="الحد الأعلى"
+                />
+              </div>
             </div>
-            <button type="submit" class="btn btn-success">بدء المسابقة</button>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">العودة إلى الصفحة الرئيسية</a>
-        </form>
+          </div>
+          <div>
+            <label class="form-label">النطاق الثاني:</label>
+            <div class="row">
+              <div class="col-md-6">
+                <input
+                  type="number"
+                  class="form-control"
+                  id="min_value2"
+                  name="min_value2"
+                  placeholder="الحد الأدنى"
+                />
+              </div>
+              <div class="col-md-6">
+                <input
+                  type="number"
+                  class="form-control"
+                  id="max_value2"
+                  name="max_value2"
+                  placeholder="الحد الأعلى"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3" id="times-shown-input" style="display: none">
+          <label for="min_times_shown" class="form-label">الحد الأدنى لمرات الظهور:</label>
+          <input
+            type="number"
+            class="form-control"
+            id="min_times_shown"
+            name="min_times_shown"
+            value="0"
+          />
+          <label for="max_times_shown" class="form-label">الحد الأقصى لمرات الظهور:</label>
+          <input
+            type="number"
+            class="form-control"
+            id="max_times_shown"
+            name="max_times_shown"
+            value="10"
+          />
+        </div>
+
+        <div class="mb-3" id="tags-mode-input" style="display: none">
+          <label for="tags_value_mode_input" class="form-label">أدخل الوسوم (مفصولة بفاصلة):</label>
+          <input
+            type="text"
+            class="form-control"
+            id="tags_value_mode_input"
+            name="tags_value_mode_input"
+            placeholder="مثال: tag1,tag2,Top"
+          />
+        </div>
+
+        <div class="mb-3">
+          <label for="num_videos" class="form-label"
+            >عدد الملفات في المسابقة:</label
+          >
+          <input
+            type="number"
+            class="form-control"
+            id="num_videos"
+            name="num_videos"
+            min="2"
+            value="2"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="ranking_type" class="form-label">نوع الترتيب:</label>
+          <select
+            class="form-select"
+            id="ranking_type"
+            name="ranking_type"
+            required
+          >
+            <option value="" disabled selected>اختر نوع الترتيب</option>
+            <option value="rank">ترتيب</option>
+            <option value="winner_only" selected>فائز واحد فقط</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="use_dynamic_weighting" class="form-label"
+            >طريقة اختيار الفيديوهات:</label
+          >
+          <select
+            class="form-select"
+            id="use_dynamic_weighting"
+            name="use_dynamic_weighting"
+            required
+          >
+            <option value="false">عشوائي</option>
+            <option value="true" selected>ترجيح ديناميكي</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="competition_type" class="form-label"
+            >نظام المنافسة:</label
+          >
+          <select
+            class="form-select"
+            id="competition_type"
+            name="competition_type"
+            required
+          >
+            <option value="random" selected>عشوائي</option>
+            <option value="ring">حلبة</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-success">
+          <i class="fas fa-play"></i> بدء المسابقة
+        </button>
+
+        <a href="{{ url_for('index') }}" class="btn btn-secondary"
+          ><i class="fas fa-arrow-left"></i> العودة إلى الصفحة الرئيسية</a
+        >
+
+      </form>
     </div>
 
-    <!-- Bootstrap JS Bundle with Popper -->
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- JavaScript لإظهار الحقول بناءً على الوضع -->
+
     <script>
-        document.getElementById('mode').addEventListener('change', function() {
-            const valueInput = document.getElementById('valueInput');
-            const rangeInput = document.getElementById('rangeInput');
-            if (this.value == '3' || this.value == '4') {
-                valueInput.style.display = 'block';
-                rangeInput.style.display = 'none';
-                document.getElementById('value').required = true;
-                document.getElementById('min_value').required = false;
-                document.getElementById('max_value').required = false;
-            } else if (this.value == '5') {
-                valueInput.style.display = 'none';
-                rangeInput.style.display = 'block';
-                document.getElementById('value').required = false;
-                document.getElementById('min_value').required = true;
-                document.getElementById('max_value').required = true;
+      const modeSelect = document.getElementById("mode");
+      const valueInput = document.getElementById("valueInput");
+      const minMaxInput = document.getElementById("min-max-input");
+      const rangeInputs = document.getElementById("range-inputs");
+      const timesShownInput = document.getElementById("times-shown-input");
+      const tagsModeInput = document.getElementById("tags-mode-input");
+      const tournamentFileSelect = document.getElementById("tournament_file");
+      const jsonDataTextarea = document.getElementById("json_data");
+
+      const filterBtn = document.getElementById("filter-unplayed-btn");
+      const deleteBtn = document.getElementById("delete-tournament-btn");
+      // START: MODIFIED SECTION - إضافة متغير للزر الجديد
+      const regroupBtn = document.getElementById("regroup-btn");
+      // END: MODIFIED SECTION
+
+      tournamentFileSelect.addEventListener("change", function () {
+        const selectedFile = this.value;
+        const competitionCountSpan = document.getElementById('competition-count');
+
+        if (selectedFile) {
+          // START: MODIFIED SECTION - إظهار وإخفاء الأزرار
+          filterBtn.style.display = "block";
+          deleteBtn.style.display = "block";
+          regroupBtn.style.display = "block";
+          // END: MODIFIED SECTION
+
+          fetch("/get_tournament_content/" + selectedFile)
+            .then((response) => response.json())
+            .then((data) => {
+                jsonDataTextarea.value = JSON.stringify(data, null, 4);
+                if (Array.isArray(data)) {
+                    competitionCountSpan.textContent = `إجمالي المسابقات: ${data.length}`;
+                } else {
+                    competitionCountSpan.textContent = '';
+                }
+            })
+            .catch((error) => console.error("Error:", error));
+        } else {
+            jsonDataTextarea.value = "";
+            competitionCountSpan.textContent = '';
+            // START: MODIFIED SECTION - إظهار وإخفاء الأزرار
+            filterBtn.style.display = "none";
+            deleteBtn.style.display = "none";
+            regroupBtn.style.display = "none";
+            // END: MODIFIED SECTION
+        }
+      });
+
+      filterBtn.addEventListener("click", function() {
+        // ... (كود الفلترة يبقى كما هو)
+        const selectedFile = tournamentFileSelect.value;
+        if (!selectedFile) {
+            alert("الرجاء اختيار ملف بطولة أولاً.");
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جار الفلترة...';
+        
+        fetch('/filter_unplayed/' + selectedFile)
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error || err.message || 'حدث خطأ في الشبكة أو الخادم.') });
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                if (result.status === 'completed') {
+                    alert(result.message);
+                    window.location.href = "{{ url_for('tour_page') }}";
+                    return; 
+                }
+
+                if (result.status === 'completion_failed') {
+                    throw new Error(result.message);
+                }
+
+                if (typeof result.data !== 'undefined') {
+                    const filteredData = result.data;
+                    jsonDataTextarea.value = JSON.stringify(filteredData, null, 4);
+                    const competitionCountSpan = document.getElementById('competition-count');
+                    competitionCountSpan.textContent = `المسابقات المتبقية: ${filteredData.length}`;
+                    if (filteredData.length > 0) {
+                        alert(`تمت الفلترة بنجاح! تبقى ${filteredData.length} مسابقة.`);
+                    } else {
+                        alert("كل المباريات في هذه الجولة قد اكتملت!");
+                    }
+                } else {
+                    throw new Error('تم استلام رد غير متوقع من الخادم.');
+                }
+            })
+            .catch(error => {
+                console.error('خطأ أثناء الفلترة:', error);
+                alert('حدث خطأ: ' + error.message);
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-filter"></i> متابعة غير المكتمل';
+            });
+      });
+
+      deleteBtn.addEventListener("click", function() {
+        // ... (كود الحذف يبقى كما هو)
+        const selectedFile = tournamentFileSelect.value;
+        if (!selectedFile) {
+            alert("الرجاء اختيار ملف بطولة أولاً.");
+            return;
+        }
+        if (!confirm("هل أنت متأكد أنك تريد حذف ملف البطولة '" + selectedFile + "'؟ هذا الإجراء لا يمكن التراجع عنه.")) {
+            return;
+        }
+        this.disabled = true;
+        fetch('/delete_tournament_file', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ filename: selectedFile }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
             } else {
-                valueInput.style.display = 'none';
-                rangeInput.style.display = 'none';
-                document.getElementById('value').required = false;
-                document.getElementById('min_value').required = false;
-                document.getElementById('max_value').required = false;
+                alert("فشل الحذف: " + data.message);
+                this.disabled = false;
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("حدث خطأ أثناء الاتصال بالخادم.");
+            this.disabled = false;
         });
+      });
+
+      // START: MODIFIED SECTION - إضافة وظيفة النقر لزر إعادة التجميع
+      regroupBtn.addEventListener("click", function() {
+        const selectedFile = tournamentFileSelect.value;
+        if (!selectedFile) {
+            alert("الرجاء اختيار ملف بطولة أولاً.");
+            return;
+        }
+
+        const newSizeStr = prompt("أدخل العدد الجديد للفيديوهات في كل مسابقة (2 أو أكثر):", "2");
+        if (newSizeStr === null) { // المستخدم ضغط على إلغاء
+            return;
+        }
+
+        const newSize = parseInt(newSizeStr, 10);
+        if (isNaN(newSize) || newSize < 2) {
+            alert("الرجاء إدخال رقم صحيح أكبر من أو يساوي 2.");
+            return;
+        }
+        
+        if (!confirm("سيتم إعادة كتابة الملف '" + selectedFile + "' بالكامل بالترتيب الجديد. هل أنت متأكد؟")) {
+            return;
+        }
+        
+        this.disabled = true;
+
+        fetch('/regroup_competitions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                filename: selectedFile,
+                new_num_videos: newSize 
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // سيقوم الخادم بإرسال رسالة flash التي ستظهر بعد إعادة التحميل
+                alert(data.message); // عرض الرسالة من الخادم مباشرة
+                window.location.reload();
+            } else {
+                alert("فشل إعادة التجميع: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("حدث خطأ أثناء الاتصال بالخادم.");
+        })
+        .finally(() => {
+            this.disabled = false; // إعادة تفعيل الزر في كل الحالات
+        });
+      });
+      // END: MODIFIED SECTION
+
+      modeSelect.addEventListener("change", function () {
+        valueInput.style.display = "none";
+        minMaxInput.style.display = "none";
+        rangeInputs.style.display = "none";
+        timesShownInput.style.display = "none";
+        tagsModeInput.style.display = "none";
+        const allValueInputs = document.querySelectorAll('#valueInput input, #min-max-input input, #range-inputs input, #times-shown-input input, #tags-mode-input input');
+        allValueInputs.forEach(input => {
+            input.required = false;
+        });
+        if (this.value === "3" || this.value === "4") {
+          valueInput.style.display = "block";
+          document.getElementById("value").required = true;
+        } else if (this.value === "5" || this.value === "6") {
+          minMaxInput.style.display = "block";
+          document.getElementById("min_value").required = true;
+          document.getElementById("max_value").required = true;
+        } else if (this.value === "8") {
+          rangeInputs.style.display = "block";
+          document.getElementById("min_value1").required = true;
+          document.getElementById("max_value1").required = true;
+          document.getElementById("min_value2").required = true;
+          document.getElementById("max_value2").required = true;
+        } else if (this.value === "9") {
+          timesShownInput.style.display = "block";
+          document.getElementById("min_times_shown").required = true;
+          document.getElementById("max_times_shown").required = true;
+        } else if (this.value === "10") {
+          tagsModeInput.style.display = "block";
+          document.getElementById("tags_value_mode_input").required = true;
+        }
+      });
+      modeSelect.dispatchEvent(new Event('change'));
     </script>
-</body>
+  </body>
 </html>

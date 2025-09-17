@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="ar">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تحليل الأسماء</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #121212;
+        color: #e0e0e0;
+        font-family: "Cairo", sans-serif;
+      }
+      .container {
+        padding-top: 20px;
+      }
+      h1,
+      h2,
+      h3 {
+        color: #20c997;
+        font-weight: bold;
+      }
+      .card {
+        background-color: #1e1e1e;
+        border: 1px solid #444;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+      .card-header {
+        background-color: #282828;
+        border-bottom: 1px solid #444;
+        color: #e0e0e0;
+        font-size: 1.2em;
+        font-weight: bold;
+      }
+      .card-body p {
+        margin-bottom: 5px;
+      }
+      .list-group-item {
+        background-color: #1e1e1e;
+        color: #e0e0e0;
+        border-color: #333;
+      }
+      .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        color: white;
+      }
+      .btn-secondary:hover {
+        background-color: #5a6268;
+        border-color: #545b62;
+      }
+      .competitor-stats {
+        margin-top: 10px;
+        padding-left: 15px;
+        border-left: 2px solid #555;
+      }
+      /* ستايل جديد لأزرار الفرز */
+      .sort-buttons button {
+        margin: 5px;
+        background-color: #343a40; /* لون خلفية داكن */
+        color: #e0e0e0;
+        border-color: #495057;
+      }
+      .sort-buttons button:hover {
+        background-color: #495057;
+        border-color: #5f666d;
+      }
+      .sort-buttons button.active {
+        background-color: #20c997; /* أخضر مميز للنشط */
+        border-color: #198754;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="text-center mb-4">تحليل إحصائيات الأسماء</h1>
+
+      <div class="mb-4 text-center">
+        <h3 class="mb-3">الترتيب حسب:</h3>
+        <div class="sort-buttons d-flex justify-content-center flex-wrap">
+          <button class="btn btn-secondary" data-sort-by="total_rating" data-sort-order="desc">
+            التقييم الكلي <i class="fas fa-sort-numeric-down-alt"></i>
+          </button>
+          <button class="btn btn-secondary" data-sort-by="video_count" data-sort-order="desc">
+            عدد الفيديوهات <i class="fas fa-sort-numeric-down-alt"></i>
+          </button>
+          <button class="btn btn-secondary" data-sort-by="average_rating" data-sort-order="desc">
+            متوسط التقييم <i class="fas fa-sort-numeric-down-alt"></i>
+          </button>
+          <button class="btn btn-secondary" data-sort-by="total_wins" data-sort-order="desc">
+            عدد الفوز <i class="fas fa-sort-numeric-down-alt"></i>
+          </button>
+          <button class="btn btn-secondary" data-sort-by="total_losses" data-sort-order="desc">
+            عدد الخسارة <i class="fas fa-sort-numeric-up-alt"></i>
+          </button>
+          <button class="btn btn-secondary" data-sort-by="total_competitions" data-sort-order="desc">
+            إجمالي المسابقات <i class="fas fa-sort-numeric-down-alt"></i>
+          </button>
+          <button class="btn btn-secondary" data-sort-by="win_rate" data-sort-order="desc">
+            معدل الفوز <i class="fas fa-sort-numeric-down-alt"></i>
+          </button>
+          <button class="btn btn-secondary" data-sort-by="name" data-sort-order="asc">
+            الاسم <i class="fas fa-sort-alpha-down"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="names-container">
+        {% if analysis_results %}
+        {# Initial rendering will be sorted by total_rating (default) as per JS#}
+        {% for name, stats in analysis_results.items() %}
+        <div class="card" data-name="{{ name }}"
+             data-total_rating="{{ '%.2f' | format(stats.total_rating) }}"
+             data-video_count="{{ stats.video_count }}"
+             data-average_rating="{{ '%.2f' | format(stats.average_rating) }}"
+             data-total_wins="{{ stats.total_wins }}"
+             data-total_losses="{{ stats.total_losses }}"
+             data-total_competitions="{{ stats.total_competitions }}"
+             data-win_rate="{{ '%.2f' | format(stats.win_rate) }}">
+          <div class="card-header">{{ name }}</div>
+          <div class="card-body">
+            <p>
+              <strong style="color: #20c997">إجمالي الفوز:</strong> {{
+              stats.total_wins }}
+            </p>
+            <p>
+              <strong style="color: #dc3545">إجمالي الخسارة:</strong> {{
+              stats.total_losses }}
+            </p>
+            <p>
+              <strong style="color: #ffc107">إجمالي المسابقات:</strong> {{
+              stats.total_competitions }}
+            </p>
+            <p>
+              <strong style="color: #17a2b8">معدل الفوز:</strong> {{ "%.2f%%" |
+              format(stats.win_rate * 100) }}
+            </p>
+            <p>
+              <strong style="color: #ffd700">التقييم الكلي:</strong> {{ "%.2f" |
+              format(stats.total_rating) }}
+            </p>
+            <p>
+              <strong style="color: #00bcd4">عدد الفيديوهات:</strong> {{
+              stats.video_count }}
+            </p>
+            <p>
+              <strong style="color: #8bc34a">متوسط التقييم:</strong> {{ "%.2f" |
+              format(stats.average_rating) }}
+            </p>
+
+            <h5 class="mt-4" style="color: #0dcaf0">تفاصيل المنافسين:</h5>
+            {% if stats.competitors_detail %}
+            <ul class="list-group">
+              {% for comp_name, comp_stats in stats.competitors_detail.items() %}
+              <li class="list-group-item">
+                <strong style="color: #ff851b">{{ comp_name }}</strong>: فاز {{
+                comp_stats.wins }} مرة، خسر {{ comp_stats.losses }} مرة، إجمالي
+                {{ comp_stats.total }} منافسة.
+                (معدل فوز ضده: {{ "%.2f%%" | format(comp_stats.win_rate_vs * 100)
+                }})
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p>لا توجد تفاصيل منافسين بعد.</p>
+            {% endif %}
+
+            <h5 class="mt-4" style="color: #6f42c1">الأكثر منافسة ضد:</h5>
+            {% if stats.most_fought_against %}
+            <ul class="list-group">
+              {% for comp_name, count in stats.most_fought_against %}
+              <li class="list-group-item">
+                {{ comp_name }} ({{ count }} مرة)
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p>لا يوجد.</p>
+            {% endif %}
+
+            <h5 class="mt-4" style="color: #28a745">الأكثر هزيمة لهم:</h5>
+            {% if stats.most_defeated %}
+            <ul class="list-group">
+              {% for comp_name, count in stats.most_defeated %}
+              <li class="list-group-item">
+                {{ comp_name }} ({{ count }} مرة)
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p>لا يوجد.</p>
+            {% endif %}
+
+            <h5 class="mt-4" style="color: #dc3545">الأكثر هزيمة منهم:</h5>
+            {% if stats.most_lost_to %}
+            <ul class="list-group">
+              {% for comp_name, count in stats.most_lost_to %}
+              <li class="list-group-item">
+                {{ comp_name }} ({{ count }} مرة)
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p>لا يوجد.</p>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-center">لا توجد بيانات لتحليل الأسماء بعد.</p>
+      {% endif %}
+
+      <div class="text-center mt-5">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+          العودة إلى الصفحة الرئيسية</a
+        >
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+          const namesContainer = document.getElementById('names-container');
+          const sortButtons = document.querySelectorAll('.sort-buttons button');
+          let currentSortBy = 'total_rating'; // الترتيب الافتراضي
+          let currentSortOrder = 'desc'; // الترتيب الافتراضي تنازلي
+
+          // دالة فرز العناصر
+          function sortNames() {
+              const cards = Array.from(namesContainer.querySelectorAll('.card'));
+
+              cards.sort((a, b) => {
+                  let valA, valB;
+
+                  if (currentSortBy === 'name') {
+                      valA = a.dataset.name;
+                      valB = b.dataset.name;
+                      // الفرز الأبجدي لا يحتاج تحويلاً رقمياً
+                      if (currentSortOrder === 'asc') {
+                          return valA.localeCompare(valB);
+                      } else {
+                          return valB.localeCompare(valA);
+                      }
+                  } else {
+                      // للقيم الرقمية، نحولها إلى أرقام
+                      valA = parseFloat(a.dataset[currentSortBy]);
+                      valB = parseFloat(b.dataset[currentSortBy]);
+
+                      if (currentSortOrder === 'asc') {
+                          return valA - valB;
+                      } else {
+                          return valB - valA;
+                      }
+                  }
+              });
+
+              // إعادة ترتيب العناصر في DOM
+              cards.forEach(card => namesContainer.appendChild(card));
+          }
+
+          // إضافة مستمعي الأحداث لأزرار الفرز
+          sortButtons.forEach(button => {
+              button.addEventListener('click', function() {
+                  // تحديث الزر النشط
+                  sortButtons.forEach(btn => btn.classList.remove('active'));
+                  this.classList.add('active');
+
+                  currentSortBy = this.dataset.sortBy;
+                  currentSortOrder = this.dataset.sortOrder; // سيتم تحديده من data-sort-order مباشرة
+
+                  // تحديث أيقونة الفرز
+                  sortButtons.forEach(btn => {
+                      const icon = btn.querySelector('i');
+                      if (icon) {
+                          icon.classList.remove('fa-sort-numeric-down-alt', 'fa-sort-numeric-up-alt', 'fa-sort-alpha-down', 'fa-sort-alpha-up');
+                      }
+                  });
+
+                  const activeIcon = this.querySelector('i');
+                  if (activeIcon) {
+                      if (currentSortBy === 'name') {
+                           activeIcon.classList.add(currentSortOrder === 'asc' ? 'fa-sort-alpha-down' : 'fa-sort-alpha-up');
+                      } else {
+                          activeIcon.classList.add(currentSortOrder === 'desc' ? 'fa-sort-numeric-down-alt' : 'fa-sort-numeric-up-alt');
+                      }
+                  }
+
+                  sortNames();
+              });
+          });
+
+          // تفعيل الترتيب الافتراضي عند تحميل الصفحة
+          const defaultSortButton = document.querySelector(`button[data-sort-by="${currentSortBy}"][data-sort-order="${currentSortOrder}"]`);
+          if (defaultSortButton) {
+              defaultSortButton.click(); // يحاكي النقر لتطبيق الفرز الأولي وتفعيل الزر
+          }
+      });
+    </script>
+    <script src="https://kit.fontawesome.com/your-font-awesome-kit-code.js" crossorigin="anonymous"></script> {# استبدل بالرمز الخاص بك #}
+  </body>
+</html>

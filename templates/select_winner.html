@@ -1,177 +1,1525 @@
 <!doctype html>
+
 <html lang="ar">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>اختر الفائزين</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
     <style>
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            margin: 0;
-            padding: 0; /* إزالة الحشوات */
-        }
+      body {
+        background-color: #121212;
+        color: #e0e0e0;
+        font-family: "Cairo", sans-serif;
+      }
 
-        .video-card {
-            margin: 10px auto; /* ترك مسافة صغيرة فوق وتحت البطاقة */
-            border: 1px solid #444;
-            border-radius: 10px;
-            background-color: #1c1c1c;
-            width: 100%; /* استخدام العرض الكامل المتاح */
-            max-width: 800px; /* يمكن تعديل هذا حسب الحاجة */
-            padding: 10px; /* تقليل الحشوات داخل البطاقة */
-        }
+      .container-fluid {
+        padding-top: 20px;
+      }
+      .thumbnails-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
 
-        .rank-buttons {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+      .thumbnail {
+        width: 300px;
+        height: auto;
+        border: 1px solid #555;
+        border-radius: 5px;
+        cursor: pointer;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #1e1e1e;
+      }
+      .thumbnail video {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .thumbnail img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .thumbnail:hover {
+        transform: scale(1.1);
+        box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+      }
 
-        .rank-buttons button {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            font-size: 16px;
-            font-weight: bold;
-        }
+      .video-card {
+        margin: 20px auto;
+        border: 1px solid #444;
+        border-radius: 10px;
+        background-color: #1e1e1e;
+        width: 100%;
+        max-width: 800px;
+        padding: 20px;
+        transition: transform 0.3s ease;
+      }
 
-        button.active {
-            background-color: #28a745 !important;
-            color: white;
-            font-weight: bold;
-        }
+      .video-card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+      }
 
-        video {
-            display: block;
-            margin: 0;
-            width: 100%;
-            height: auto;
-            border-radius: 5px;
-        }
+      .rank-buttons {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
 
-        .next-button {
-            margin-top: 10px;
-        }
+      .rank-buttons button {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        background-color: rgba(51, 51, 51, 0.7);
+        border: 2px solid rgba(51, 51, 51, 0.7);
+        color: white;
+        transition:
+          transform 0.2s ease,
+          opacity 0.3s ease;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
 
-        h1, h5 {
-            color: #ffffff;
-        }
+      .rank-buttons button:hover {
+        opacity: 0.9;
+        transform: scale(1.1);
+      }
+      button.active {
+        background-color: #20c997 !important;
+        border: 2px solid #20c997 !important;
+        color: white;
+        transform: scale(1.1);
+      }
+      .file-preview {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        border: 1px solid #555;
+        border-radius: 10px;
+        transition: transform 0.3s ease;
+      }
 
-        p.text-muted {
-            color: #aaa;
+      .file-preview:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+      }
+
+      video {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+      }
+
+      video:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+      }
+
+      h1 {
+        color: #20c997;
+        font-weight: bold;
+      }
+      /* تم تعديل هذه القاعدة لتطبيق اللون الأخضر فقط على العناوين غير المعالجة */
+      h5 {
+        color: #20c997; /* اللون الافتراضي الأخضر */
+        font-weight: bold;
+      }
+      /* إضافة قاعدة CSS جديدة للعناوين المعالجة لتصبح حمراء */
+      h5.processed-title {
+          color: red !important; /* اللون الأحمر للفيديوهات المعالجة */
+      }
+
+
+      .video-stats {
+        font-weight: bold;
+        color: #aaa;
+        text-align: center;
+      }
+
+      .rating-value,
+      .appearance-value {
+        font-weight: bold;
+      }
+
+      /* ألوان مختلفة بناءً على القيم */
+      .rating-value-less-1000,
+      .appearance-value-less-1000 {
+        color: #ff4444; /* أحمر */
+      }
+
+      .rating-value-1000,
+      .appearance-value-1000 {
+        color: #ffaa00; /* برتقالي */
+      }
+
+      .rating-value-1000-1300,
+      .appearance-value-1000-1300 {
+        color: #ffcc00; /* أصفر */
+      }
+
+      .rating-value-1300-1800,
+      .appearance-value-1300-1800 {
+        color: #00cc00; /* أخضر */
+      }
+
+      .rating-value-1800-2500,
+      .appearance-value-1800-2500 {
+        color: #0066cc; /* أزرق */
+      }
+
+      .rating-value-2500-3500,
+      .appearance-value-2500-3500 {
+        color: #cc00cc; /* بنفسجي */
+      }
+
+      .rating-value-over-3500,
+      .appearance-value-over-3500 {
+        color: #990000; /* بني */
+      }
+      /* إضافة ستايل لوزن الفيديو المعالج إذا أردت تمييزه */
+       .weight-value {
+           font-weight: bold;
+           color: #ffcc00; /* لون أصفر مميز للوزن مثلاً */
+           margin-left: 5px; /* مسافة صغيرة بعد الوزن */
+       }
+
+      .winner-radio {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 20px;
+        justify-content: flex-start;
+      }
+
+      .winner-radio input[type="radio"] {
+        display: none;
+      }
+
+      .winner-radio label {
+        display: inline-block;
+        padding: 12px 25px;
+        border: 2px solid #198754;
+        border-radius: 25px;
+        background-color: #198754;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition:
+          background-color 0.3s,
+          color 0.3s,
+          transform 0.2s ease;
+      }
+
+      .winner-radio label:hover {
+        opacity: 0.9;
+        transform: scale(1.05);
+      }
+
+      .winner-radio input[type="radio"]:checked + label {
+        background-color: #20c997;
+        border-color: #20c997;
+        transform: scale(1.05);
+      }
+
+      #error-message {
+        color: #ffc107;
+        text-align: center;
+        margin-top: 10px;
+        display: none;
+      }
+
+      .next-button-container {
+        text-align: center;
+        margin-bottom: 10px;
+      }
+
+      .btn {
+        padding: 0.3rem 0.6rem;
+        margin: 4px;
+        border-radius: 5px;
+        transition:
+          background-color 0.3s ease,
+          border-color 0.3s ease;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+
+      .btn-primary {
+        background-color: rgba(51, 51, 51, 0.7);
+        border-color: rgba(51, 51, 51, 0.7);
+        color: white;
+      }
+      .btn-success {
+        background-color: #198754;
+        border-color: #198754;
+        color: white;
+      }
+      .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        color: white;
+      }
+      .btn-info { /* إضافة ستايل لزر "تطبيق الوسوم فقط" */
+          background-color: #0dcaf0;
+          border-color: #0dcaf0;
+          color: white;
+      }
+      .btn-warning { /* إضافة ستايل لزر "تخطي المسابقة" */
+          background-color: #ffc107;
+          border-color: #ffc107;
+          color: #212529; /* لون نص داكن للتحذير */
+      }
+
+
+      .btn:hover,
+      .btn:focus {
+        opacity: 0.9;
+      }
+
+      .fullscreen-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        overflow: hidden;
+        touch-action: none;
+      }
+
+      .fullscreen-image {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-width: 100%;
+        max-height: 100vh;
+        object-fit: contain;
+        transition: transform 0.3s ease-out;
+      }
+
+      .close-button {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: white;
+        font-size: 30px;
+        cursor: pointer;
+        z-index: 1001;
+        background: rgba(30, 30, 30, 0.7);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .navigation-dots {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        z-index: 1001;
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        transition: background 0.3s ease;
+      }
+
+      .dot.active {
+        background: white;
+      }
+
+      @media (max-width: 768px) {
+        .nav-button {
+          display: none;
         }
+      }
+      .video-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+      }
+
+      .controls-overlay {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        pointer-events: none;
+        z-index: 1;
+        padding-top: 30px;
+      }
+      .controls-overlay .rank-buttons {
+        pointer-events: auto;
+        transition: opacity 0.3s ease;
+
+        margin-bottom: 10px;
+      }
+
+      .controls-overlay .next-button-container button {
+        pointer-events: auto;
+      }
+
+      .controls-overlay.hidden .rank-buttons,
+      .controls-overlay.hidden .next-button-container {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      video {
+        position: relative;
+        z-index: 0;
+      }
+
+      .video-container {
+        position: relative;
+        display: inline-block;
+      }
+      .fullscreen-button {
+        position: absolute;
+        top: 10px;
+        left: 15px;
+        background: rgba(51, 51, 51, 0.7);
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        padding: 5px;
+        font-size: 12px;
+        cursor: pointer;
+        z-index: 1000;
+      }
+      .fullscreen-button:hover {
+        opacity: 0.9;
+      }
+
+      .video-fullscreen-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+      }
+      #fullscreen-video {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+      #close-fullscreen-video {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 30px;
+        color: #fff;
+        cursor: pointer;
+        background: rgba(30, 30, 30, 0.7);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2100;
+      }
+      #close-fullscreen-video:hover {
+        opacity: 0.9;
+      }
+
+      /* ألوان مختلفة للوسوم */
+      .tag-btn {
+        transition: all 0.3s ease;
+        padding: 0.4rem 0.4rem;
+        border-radius: 20px;
+        font-weight: bold;
+        cursor: pointer; /* مهم لجعل المؤشر يدل على قابلية النقر */
+      }
+
+      .tag-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .tag-btn.active {
+        box-shadow: 0 0 0 0.45rem rgba(33, 150, 243, 0.25);
+      }
+
+      .tag-re {
+        background-color: rgba(26, 163, 255, 0.2) !important;
+        color: rgb(26, 163, 255) !important;
+        border: 1px solid rgba(26, 163, 255, 0.5);
+      }
+
+      .tag-w {
+        background-color: rgba(77, 255, 77, 0.2) !important;
+        color: rgb(77, 255, 77) !important;
+        border: 1px solid rgba(77, 255, 77, 0.5);
+      }
+
+      .tag-l {
+        background-color: rgba(255, 255, 102, 0.2) !important;
+        color: rgb(255, 255, 102) !important;
+        border: 1px solid rgba(255, 255, 102, 0.5);
+      }
+
+      .tag-top {
+        background-color: rgba(255, 51, 133, 0.2) !important;
+        color: rgb(255, 51, 133) !important;
+        border: 1px solid rgba(255, 51, 133, 0.5);
+      }
+
+      .tag-face {
+        background-color: rgba(255, 128, 255, 0.2) !important;
+        color: rgb(255, 128, 255) !important;
+        border: 1px solid rgba(255, 128, 255, 0.5);
+      }
+
+      .tag-body {
+        background-color: rgba(179, 102, 255, 0.2) !important;
+        color: rgb(179, 102, 255) !important;
+        border: 1px solid rgba(179, 102, 255, 0.5);
+      }
+
+      .tag-king {
+        background-color: rgba(255, 92, 51, 0.2) !important;
+        color: rgb(255, 92, 51) !important;
+        border: 1px solid rgba(255, 92, 51, 0.5);
+      }
+
+      .tag-kog {
+        background-color: rgba(255, 51, 0, 0.2) !important;
+        color: rgb(255, 51, 0) !important;
+        border: 1px solid rgba(255, 51, 0, 0.5);
+      }
+
+      .form-check {
+        margin-bottom: 0.5rem;
+        position: relative; /* ضروري لتحديد موضع العناصر المطلق داخله */
+      }
+
+      .form-check-label {
+        margin-left: 0.5rem;
+        /* لا حاجة لتعديل هنا إلا إذا كنت تريد إضافة هامش إضافي */
+      }
+
+      .form-check-input.tag-checkbox {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none; /* مهم لجعل مربع الاختيار غير مرئي ولا يتلقى النقرات */
+      }
     </style>
-</head>
 
-<body>
-    <div class="container-fluid px-0"> <!-- إزالة الحشوات الأفقية باستخدام px-0 -->
-        <h1 class="text-center mb-4">اختر الفائزين بين الفيديوهات التالية:</h1>
 
-        <form method="post" action="{{ url_for('select_winner') }}">
-            <input type="hidden" name="mode" value="{{ mode }}">
-            <input type="hidden" name="num_videos" value="{{ num_videos }}">
-            <input type="hidden" name="value" value="{{ value }}">
-
-            {% for video in competition_videos %}
-                <input type="hidden" name="videos" value="{{ video.id }}|{{ video.rating }}">
-                <div class="video-card" id="video-card-{{ loop.index }}">
-                    <h5 class="text-center mb-2">
-                        الفيديو {{ loop.index }}: {{ video.title.split('_', 1)[1] if '_' in video.title else video.title }}
-                    </h5>
-                    <p class="text-center text-muted">التقييم الحالي: {{ video.rating }}</p>
-                    
-                    <video controls>
-                        <source src="{{ url_for('serve_video', filename=video.id_encoded) }}" type="video/mp4">
-                        متصفحك لا يدعم تشغيل الفيديو.
-                    </video>
-
-                    <div class="rank-buttons mt-3">
-                        {% for rank in range(1, num_videos + 1) %}
-                            <button 
-                                type="button" 
-                                class="btn btn-outline-primary rank-btn" 
-                                data-rank="{{ rank }}" 
-                                data-index="{{ loop.index }}">
-                                {{ rank }}
-                            </button>
-                        {% endfor %}
-                        <button 
-                            type="button" 
-                            class="btn btn-primary next-button" 
-                            data-next="{{ loop.index + 1 }}">
-                            التالي
-                        </button>
-                    </div>
-                    <input type="hidden" name="rank_{{ loop.index }}" class="rank-input" value="">
+  </head>
+  <body>
+    <div class="container-fluid px-0">
+        <!-- START: إضافة/تعديل عناصر المؤقت والعداد والمتوسط (مثبت في أعلى الصفحة) -->
+        <div style="background-color: rgba(40, 40, 40, 0.85); padding: 10px; border-radius: 0 0 8px 8px; /* تعديل الحواف السفلية فقط */ color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-family: 'Cairo', sans-serif; margin-bottom: 15px; /* هامش سفلي لترك مسافة للمحتوى التالي */ display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 15px; /* مسافة بين العناصر */ flex-wrap: wrap;">
+                <div style="font-size: 0.9em;">
+                    <i class="fas fa-clock" style="margin-right: 5px;"></i>الوقت المنقضي: <strong id="timerDisplay" style="color: #20c997;">00:00:00</strong>
                 </div>
-            {% endfor %}
-         
-            <div class="text-center mt-4">
-                <button type="submit" class="btn btn-success">إرسال النتائج</button>
-                <a href="{{ url_for('index') }}" class="btn btn-secondary">العودة إلى الصفحة الرئيسية</a>
+                <div style="font-size: 0.9em;">
+                    <i class="fas fa-trophy" style="margin-right: 5px;"></i>المسابقات المنجزة: <strong id="competitionCounterDisplay" style="color: #ffc107;">0</strong>
+                </div>
+                <div style="font-size: 0.9em;">
+                    <i class="fas fa-tachometer-alt" style="margin-right: 5px;"></i>متوسط وقت المسابقة: <strong id="averageTimeDisplay" style="color: #17a2b8;">--:--:--</strong>
+                </div>
             </div>
+            <button id="resetTimerButton" class="btn btn-sm btn-danger" style="font-size: 0.8em; padding: 3px 8px; margin-left: auto; /* لدفع الزر إلى اليمين إذا كان هناك مساحة */">
+                <i class="fas fa-redo-alt" style="margin-right: 3px;"></i>إعادة ضبط
+            </button>
+        </div>
+        <!-- END: إضافة/تعديل عناصر المؤقت والعداد والمتوسط (مثبت في أعلى الصفحة) -->
+
+        <h1 class="text-center mb-4">اختر الفائزين بين الملفات التالية:</h1>
+        <div class="thumbnails-container">
+          {% for video in competition_videos %}
+          <div class="thumbnail" data-target="video-card-{{ loop.index }}">
+            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
+            {% if video.name.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')) %}
+            <div class="video-container">
+              <video muted playsinline>
+                {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
+                <source
+                  src="{{ url_for('serve_video', filename=video.name) }}"
+                  type="video/mp4"
+                />
+                متصفحك لا يدعم تشغيل الفيديو.
+              </video>
+              <button class="fullscreen-button">ملء الشاشة</button>
+            </div>
+            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
+            {% elif video.name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))
+            %}
+            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
+            <img
+              src="{{ url_for('serve_video', filename=video.name) }}"
+              alt="Thumbnail"
+            />
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        <div id="error-message" class="alert alert-warning">
+          الرجاء تقييم جميع الملفات قبل الإرسال.
+        </div>
+
+        <form
+          method="post"
+          action="{{ url_for('select_winner') }}"
+          id="competition-form"
+        >
+          <input type="hidden" name="mode" value="{{ mode }}" />
+          <input type="hidden" name="num_videos" value="{{ num_videos }}" />
+          <input type="hidden" name="ranking_type" value="{{ ranking_type }}" />
+          <input
+            type="hidden"
+            name="competition_type"
+            value="{{ competition_type }}"
+          />
+          {% if mode in [5, 6] %}
+          <input type="hidden" name="min_value" value="{{ min_value }}" />
+          <input type="hidden" name="max_value" value="{{ max_value }}" />
+          {% elif mode in [3, 4] %}
+          <input type="hidden" name="value" value="{{ value }}" />
+          {% elif mode == 8 %}
+          <input type="hidden" name="min_value1" value="{{ min_value1 if min_value1 is not none else '' }}" />
+          <input type="hidden" name="max_value1" value="{{ max_value1 if max_value1 is not none else '' }}" />
+          <input type="hidden" name="min_value2" value="{{ min_value2 if min_value2 is not none else '' }}" />
+          <input type="hidden" name="max_value2" value="{{ max_value2 if max_value2 is not none else '' }}" />
+          {# START: إضافة حقول مخفية للأوضاع الجديدة #}
+          {% elif mode == 9 %}
+          <input type="hidden" name="min_times_shown" value="{{ min_times_shown if min_times_shown is not none else '' }}" />
+          <input type="hidden" name="max_times_shown" value="{{ max_times_shown if max_times_shown is not none else '' }}" />
+          {% elif mode == 10 %}
+          <input type="hidden" name="tags_value_input" value="{{ tags if tags is not none else '' }}" /> {# تأكد أن اسم المتغير 'tags' هو ما مررته من app.py #}
+          {# END: إضافة حقول مخفية للأوضاع الجديدة #}
+          {% endif %}
+
+          {% for video in competition_videos %}
+          {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
+          <input type="hidden" name="videos" value="{{ video.name }}" />
+          <div class="video-card" id="video-card-{{ loop.index }}">
+            {# إضافة كلاس processed-title بشكل شرطي بناءً على video.is_processed #}
+            <h5 class="text-center mb-2 {% if video.is_processed %}processed-title{% endif %}">
+              الملف {{ loop.index }}:
+              {# عرض اسم الفيديو المخصص (display_name) إذا كان موجودًا وغير فارغ، وإلا فعرض اسم الملف #}
+              {% if video.display_name and video.display_name | length > 0 %}
+                {{ video.display_name }}
+              {% else %}
+                {# إذا لم يكن هناك display_name، اعرض اسم الملف بعد التعديل (إزالة الأرقام) #}
+                {{ video.name.split('_', 1)[1] if '_' in video.name else video.name }}
+              {% endif %}
+            </h5>
+            <p class="text-center video-stats">
+              التقييم:
+              {# الوصول إلى التقييم باستخدام video.rating بدلاً من video[1] #}
+              <span class="rating-value">{{ "%.2f" | format(video.rating) }}</span> {# تنسيق التقييم لرقمين عشريين #}
+              | الظهور:
+              {# الوصول إلى عدد مرات الظهور باستخدام video.times_shown بدلاً من video[2] #}
+              <span class="appearance-value">{{ video.times_shown }}</span>
+              {# عرض الوزن بشكل شرطي بناءً على video.is_processed و video.weight #}
+              {% if video.is_processed and video.weight is not none %}
+              | الوزن: <span class="weight-value">{{ "%.2f" | format(video.weight) }}</span> {# تنسيق الوزن لرقمين عشريين #}
+              {% endif %}
+            </p>
+
+            {% if ranking_type != 'winner_only' %}
+            <input
+              type="hidden"
+              name="rank_{{ loop.index }}"
+              class="rank-input"
+              value=""
+            />
+
+            {% else %}
+            <div class="winner-radio">
+              {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
+              <input
+                type="radio"
+                name="winner"
+                value="{{ video.name }}"
+                id="winner-{{ loop.index }}"
+              />
+              <label for="winner-{{ loop.index }}">اختر كفائز</label>
+            </div>
+            {% endif %}
+
+            <!-- إضافة قائمة الوسوم هنا -->
+            <div class="mb-3">
+              <label for="tag-{{ loop.index }}" class="form-label">
+                Tags:
+              </label>
+              <div class="d-flex flex-wrap gap-1">
+                {# الحصول على الوسوم المبدئية من video.tags بدلاً من فيديو[3] #}
+                {% set current_tags = video.tags.split(',') if video.tags else [] %}
+                <div class="form-check">
+                  <input class="form-check-input tag-checkbox" type="checkbox" value="∅" id="tag-none-{{ loop.index }}" data-index="{{ loop.index }}"> {# إضافة قيمة '∅' #}
+                  <label class="form-check-label tag-btn" for="tag-none-{{ loop.index }}">
+                    ∅
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input tag-checkbox" type="checkbox" value="Re" id="tag-re-{{ loop.index }}" {% if 'Re' in current_tags %}checked{% endif %} data-index="{{ loop.index }}">
+                  <label class="form-check-label tag-btn tag-re" for="tag-re-{{ loop.index }}">
+                    Re
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input tag-checkbox" type="checkbox" value="W" id="tag-w-{{ loop.index }}" {% if 'W' in current_tags %}checked{% endif %} data-index="{{ loop.index }}">
+                  <label class="form-check-label tag-btn tag-w" for="tag-w-{{ loop.index }}">
+                    W
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input tag-checkbox" type="checkbox" value="L" id="tag-l-{{ loop.index }}" {% if 'L' in current_tags %}checked{% endif %} data-index="{{ loop.index }}">
+                  <label class="form-check-label tag-btn tag-l" for="tag-l-{{ loop.index }}">
+                    L
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input tag-checkbox" type="checkbox" value="Top" id="tag-top-{{ loop.index }}" {% if 'Top' in current_tags %}checked{% endif %} data-index="{{ loop.index }}">
+                  <label class="form-check-label tag-btn tag-top" for="tag-top-{{ loop.index }}">
+                    Top
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input tag-checkbox" type="checkbox" value="Face" id="tag-face-{{ loop.index }}" {% if 'Face' in current_tags %}checked{% endif %} data-index="{{ loop.index }}">
+                  <label class="form-check-label tag-btn tag-face" for="tag-face-{{ loop.index }}">
+                    Face
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input tag-checkbox" type="checkbox" value="Body" id="tag-body-{{ loop.index }}" {% if 'Body' in current_tags %}checked{% endif %} data-index="{{ loop.index }}">
+                  <label class="form-check-label tag-btn tag-body" for="tag-body-{{ loop.index }}">
+                    Body
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input tag-checkbox" type="checkbox" value="King" id="tag-king-{{ loop.index }}" {% if 'King' in current_tags %}checked{% endif %} data-index="{{ loop.index }}">
+                  <label class="form-check-label tag-btn tag-king" for="tag-king-{{ loop.index }}">
+                    King
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input tag-checkbox" type="checkbox" value="Kog" id="tag-kog-{{ loop.index }}" {% if 'Kog' in current_tags %}checked{% endif %} data-index="{{ loop.index }}">
+                  <label class="form-check-label tag-btn tag-kog" for="tag-kog-{{ loop.index }}">
+                    Kog
+                  </label>
+                </div>
+              </div>
+              {# هنا أيضاً، نستخدم video.tags للحصول على القيمة المبدئية للحقل المخفي #}
+              <input type="hidden" name="tag_{{ loop.index }}" value="{{ video.tags }}" />
+            </div>
+
+            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
+            {% if video.name.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')) %}
+            <div class="video-wrapper">
+              <div class="controls-overlay">
+                {% if ranking_type != 'winner_only' %}
+                <div class="rank-buttons">
+                  {% for rank in range(1, num_videos + 1) %}
+                  <button
+                    type="button"
+                    class="btn rank-btn"
+                    data-rank="{{ rank }}"
+                    data-index="{{ loop.index }}"
+                  >
+                    {{ rank }}
+                  </button>
+                  {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="next-button-container">
+                  <button
+                    type="button"
+                    class="btn btn-primary next-button"
+                    data-next="{{ loop.index + 1 }}"
+                  >
+                    التالي
+                  </button>
+                </div>
+              </div>
+              <div class="video-container">
+                <video playsinline>
+                  {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
+                  <source
+                    src="{{ url_for('serve_video', filename=video.name) }}"
+                    type="video/mp4"
+                  />
+                  متصفحك لا يدعم تشغيل الفيديو.
+                </video>
+                <button class="fullscreen-button">ملء الشاشة</button>
+              </div>
+            </div>
+            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
+            {% elif video.name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))
+            %}
+            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
+            <img
+              src="{{ url_for('serve_video', filename=video.name) }}"
+              class="file-preview"
+              data-index="{{ loop.index0 }}"
+            />
+            {% endif %}
+          </div>
+          {% endfor %}
+
+      <div class="text-center mt-4">
+        <button type="submit" class="btn btn-success">إرسال النتائج</button>
+        <!-- إضافة الزرين الجديدين -->
+        <button type="submit" class="btn btn-info" name="tag_only" value="true">
+          تطبيق الوسوم فقط
+        </button>
+        <button
+          type="submit"
+          class="btn btn-warning"
+          name="skip_competition"
+          value="true"
+        >
+          تخطي المسابقة
+        </button>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+          العودة إلى الصفحة الرئيسية</a
+        >
+      </div>
         </form>
     </div>
 
-    <!-- Bootstrap JS -->
+    <div class="fullscreen-overlay" id="fullscreen-overlay">
+      <span class="close-button">×</span>
+      <button class="nav-button prev-button">❮</button>
+      <button class="nav-button next-button-gallery">❯</button>
+      <img class="fullscreen-image" id="fullscreen-image" src="" alt="" />
+      <div class="navigation-dots" id="navigation-dots"></div>
+    </div>
+
+    <div
+      id="video-fullscreen-overlay"
+      class="video-fullscreen-overlay"
+      style="display: none"
+    >
+      <video
+        id="fullscreen-video"
+        controls
+        autoplay
+        style="max-width: 100%; max-height: 100%; border-radius: 10px"
+      >
+        <source id="fullscreen-video-source" src="" type="video/mp4" />
+        متصفحك لا يدعم تشغيل الفيديو.
+        <div class="video-navigation">
+          <button class="nav-button prev-video">❮</button>
+          <button class="nav-button next-video">❯</button>
+        </div>
+      </video>
+      <span class="close-button" id="close-fullscreen-video">×</span>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            // التحكم بالأزرار
-            const rankButtons = document.querySelectorAll(".rank-btn");
-            const nextButtons = document.querySelectorAll(".next-button");
+      document.addEventListener("DOMContentLoaded", function () {
+        // تطبيق ألوان مختلفة على تقييم الفيديو
+        const ratingValues = document.querySelectorAll(".rating-value");
+        ratingValues.forEach((value) => {
+          const rating = parseFloat(value.textContent); // استخدم parseFloat لأن التقييم قد يكون عشرياً
+          applyColor(value, rating);
+        });
 
-            rankButtons.forEach(function (button) {
-                button.addEventListener("click", function () {
-                    const rank = this.dataset.rank;
-                    const videoIndex = this.dataset.index;
+        // تطبيق ألوان مختلفة على عدد مرات الظهور (يمكن استخدام نفس الدالة مع قيمة مختلفة)
+        const appearanceValues = document.querySelectorAll(".appearance-value");
+        appearanceValues.forEach((value) => {
+          const appearance = parseInt(value.textContent);
+          applyColor(value, appearance); // قد تحتاج لتعريف دالة ApplyColorForAppearance إذا أردت ألوان مختلفة تماماً لمرات الظهور
+        });
 
-                    // تعطيل جميع الأزرار الأخرى لهذه البطاقة
-                    const parent = this.closest(".video-card");
-                    parent.querySelectorAll(".rank-btn").forEach(function (btn) {
-                        btn.classList.remove("active");
-                    });
+        function applyColor(element, value) {
+          // القيم المستخدمة هنا هي لتقييم Elo بشكل أساسي
+          if (value < 1000) {
+            element.classList.add("rating-value-less-1000");
+          } else if (value >= 1000 && value <= 1000) { // للتأكيد على قيمة 1000 بالضبط
+            element.classList.add("rating-value-1000");
+          } else if (value > 1000 && value <= 1300) {
+            element.classList.add("rating-value-1000-1300");
+          } else if (value > 1300 && value <= 1800) {
+            element.classList.add("rating-value-1300-1800");
+          } else if (value > 1800 && value <= 2500) {
+            element.classList.add("rating-value-1800-2500");
+          } else if (value > 2500 && value <= 3500) {
+            element.classList.add("rating-value-2500-3500");
+          } else if (value > 3500) { // استخدام else if للقيمة الأكبر من 3500
+            element.classList.add("rating-value-over-3500");
+          }
+          // يمكنك إضافة منطق مشابه هنا لمرات الظهور إذا أردت ألواناً تعتمد على مرات الظهور بدلاً من التقييم
+          // أو فصل الدالتين applyColor و applyColorForAppearance
+        }
 
-                    // تمكين الزر الحالي
-                    this.classList.add("active");
 
-                    // تحديث قيمة الـ input المخفي
-                    const rankInput = parent.querySelector(".rank-input");
-                    rankInput.value = rank;
-                });
-            });
+        const form = document.getElementById("competition-form");
+        const errorMessage = document.getElementById("error-message");
+        const images = document.querySelectorAll(".file-preview");
+        const overlay = document.getElementById("fullscreen-overlay");
+        const fullscreenImage = document.getElementById("fullscreen-image");
+        const closeButton = document.querySelector(".close-button");
+        const dotsContainer = document.getElementById("navigation-dots");
+        let currentImageIndex = 0;
+        let startX = 0;
+        let currentX = 0;
+        const rankingType = document.querySelector(
+          'input[name="ranking_type"]',
+        ).value;
 
-            // التنقل إلى الفيديو التالي عند الضغط على زر "التالي"
-            nextButtons.forEach(function (button) {
-                button.addEventListener("click", function () {
-                    const nextIndex = this.dataset.next;
-                    const nextCard = document.getElementById(`video-card-${nextIndex}`);
+        function createNavigationDots() {
+          dotsContainer.innerHTML = "";
+          images.forEach((_, index) => {
+            const dot = document.createElement("div");
+            dot.className = `dot ${
+              index === currentImageIndex ? "active" : ""
+            }`;
+            dotsContainer.appendChild(dot);
+          });
+        }
 
-                    if (nextCard) {
-                        nextCard.scrollIntoView({ behavior: "smooth", block: "center" });
+        function updateNavigationDots() {
+          const dots = dotsContainer.querySelectorAll(".dot");
+          dots.forEach((dot, index) => {
+            dot.className = `dot ${
+              index === currentImageIndex ? "active" : ""
+            }`;
+          });
+        }
+
+        function showFullscreen(src) {
+          fullscreenImage.src = src;
+          overlay.style.display = "block";
+          document.body.style.overflow = "hidden";
+          createNavigationDots();
+        }
+
+        function hideFullscreen() {
+          overlay.style.display = "none";
+          document.body.style.overflow = "auto";
+        }
+
+        function showNextImage() {
+          currentImageIndex = (currentImageIndex + 1) % images.length;
+          showFullscreen(images[currentImageIndex].src);
+          updateNavigationDots();
+        }
+
+        function showPrevImage() {
+          currentImageIndex =
+            (currentImageIndex - 1 + images.length) % images.length;
+          showFullscreen(images[currentImageIndex].src);
+          updateNavigationDots();
+        }
+
+        overlay.addEventListener("touchstart", function (e) {
+          startX = e.touches[0].clientX;
+          currentX = startX;
+          fullscreenImage.style.transition = "none";
+        });
+
+        overlay.addEventListener("touchmove", function (e) {
+          if (e.touches.length > 0) {
+            currentX = e.touches[0].clientX;
+            const diff = currentX - startX;
+            fullscreenImage.style.transform = `translate(calc(-50% + ${diff}px), -50%)`;
+          }
+        });
+
+        overlay.addEventListener("touchend", function (e) {
+          const diff = currentX - startX;
+          fullscreenImage.style.transition = "transform 0.3s ease-out";
+          fullscreenImage.style.transform = "translate(-50%, -50%)";
+
+          if (Math.abs(diff) > 50) {
+            if (diff > 0) {
+              showPrevImage();
+            } else {
+              showNextImage();
+            }
+          }
+        });
+
+        images.forEach(function (img) {
+          img.addEventListener("click", function () {
+            currentImageIndex = parseInt(this.dataset.index);
+            showFullscreen(this.src);
+          });
+        });
+
+        closeButton.addEventListener("click", hideFullscreen);
+
+        form.addEventListener("submit", function (event) {
+            // إضافة فحص لما إذا كان الزر "تطبيق الوسوم فقط" أو "تخطي المسابقة" قد تم النقر عليه
+            if (event.submitter && (event.submitter.name === 'tag_only' || event.submitter.name === 'skip_competition')) {
+                // إذا تم النقر على أحد الزرين، تجاوز التحقق من التقييمات والوسوم
+                errorMessage.style.display = "none"; // إخفاء رسالة الخطأ إذا كانت معروضة
+                // لا حاجة لـ event.preventDefault() هنا لأننا نريد أن يتم الإرسال
+                return; // الخروج من الدالة لمنع تنفيذ بقية الكود
+            }
+
+            // هنا يتم تنفيذ التحقق إذا لم يتم النقر على زر 'tag_only' أو 'skip_competition'
+            event.preventDefault();
+
+            const rankInputs = document.querySelectorAll(".rank-input");
+            let hasEmptyRank = false;
+            let hasEmptyTag = false; // إضافة متغير للتحقق من الوسوم
+
+            // التحقق من تقييم الملفات
+            if (rankingType != "winner_only") {
+                rankInputs.forEach(function (input) {
+                    if (input.value === "") {
+                        hasEmptyRank = true;
                     }
                 });
-            });
+            }
 
-            // وقف الفيديوهات الأخرى عند تشغيل فيديو
-            const videos = document.querySelectorAll("video");
-            videos.forEach(function (video) {
-                video.addEventListener("play", function () {
-                    videos.forEach(function (otherVideo) {
-                        if (otherVideo !== video) {
-                            otherVideo.pause();
-                        }
-                    });
+            // التحقق من الوسوم (نحتاج فقط التحقق إذا لم يتم الضغط على tag_only)
+             // هذه الجزئية ستبقى كما هي لأنها لا تعتمد على بنية البيانات الجديدة
+             const tagInputs = document.querySelectorAll('input[name^="tag_"]');
+             tagInputs.forEach(function (input) {
+                 // نتحقق فقط إذا كانت القيمة فارغة، وهذا يشير إلى عدم اختيار أي وسم أو عدم اختيار '∅'
+                 // إذا كانت القيمة فارغة، والزر '∅' غير محدد، فهذا يعني عدم اختيار أي وسم
+                 const index = input.name.split('_')[1];
+                 const noneCheckbox = document.getElementById(`tag-none-${index}`);
+                 if (input.value === "" && !noneCheckbox.checked) {
+                      hasEmptyTag = true;
+                 }
+             });
 
-                    // التمرير إلى الفيديو ليصبح في منتصف الشاشة
-                    video.scrollIntoView({ behavior: "smooth", block: "center" });
-                });
-            });
+
+            // عرض رسالة الخطأ إذا كان هناك تقييم ناقص أو وسم ناقص (فقط إذا لم نضغط على tag_only أو skip)
+            if (
+                (hasEmptyRank && rankingType != "winner_only") ||
+                hasEmptyTag
+            ) {
+                errorMessage.style.display = "block";
+                errorMessage.scrollIntoView({ behavior: "smooth", block: "start" });
+            } else {
+                errorMessage.style.display = "none";
+                form.submit(); // إرسال النموذج إذا كان كل شيء صحيحاً
+            }
         });
+
+
+        const videos = document.querySelectorAll(".video-card video");
+        videos.forEach(function (video) {
+          const overlay = video
+            .closest(".video-wrapper")
+            .querySelector(".controls-overlay");
+
+          video.addEventListener("click", function (e) {
+            if (
+              e.target.closest(".rank-buttons") ||
+              e.target.closest(".fullscreen-button")
+            )
+              return; // Prevent click on buttons
+
+            if (video.paused) {
+              overlay.classList.add("hidden");
+              videos.forEach(function (otherVideo) {
+                if (otherVideo !== video) {
+                  otherVideo.pause();
+                  otherVideo
+                    .closest(".video-wrapper")
+                    .querySelector(".controls-overlay")
+                    .classList.remove("hidden");
+                }
+              });
+              video.play();
+            } else {
+              video.pause();
+              overlay.classList.remove("hidden");
+            }
+          });
+
+          video.addEventListener("play", function () {
+            overlay.classList.add("hidden");
+            video.scrollIntoView({ behavior: "smooth", block: "center" });
+          });
+
+          video.addEventListener("pause", function () {
+            overlay.classList.remove("hidden");
+          });
+        });
+
+        const thumbnailVideos = document.querySelectorAll(".thumbnail video");
+        thumbnailVideos.forEach((thumbnailVideo) => {
+          thumbnailVideo.addEventListener("loadeddata", function () {
+            thumbnailVideo
+              .play()
+              .then(() => {
+                thumbnailVideo.pause();
+              })
+              .catch((error) => {});
+          });
+          thumbnailVideo.addEventListener("click", function (event) {
+            event.stopPropagation();
+            const videoCardId = this.closest(".thumbnail").dataset.target;
+            const videoCard = document.getElementById(videoCardId);
+            if (videoCard) {
+              videoCard.scrollIntoView({ behavior: "smooth", block: "center" });
+              const targetVideo = videoCard.querySelector("video");
+              if (targetVideo) {
+                if (targetVideo.paused) {
+                  targetVideo.play();
+                  targetVideo
+                    .closest(".video-wrapper")
+                    .querySelector(".controls-overlay")
+                    .classList.add("hidden");
+                } else {
+                  targetVideo.pause();
+                  targetVideo
+                    .closest(".video-wrapper")
+                    .querySelector(".controls-overlay")
+                    .classList.remove("hidden");
+                }
+              }
+            }
+          });
+        });
+
+        const thumbnails = document.querySelectorAll(".thumbnail");
+        thumbnails.forEach((thumbnail) => {
+          if (!thumbnail.querySelector("video")) {
+            thumbnail.addEventListener("click", function () {
+              const targetId = this.dataset.target;
+              const targetElement = document.getElementById(targetId);
+              if (targetElement) {
+                targetElement.scrollIntoView({
+                  behavior: "smooth",
+                  block: "center",
+                });
+              }
+            });
+          }
+        });
+
+        document.querySelectorAll(".rank-buttons button").forEach((button) => {
+          button.addEventListener("click", (e) => {
+            e.stopPropagation();
+          });
+        });
+
+        const rankButtons = document.querySelectorAll(".rank-btn");
+        const nextButtons = document.querySelectorAll(".next-button");
+        const winnerRadios = document.querySelectorAll(
+          '.winner-radio input[type="radio"]',
+        );
+
+        // --- تعريف المتغيرات الخاصة بواجهة ملء الشاشة للفيديو ---
+        const videoFullscreenOverlay = document.getElementById(
+          "video-fullscreen-overlay",
+        );
+        const fullscreenVideo = document.getElementById("fullscreen-video");
+        const closeFullscreenVideo = document.getElementById(
+          "close-fullscreen-video",
+        );
+
+        let currentVideoIndex = 0;
+        let startXVideo = 0,
+          currentXVideo = 0;
+        const videoSources = [];
+
+        // --- جمع روابط الفيديوهات من عناصر الفيديو الموجودة في صفحة المنافسة ---
+        const videoCards = document.querySelectorAll(".video-card");
+        videoCards.forEach((card, index) => {
+          const videoEl = card.querySelector("video");
+          if (videoEl) {
+            const sourceEl = videoEl.querySelector("source");
+            if (sourceEl) {
+              videoSources.push(sourceEl.src);
+              // ضع رقم الفهرس كـ data attribute في زر الملء الشاشة داخل البطاقة
+              const fsButton = card.querySelector(".fullscreen-button");
+              if (fsButton) {
+                fsButton.dataset.index = index;
+              }
+            }
+          }
+        });
+
+        // --- دالة لفتح وضعية ملء الشاشة المخصصة للفيديو ---
+        function openFullscreenVideo(index) {
+          currentVideoIndex = index;
+          fullscreenVideo.src = videoSources[currentVideoIndex];
+          videoFullscreenOverlay.style.display = "flex";
+          fullscreenVideo.play(); // ابدأ تشغيل الفيديو تلقائيًا
+        }
+
+        // --- دالة لإغلاق وضعية ملء الشاشة ---
+        function closeFullscreen() {
+          videoFullscreenOverlay.style.display = "none";
+          fullscreenVideo.pause();
+        }
+
+        // --- استبدل وظيفة زر "ملء الشاشة" في كل بطاقة بالفيديو ---
+        const fsButtons = document.querySelectorAll(
+          ".video-card .fullscreen-button",
+        );
+        fsButtons.forEach(function (button) {
+          button.addEventListener("click", function (e) {
+            e.preventDefault();
+            const idx = parseInt(this.dataset.index);
+            if (!isNaN(idx)) {
+              openFullscreenVideo(idx);
+            }
+          });
+        });
+
+        // --- إضافة أحداث السحب للتنقل بين الفيديوهات ---
+        fullscreenVideo.addEventListener("touchstart", function (e) {
+          startXVideo = e.touches[0].clientX;
+        });
+
+        fullscreenVideo.addEventListener("touchmove", function (e) {
+          currentXVideo = e.touches[0].clientX;
+        });
+
+        fullscreenVideo.addEventListener("touchend", function (e) {
+          const diffX = currentXVideo - startXVideo;
+          // If the touch is mainly horizontal, navigate
+          if (Math.abs(diffX) > 50) {
+            if (diffX < 0) {
+              // سحب لليسار: الفيديو التالي
+              currentVideoIndex = (currentVideoIndex + 1) % videoSources.length;
+            } else {
+              // سحب لليمين: الفيديو السابق
+              currentVideoIndex =
+                (currentVideoIndex - 1 + videoSources.length) %
+                videoSources.length;
+            }
+            fullscreenVideo.src = videoSources[currentVideoIndex];
+            fullscreenVideo.play(); // تأكد من تشغيل الفيديو الجديد
+          }
+        });
+
+        // --- إغلاق واجهة الفيديو عند الضغط على زر الإغلاق ---
+        closeFullscreenVideo.addEventListener("click", closeFullscreen);
+
+        rankButtons.forEach(function (button) {
+          button.addEventListener("click", function () {
+            const rank = this.dataset.rank;
+            const videoIndex = this.dataset.index;
+
+            const parent = this.closest(".video-card");
+            parent.querySelectorAll(".rank-btn").forEach(function (btn) {
+              btn.classList.remove("active");
+            });
+
+            this.classList.add("active");
+            const rankInput = parent.querySelector(".rank-input");
+            rankInput.value = rank;
+
+            if (rankingType != "winner_only") {
+              const allRanked = Array.from(
+                document.querySelectorAll(".rank-input"),
+              ).every((input) => input.value !== "");
+              if (allRanked) {
+                form.submit();
+              } else {
+                const nextButton = parent.querySelector(".next-button");
+                if (nextButton) {
+                  nextButton.click();
+                }
+              }
+            } else {
+              const nextButton = parent.querySelector(".next-button");
+              if (nextButton) {
+                nextButton.click();
+              }
+            }
+          });
+        });
+
+        nextButtons.forEach(function (button) {
+          button.addEventListener("click", function () {
+            const nextIndex = this.dataset.next;
+            const nextCard = document.getElementById(`video-card-${nextIndex}`);
+
+            if (nextCard) {
+              nextCard.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          });
+        });
+
+        winnerRadios.forEach(function (radio) {
+          radio.addEventListener("change", function () {
+            form.submit();
+          });
+        });
+
+        const tagLabels = document.querySelectorAll('.form-check-label.tag-btn');
+        tagLabels.forEach(label => {
+          label.addEventListener('click', function (event) {
+            // منع السلوك الافتراضي للزر إذا كان موجودًا لمنع Submit المفاجئ
+            event.preventDefault();
+            event.stopPropagation(); // منع انتشار الحدث لأعلى
+
+            const checkbox = this.previousElementSibling; // الحصول على مربع الاختيار المرتبط
+             // تبديل حالة مربع الاختيار فقط إذا لم يكن '∅' وتم النقر عليه
+            if (checkbox.value === '∅') {
+                 // إذا كان هو '∅'، عند النقر عليه: يصبح checked، والوسوم الأخرى unchecked
+                 checkbox.checked = true;
+                 // ابحث عن جميع مربعات الوسوم الأخرى لنفس الفيديو
+                 const videoIndex = checkbox.dataset.index;
+                 document.querySelectorAll(`.tag-checkbox[data-index="${videoIndex}"]:not(#${checkbox.id})`).forEach(otherCheckbox => {
+                     otherCheckbox.checked = false;
+                     otherCheckbox.nextElementSibling.classList.remove('active');
+                 });
+            } else {
+                 // إذا كان أي وسم آخر غير '∅'
+                 checkbox.checked = !checkbox.checked; // تبديل حالته
+                 // تأكد أن وسم '∅' غير محدد إذا قمت بتحديد أي وسم آخر
+                 if (checkbox.checked) {
+                     const videoIndex = checkbox.dataset.index;
+                     const noneCheckbox = document.getElementById(`tag-none-${videoIndex}`);
+                     if (noneCheckbox.checked) {
+                         noneCheckbox.checked = false;
+                         noneCheckbox.nextElementSibling.classList.remove('active');
+                     }
+                 }
+            }
+
+            this.classList.toggle('active', checkbox.checked); // تبديل الكلاس النشط على الوسم
+
+            const index = checkbox.dataset.index;
+            const hiddenInput = document.querySelector(`input[name="tag_${index}"]`);
+
+            // تجميع جميع الوسوم المحددة لهذا الفيديو (باستثناء '∅' إذا تم تحديد وسم آخر)
+            const selectedTags = [];
+             document.querySelectorAll(`.tag-checkbox[data-index="${index}"]:checked`).forEach(checked => {
+                 if (checked.value === '∅') {
+                     // إذا كان '∅' محددًا، لا نضيف أي شيء آخر (لأنه يعني مسح الكل)
+                     // ونضيف '∅' نفسه إذا أردنا تمثيله في الحقل المخفي، أو نترك الحقل فارغاً
+                     // الخيار الأبسط هو ترك الحقل فارغاً إذا كان '∅' هو الوحيد المحدد
+                 } else {
+                      selectedTags.push(checked.value);
+                 }
+            });
+
+            // إذا لم يتم تحديد أي وسم، ولكن '∅' محدد، نترك القيمة فارغة لتمثيل المسح
+             const noneChecked = document.getElementById(`tag-none-${index}`).checked;
+             if (selectedTags.length === 0 && noneChecked) {
+                  hiddenInput.value = ''; // يمثل مسح الوسوم
+             } else {
+                 hiddenInput.value = selectedTags.join(','); // يمثل الوسوم المحددة
+             }
+
+             console.log(`Updated tag_${index} hidden input to: "${hiddenInput.value}"`); // DEBUG
+          });
+        });
+
+        // تهيئة حالة أزرار الوسوم عند تحميل الصفحة بناءً على القيمة الحالية للحقل المخفي
+         document.querySelectorAll('input[name^="tag_"]').forEach(hiddenInput => {
+             const index = hiddenInput.name.split('_')[1]; // استخلاص الفهرس من اسم الحقل المخفي
+             const currentTags = hiddenInput.value.split(',').map(tag => tag.trim()).filter(tag => tag !== ''); // الحصول على الوسوم الحالية كقائمة
+
+             // تحديد حالة أزرار الوسوم بناءً على القائمة الحالية
+             document.querySelectorAll(`.tag-checkbox[data-index="${index}"]`).forEach(checkbox => {
+                 const label = checkbox.nextElementSibling;
+                 if (checkbox.value === '∅') {
+                      // إذا كان '∅' هو الوحيد المحدد (الحقل المخفي فارغ)، نحدد زر '∅'
+                      if (currentTags.length === 0 && hiddenInput.value === '') {
+                          checkbox.checked = true;
+                          label.classList.add('active');
+                      } else {
+                           checkbox.checked = false;
+                           label.classList.remove('active');
+                      }
+                 } else {
+                     // لجميع الوسوم الأخرى، نتحقق مما إذا كانت موجودة في قائمة الوسوم الحالية
+                     if (currentTags.includes(checkbox.value)) {
+                         checkbox.checked = true;
+                         label.classList.add('active');
+                     } else {
+                         checkbox.checked = false;
+                         label.classList.remove('active');
+                     }
+                 }
+            });
+         });
+
+        // START: تعديل منطق المؤقت والعداد والمتوسط
+        const timerDisplay = document.getElementById('timerDisplay');
+        const competitionCounterDisplay = document.getElementById('competitionCounterDisplay');
+        const averageTimeDisplay = document.getElementById('averageTimeDisplay'); // إضافة لمتوسط الوقت
+        const resetTimerButton = document.getElementById('resetTimerButton');
+
+        let timerInterval;
+        let competitionJustReset = false;
+
+        function formatTime(milliseconds) {
+            if (isNaN(milliseconds) || milliseconds < 0) { // تحقق إضافي
+                return "--:--:--";
+            }
+            let totalSeconds = Math.floor(milliseconds / 1000);
+            let hours = Math.floor(totalSeconds / 3600);
+            totalSeconds %= 3600;
+            let minutes = Math.floor(totalSeconds / 60);
+            let seconds = totalSeconds % 60;
+
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // START: دالة لحساب وعرض متوسط الوقت
+        function updateAverageTime() {
+            const startTime = parseInt(localStorage.getItem('timerStartTime'));
+            const competitionCount = parseInt(localStorage.getItem('competitionCount')) || 0;
+
+            if (startTime && competitionCount > 0) {
+                const currentTime = new Date().getTime();
+                const totalElapsedTime = currentTime - startTime;
+                const averageMilliseconds = totalElapsedTime / competitionCount;
+                averageTimeDisplay.textContent = formatTime(averageMilliseconds);
+            } else {
+                averageTimeDisplay.textContent = "--:--:--";
+            }
+        }
+        // END: دالة لحساب وعرض متوسط الوقت
+
+        function startTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+
+            const startTime = parseInt(localStorage.getItem('timerStartTime'));
+            if (!startTime) {
+                timerDisplay.textContent = "00:00:00";
+                updateAverageTime(); // تحديث المتوسط حتى لو المؤقت متوقف
+                return;
+            }
+
+            timerInterval = setInterval(() => {
+                const currentTime = new Date().getTime();
+                const elapsedTime = currentTime - startTime;
+                timerDisplay.textContent = formatTime(elapsedTime);
+                updateAverageTime(); // تحديث متوسط الوقت مع كل تحديث للمؤقت
+            }, 1000);
+        }
+
+        function updateCompetitionCount() {
+            let count = parseInt(localStorage.getItem('competitionCount')) || 0;
+            competitionCounterDisplay.textContent = count;
+            updateAverageTime(); // تحديث متوسط الوقت عند تحديث عدد المسابقات
+        }
+
+        // عند تحميل الصفحة
+        let startTime = localStorage.getItem('timerStartTime');
+        let competitionCount = parseInt(localStorage.getItem('competitionCount')) || 0;
+
+        if (localStorage.getItem('justResetFlag') === 'true') {
+            competitionJustReset = true;
+            localStorage.removeItem('justResetFlag');
+        }
+
+        if (startTime) {
+            if (!competitionJustReset) {
+                competitionCount++;
+                localStorage.setItem('competitionCount', competitionCount);
+            }
+            // لا حاجة لـ startTimer() هنا، سيتم استدعاؤها أدناه
+            // updateCompetitionCount(); // سيتم استدعاؤها أدناه
+        } else {
+            const newStartTime = new Date().getTime();
+            localStorage.setItem('timerStartTime', newStartTime);
+            startTime = newStartTime; // تحديث المتغير المحلي
+            competitionCount = 1;
+            localStorage.setItem('competitionCount', competitionCount);
+            // updateCompetitionCount(); // سيتم استدعاؤها أدناه
+        }
+
+        updateCompetitionCount(); // تحديث العداد والمتوسط
+        startTimer(); // بدء أو استئناف المؤقت (والذي سيحدث المتوسط أيضًا)
+
+
+        resetTimerButton.addEventListener('click', function() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            localStorage.removeItem('timerStartTime');
+            localStorage.removeItem('competitionCount');
+            timerDisplay.textContent = "00:00:00";
+            competitionCounterDisplay.textContent = "0";
+            averageTimeDisplay.textContent = "--:--:--"; // إعادة ضبط المتوسط
+
+            localStorage.setItem('justResetFlag', 'true');
+
+            const newStartTime = new Date().getTime();
+            localStorage.setItem('timerStartTime', newStartTime);
+            localStorage.setItem('competitionCount', 1);
+
+            updateCompetitionCount(); // تحديث العداد والمتوسط
+            startTimer(); // بدء المؤقت (والذي سيحدث المتوسط أيضًا)
+        });
+
+        window.addEventListener('beforeunload', function() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+        });
+        // END: تعديل منطق المؤقت والعداد والمتوسط
+      });
     </script>
-</body>
+
+    <!-- نهاية إضافة JavaScript لتطبيق الألوان -->
+  </body>
 </html>
