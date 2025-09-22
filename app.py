@@ -316,8 +316,8 @@ def competition():
     tournament_files = tour.list_tournament_files()
 
     if request.method == 'GET' and request.args.get('tournament_file'):
-        # تم استلام اسم ملف البطولة من عنوان URL
         tournament_file = request.args.get('tournament_file')
+        session['last_selected_tournament'] = tournament_file
         print(f"GET request with tournament_file param: {tournament_file}") # DEBUG
         try:
             with open(os.path.join("utilities", tournament_file), 'r') as f:
@@ -500,6 +500,7 @@ def competition():
         # الأولوية الثانية: إذا كان مربع النص فارغاً، حاول استخدام الملف المختار من القائمة.
         if not json_data or not json_data.strip():
             tournament_file = request.form.get('tournament_file')
+            session['last_selected_tournament'] = tournament_file
             if tournament_file:
                 print(f"Textarea is empty, loading from selected file: {tournament_file}") # DEBUG
                 try:
@@ -903,7 +904,11 @@ def competition():
     # Sort tournament files alphabetically before rendering
     sorted_tournament_files = sorted(tournament_files)
 
-    return render_template('start_competition.html', tournament_files=sorted_tournament_files)
+    last_selected_file = session.get('last_selected_tournament')
+
+    return render_template('start_competition.html', 
+                           tournament_files=sorted_tournament_files,
+                           last_selected_file=last_selected_file)
 
 
 @app.route('/select_winner', methods=['POST'])

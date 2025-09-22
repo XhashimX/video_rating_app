@@ -165,7 +165,7 @@
                 <select class="form-select" id="tournament_file" name="tournament_file">
                     <option value="">-- اختر ملف بطولة --</option>
                     {% for file in tournament_files %}
-                    <option value="{{ file }}">{{ file }}</option>
+                    <option value="{{ file }}" {% if file == last_selected_file %}selected{% endif %}>{{ file }}</option>
                     {% endfor %}
                 </select>
                 <button type="button" class="btn btn-warning" id="filter-unplayed-btn" style="display: none;">
@@ -446,7 +446,9 @@
             // END: MODIFIED SECTION
         }
       });
-
+      if (tournamentFileSelect.value) {
+          tournamentFileSelect.dispatchEvent(new Event('change'));
+      }
       filterBtn.addEventListener("click", function() {
         // ... (كود الفلترة يبقى كما هو)
         const selectedFile = tournamentFileSelect.value;
