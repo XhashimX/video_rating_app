@@ -398,236 +398,243 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 
-    <script>
-      const modeSelect = document.getElementById("mode");
-      const valueInput = document.getElementById("valueInput");
-      const minMaxInput = document.getElementById("min-max-input");
-      const rangeInputs = document.getElementById("range-inputs");
-      const timesShownInput = document.getElementById("times-shown-input");
-      const tagsModeInput = document.getElementById("tags-mode-input");
-      const tournamentFileSelect = document.getElementById("tournament_file");
-      const jsonDataTextarea = document.getElementById("json_data");
+<!-- START: MODIFIED SECTION -->
+<!-- The entire <script> block in start_competition.html should be replaced with this -->
+<script>
+  const modeSelect = document.getElementById("mode");
+  const valueInput = document.getElementById("valueInput");
+  const minMaxInput = document.getElementById("min-max-input");
+  const rangeInputs = document.getElementById("range-inputs");
+  const timesShownInput = document.getElementById("times-shown-input");
+  const tagsModeInput = document.getElementById("tags-mode-input");
+  const tournamentFileSelect = document.getElementById("tournament_file");
+  const jsonDataTextarea = document.getElementById("json_data");
 
-      const filterBtn = document.getElementById("filter-unplayed-btn");
-      const deleteBtn = document.getElementById("delete-tournament-btn");
-      // START: MODIFIED SECTION - إضافة متغير للزر الجديد
-      const regroupBtn = document.getElementById("regroup-btn");
-      // END: MODIFIED SECTION
+  const filterBtn = document.getElementById("filter-unplayed-btn");
+  const deleteBtn = document.getElementById("delete-tournament-btn");
+  const regroupBtn = document.getElementById("regroup-btn");
 
-      tournamentFileSelect.addEventListener("change", function () {
-        const selectedFile = this.value;
-        const competitionCountSpan = document.getElementById('competition-count');
+  tournamentFileSelect.addEventListener("change", function () {
+    const selectedFile = this.value;
+    const competitionCountSpan = document.getElementById('competition-count');
 
-        if (selectedFile) {
-          // START: MODIFIED SECTION - إظهار وإخفاء الأزرار
-          filterBtn.style.display = "block";
-          deleteBtn.style.display = "block";
-          regroupBtn.style.display = "block";
-          // END: MODIFIED SECTION
+    if (selectedFile) {
+      filterBtn.style.display = "block";
+      deleteBtn.style.display = "block";
+      regroupBtn.style.display = "block";
 
-          fetch("/get_tournament_content/" + selectedFile)
-            .then((response) => response.json())
-            .then((data) => {
-                jsonDataTextarea.value = JSON.stringify(data, null, 4);
-                if (Array.isArray(data)) {
-                    competitionCountSpan.textContent = `إجمالي المسابقات: ${data.length}`;
-                } else {
-                    competitionCountSpan.textContent = '';
+      fetch("/get_tournament_content/" + selectedFile)
+        .then((response) => response.json())
+        .then((data) => {
+            jsonDataTextarea.value = JSON.stringify(data, null, 4);
+            if (Array.isArray(data)) {
+                competitionCountSpan.textContent = `إجمالي المسابقات: ${data.length}`;
+            } else {
+                competitionCountSpan.textContent = '';
+            }
+        })
+        .catch((error) => console.error("Error:", error));
+    } else {
+        jsonDataTextarea.value = "";
+        competitionCountSpan.textContent = '';
+        filterBtn.style.display = "none";
+        deleteBtn.style.display = "none";
+        regroupBtn.style.display = "none";
+    }
+  });
+  
+  if (tournamentFileSelect.value) {
+      tournamentFileSelect.dispatchEvent(new Event('change'));
+  }
+  
+  filterBtn.addEventListener("click", function() {
+    const selectedFile = tournamentFileSelect.value;
+    if (!selectedFile) {
+        alert("الرجاء اختيار ملف بطولة أولاً.");
+        return;
+    }
+
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جار الفلترة...';
+    
+    fetch('/filter_unplayed/' + selectedFile)
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.error || err.message || 'حدث خطأ في الشبكة أو الخادم.') });
+            }
+            return response.json();
+        })
+        .then(result => {
+            if (result.error) {
+                throw new Error(result.error);
+            }
+
+            // --- THIS IS THE ONLY CHANGE ---
+            // The 'if (result.status === 'completed')' block has been removed.
+            // Now, we will simply process the data received, even if it's empty.
+
+            if (result.status === 'completion_failed') {
+                throw new Error(result.message);
+            }
+
+            // The 'data' key will contain the unplayed matches, which will be an empty array
+            // if the round is complete. This will correctly clear the textarea.
+            if (typeof result.data !== 'undefined') {
+                const filteredData = result.data;
+                jsonDataTextarea.value = JSON.stringify(filteredData, null, 4);
+                const competitionCountSpan = document.getElementById('competition-count');
+                competitionCountSpan.textContent = `المسابقات المتبقية: ${filteredData.length}`;
+                
+                // You can add a silent, non-blocking notification if you want
+                if (filteredData.length === 0) {
+                    console.log("Filter complete: All matches have been played in this round.");
                 }
-            })
-            .catch((error) => console.error("Error:", error));
-        } else {
-            jsonDataTextarea.value = "";
-            competitionCountSpan.textContent = '';
-            // START: MODIFIED SECTION - إظهار وإخفاء الأزرار
-            filterBtn.style.display = "none";
-            deleteBtn.style.display = "none";
-            regroupBtn.style.display = "none";
-            // END: MODIFIED SECTION
-        }
-      });
-      if (tournamentFileSelect.value) {
-          tournamentFileSelect.dispatchEvent(new Event('change'));
-      }
-      filterBtn.addEventListener("click", function() {
-        // ... (كود الفلترة يبقى كما هو)
-        const selectedFile = tournamentFileSelect.value;
-        if (!selectedFile) {
-            alert("الرجاء اختيار ملف بطولة أولاً.");
-            return;
-        }
 
-        this.disabled = true;
-        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جار الفلترة...';
-        
-        fetch('/filter_unplayed/' + selectedFile)
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw new Error(err.error || err.message || 'حدث خطأ في الشبكة أو الخادم.') });
-                }
-                return response.json();
-            })
-            .then(result => {
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-
+            } else {
+                // This block handles the new 'completed' status without redirection
                 if (result.status === 'completed') {
-                    alert(result.message);
-                    window.location.href = "{{ url_for('tour_page') }}";
-                    return; 
-                }
-
-                if (result.status === 'completion_failed') {
-                    throw new Error(result.message);
-                }
-
-                if (typeof result.data !== 'undefined') {
-                    const filteredData = result.data;
-                    jsonDataTextarea.value = JSON.stringify(filteredData, null, 4);
-                    const competitionCountSpan = document.getElementById('competition-count');
-                    competitionCountSpan.textContent = `المسابقات المتبقية: ${filteredData.length}`;
-                    if (filteredData.length > 0) {
-                        alert(`تمت الفلترة بنجاح! تبقى ${filteredData.length} مسابقة.`);
-                    } else {
-                        alert("كل المباريات في هذه الجولة قد اكتملت!");
-                    }
+                    // When the round is complete, the `continue_tournament` function is called
+                    // on the backend, which rewrites the tournament file with the *next* round.
+                    // To see the result, the user simply needs to re-select the file, or we
+                    // can trigger it automatically. Here we'll just log it.
+                    console.log(result.message);
+                    console.log("Round complete. The tournament file has been updated with the next round. Please re-select it to see the changes.");
+                    // We will now refresh the content from the server by triggering the change event again.
+                    // This will reload the file content, showing the new round automatically.
+                    tournamentFileSelect.dispatchEvent(new Event('change'));
                 } else {
                     throw new Error('تم استلام رد غير متوقع من الخادم.');
                 }
-            })
-            .catch(error => {
-                console.error('خطأ أثناء الفلترة:', error);
-                alert('حدث خطأ: ' + error.message);
-            })
-            .finally(() => {
-                this.disabled = false;
-                this.innerHTML = '<i class="fas fa-filter"></i> متابعة غير المكتمل';
-            });
-      });
-
-      deleteBtn.addEventListener("click", function() {
-        // ... (كود الحذف يبقى كما هو)
-        const selectedFile = tournamentFileSelect.value;
-        if (!selectedFile) {
-            alert("الرجاء اختيار ملف بطولة أولاً.");
-            return;
-        }
-        if (!confirm("هل أنت متأكد أنك تريد حذف ملف البطولة '" + selectedFile + "'؟ هذا الإجراء لا يمكن التراجع عنه.")) {
-            return;
-        }
-        this.disabled = true;
-        fetch('/delete_tournament_file', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ filename: selectedFile }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                window.location.reload();
-            } else {
-                alert("فشل الحذف: " + data.message);
-                this.disabled = false;
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert("حدث خطأ أثناء الاتصال بالخادم.");
-            this.disabled = false;
-        });
-      });
-
-      // START: MODIFIED SECTION - إضافة وظيفة النقر لزر إعادة التجميع
-      regroupBtn.addEventListener("click", function() {
-        const selectedFile = tournamentFileSelect.value;
-        if (!selectedFile) {
-            alert("الرجاء اختيار ملف بطولة أولاً.");
-            return;
-        }
-
-        const newSizeStr = prompt("أدخل العدد الجديد للفيديوهات في كل مسابقة (2 أو أكثر):", "2");
-        if (newSizeStr === null) { // المستخدم ضغط على إلغاء
-            return;
-        }
-
-        const newSize = parseInt(newSizeStr, 10);
-        if (isNaN(newSize) || newSize < 2) {
-            alert("الرجاء إدخال رقم صحيح أكبر من أو يساوي 2.");
-            return;
-        }
-        
-        if (!confirm("سيتم إعادة كتابة الملف '" + selectedFile + "' بالكامل بالترتيب الجديد. هل أنت متأكد؟")) {
-            return;
-        }
-        
-        this.disabled = true;
-
-        fetch('/regroup_competitions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                filename: selectedFile,
-                new_num_videos: newSize 
-            }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // سيقوم الخادم بإرسال رسالة flash التي ستظهر بعد إعادة التحميل
-                alert(data.message); // عرض الرسالة من الخادم مباشرة
-                window.location.reload();
-            } else {
-                alert("فشل إعادة التجميع: " + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert("حدث خطأ أثناء الاتصال بالخادم.");
+            console.error('خطأ أثناء الفلترة:', error);
+            alert('حدث خطأ: ' + error.message);
         })
         .finally(() => {
-            this.disabled = false; // إعادة تفعيل الزر في كل الحالات
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-filter"></i> متابعة غير المكتمل';
         });
-      });
-      // END: MODIFIED SECTION
+  });
 
-      modeSelect.addEventListener("change", function () {
-        valueInput.style.display = "none";
-        minMaxInput.style.display = "none";
-        rangeInputs.style.display = "none";
-        timesShownInput.style.display = "none";
-        tagsModeInput.style.display = "none";
-        const allValueInputs = document.querySelectorAll('#valueInput input, #min-max-input input, #range-inputs input, #times-shown-input input, #tags-mode-input input');
-        allValueInputs.forEach(input => {
-            input.required = false;
-        });
-        if (this.value === "3" || this.value === "4") {
-          valueInput.style.display = "block";
-          document.getElementById("value").required = true;
-        } else if (this.value === "5" || this.value === "6") {
-          minMaxInput.style.display = "block";
-          document.getElementById("min_value").required = true;
-          document.getElementById("max_value").required = true;
-        } else if (this.value === "8") {
-          rangeInputs.style.display = "block";
-          document.getElementById("min_value1").required = true;
-          document.getElementById("max_value1").required = true;
-          document.getElementById("min_value2").required = true;
-          document.getElementById("max_value2").required = true;
-        } else if (this.value === "9") {
-          timesShownInput.style.display = "block";
-          document.getElementById("min_times_shown").required = true;
-          document.getElementById("max_times_shown").required = true;
-        } else if (this.value === "10") {
-          tagsModeInput.style.display = "block";
-          document.getElementById("tags_value_mode_input").required = true;
+  deleteBtn.addEventListener("click", function() {
+    const selectedFile = tournamentFileSelect.value;
+    if (!selectedFile) {
+        alert("الرجاء اختيار ملف بطولة أولاً.");
+        return;
+    }
+    if (!confirm("هل أنت متأكد أنك تريد حذف ملف البطولة '" + selectedFile + "'؟ هذا الإجراء لا يمكن التراجع عنه.")) {
+        return;
+    }
+    this.disabled = true;
+    fetch('/delete_tournament_file', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ filename: selectedFile }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert("فشل الحذف: " + data.message);
+            this.disabled = false;
         }
-      });
-      modeSelect.dispatchEvent(new Event('change'));
-    </script>
-  </body>
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("حدث خطأ أثناء الاتصال بالخادم.");
+        this.disabled = false;
+    });
+  });
+
+  regroupBtn.addEventListener("click", function() {
+    const selectedFile = tournamentFileSelect.value;
+    if (!selectedFile) {
+        alert("الرجاء اختيار ملف بطولة أولاً.");
+        return;
+    }
+
+    const newSizeStr = prompt("أدخل العدد الجديد للفيديوهات في كل مسابقة (2 أو أكثر):", "2");
+    if (newSizeStr === null) { 
+        return;
+    }
+
+    const newSize = parseInt(newSizeStr, 10);
+    if (isNaN(newSize) || newSize < 2) {
+        alert("الرجاء إدخال رقم صحيح أكبر من أو يساوي 2.");
+        return;
+    }
+    
+    if (!confirm("سيتم إعادة كتابة الملف '" + selectedFile + "' بالكامل بالترتيب الجديد. هل أنت متأكد؟")) {
+        return;
+    }
+    
+    this.disabled = true;
+
+    fetch('/regroup_competitions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            filename: selectedFile,
+            new_num_videos: newSize 
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert("فشل إعادة التجميع: " + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("حدث خطأ أثناء الاتصال بالخادم.");
+    })
+    .finally(() => {
+        this.disabled = false;
+    });
+  });
+
+  modeSelect.addEventListener("change", function () {
+    valueInput.style.display = "none";
+    minMaxInput.style.display = "none";
+    rangeInputs.style.display = "none";
+    timesShownInput.style.display = "none";
+    tagsModeInput.style.display = "none";
+    const allValueInputs = document.querySelectorAll('#valueInput input, #min-max-input input, #range-inputs input, #times-shown-input input, #tags-mode-input input');
+    allValueInputs.forEach(input => {
+        input.required = false;
+    });
+    if (this.value === "3" || this.value === "4") {
+      valueInput.style.display = "block";
+      document.getElementById("value").required = true;
+    } else if (this.value === "5" || this.value === "6") {
+      minMaxInput.style.display = "block";
+      document.getElementById("min_value").required = true;
+      document.getElementById("max_value").required = true;
+    } else if (this.value === "8") {
+      rangeInputs.style.display = "block";
+      document.getElementById("min_value1").required = true;
+      document.getElementById("max_value1").required = true;
+      document.getElementById("min_value2").required = true;
+      document.getElementById("max_value2").required = true;
+    } else if (this.value === "9") {
+      timesShownInput.style.display = "block";
+      document.getElementById("min_times_shown").required = true;
+      document.getElementById("max_times_shown").required = true;
+    } else if (this.value === "10") {
+      tagsModeInput.style.display = "block";
+      document.getElementById("tags_value_mode_input").required = true;
+    }
+  });
+  modeSelect.dispatchEvent(new Event('change'));
+</script>
+<!-- END: MODIFIED SECTION -->  </body>
 </html>

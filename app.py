@@ -307,10 +307,14 @@ def delete_tournament_file():
         print(f"Error deleting tournament file: {e}") # DEBUG
         return jsonify({'success': False, 'message': f'حدث خطأ في الخادم: {e}'}), 500
 # END: MODIFIED SECTION
+# START: MODIFIED SECTION
+# The entire 'competition' function in app.py should be replaced with this version.
 @app.route('/competition', methods=['GET', 'POST'])
 def competition():
     """
-    معالجة طلبات المنافسة، سواء كانت تأتي من ملف JSON أو نموذج HTML.
+    Handles competition requests, whether from a JSON file or an HTML form.
+    It now correctly saves the last selected tournament file to the session
+    and automatically filters for unplayed matches before starting a tournament from a file.
     """
     print("\n--- Accessing /competition route ---") # DEBUG
     tournament_files = tour.list_tournament_files()
@@ -320,14 +324,14 @@ def competition():
         session['last_selected_tournament'] = tournament_file
         print(f"GET request with tournament_file param: {tournament_file}") # DEBUG
         try:
-            with open(os.path.join("utilities", tournament_file), 'r') as f:
+            with open(os.path.join("utilities", tournament_file), 'r', encoding='utf-8') as f:
                 json_data = f.read()
             print("Tournament file read successfully.") # DEBUG
         except Exception as e:
             flash(f"Error loading tournament file: {str(e)}", "danger")
             print(f"Error reading tournament file: {str(e)}") # DEBUG
             return render_template(
-                'start_competition.html', tournament_files=tournament_files)
+                'start_competition.html', tournament_files=tour.list_tournament_files())
 
         if json_data:
             try:
@@ -337,183 +341,148 @@ def competition():
                 if not isinstance(competitions, list):
                     raise ValueError("JSON data must be a list.")
 
+                # --- START: AUTO-FILTER LOGIC (GET) ---
+                if tournament_file: # Only filter if we are starting from a file
+                    print(f"Auto-filtering unplayed matches for '{tournament_file}'...") # DEBUG
+                    filter_result = tour.filter_unplayed_matches(tournament_file)
+                    if filter_result.get('success'):
+                        original_count = len(competitions)
+                        competitions = filter_result.get('data', [])
+                        print(f"Auto-filter successful. Match count reduced from {original_count} to {len(competitions)}.") # DEBUG
+                    else:
+                        flash(f"Could not automatically filter unplayed matches: {filter_result.get('message')}", "warning")
+                        print(f"WARNING: Auto-filtering failed for {tournament_file}.") # DEBUG
+                # --- END: AUTO-FILTER LOGIC (GET) ---
+
                 data = load_data()
                 if not data:
                     flash("No competition data available.", "danger")
                     print("Loaded data is empty when processing tournament file.") # DEBUG
-                    return redirect(url_for('competition')) # Redirect to start page if no data
+                    return redirect(url_for('competition'))
 
                 session['competitions_queue'] = competitions
                 print(f"Stored competitions queue in session, count: {len(competitions)}") # DEBUG
-                if not competitions: # Handle empty queue
-                     flash("Tournament file contains an empty list of competitions.", "warning")
-                     print("Tournament file provided an empty list.") # DEBUG
-                     return render_template('start_competition.html', tournament_files=tournament_files)
+                if not competitions:
+                     flash("Tournament file is empty or all matches are completed.", "warning")
+                     print("Tournament file provided an empty list after filtering.") # DEBUG
+                     return render_template('start_competition.html', tournament_files=tour.list_tournament_files(), last_selected_file=tournament_file)
 
                 current_competition = session['competitions_queue'].pop(0)
                 session['competition_params'] = current_competition
                 print(f"Popped first competition from queue. Params: {current_competition}") # DEBUG
 
-                # Extract parameters for the first competition from JSON
-                videos_from_json = current_competition.get('videos') # Get specific videos if provided
+                videos_from_json = current_competition.get('videos')
                 mode = current_competition.get('mode', 1)
                 num_videos = current_competition.get('num_videos', 2)
                 ranking_type = current_competition.get('ranking_type', 'winner_only')
                 use_dynamic_weighting = current_competition.get('use_dynamic_weighting', False)
                 competition_type = current_competition.get('competition_type', 'random')
-                value = current_competition.get('value') # This could be a number, dict, or string
+                value = current_competition.get('value')
 
                 print(f"Starting competition from JSON - Mode: {mode}, Num Videos: {num_videos}, Value: {value}, Type: {competition_type}, Specific Videos: {videos_from_json}") # DEBUG
 
-                # --- Call choose_videos directly here ---
-                competition_videos_raw = choose_videos_function( # Changed variable name to indicate raw output
-                    data,
-                    mode,
-                    value,
-                    num_videos,
-                    use_dynamic_weighting,
-                    competition_type,
-                    videos_from_json or [], # Pass specific videos if they exist
-                    session=session
+                competition_videos_raw = choose_videos_function(
+                    data, mode, value, num_videos, use_dynamic_weighting,
+                    competition_type, videos_from_json or [], session=session
                 )
                 print(f"Videos chosen for the first JSON competition (raw): {competition_videos_raw}") # DEBUG
 
-                # --- ابدأ كود دمج بيانات الفيديوهات المعالجة هنا (داخل كتلة try) ---
                 processed_data_dict = load_processed_videos_data()
-                video_folder = session.get('selected_folder') # نحتاج مسار المجلد للحصول على حجم الملف
+                video_folder = session.get('selected_folder')
 
-                # Check if folder path is available
                 if not video_folder:
                      print("WARNING: selected_folder not found in session. Cannot get file sizes.") # DEBUG
-                     # Proceed without processed data info if folder not found
 
-                # Create a new list with enriched video data
-                # competition_videos_raw from choose_videos_function is (name, rating, times_shown, tags)
                 enriched_competition_videos = []
                 for vid_name, rating, times_shown, tags, *_ in competition_videos_raw:
-                    # احصل على اسم العرض المخصص من البيانات الرئيسية (data)
                     display_name_from_db = data.get(vid_name, {}).get('name', '')
-
-                    # Prepare default enriched data
                     enriched_video_info = {
-                        'name': vid_name,  # احتفظ باسم الملف الأصلي هنا
-                        'display_name': display_name_from_db, # أضف الاسم المخصص هنا
-                        'rating': rating,
-                        'times_shown': times_shown,
-                        'tags': tags,
-                        'is_processed': False, # Default to not processed
-                        'weight': None         # Default weight to None
+                        'name': vid_name, 'display_name': display_name_from_db,
+                        'rating': rating, 'times_shown': times_shown, 'tags': tags,
+                        'is_processed': False, 'weight': None
                     }
-
-                    # Try to get file size and check against processed data
-                    if video_folder: # Only proceed if we have the folder path
+                    if video_folder:
                         full_video_path = os.path.join(video_folder, vid_name)
                         try:
                             file_size = os.path.getsize(full_video_path)
-                            # Check if this file size exists in our processed data dictionary
                             if file_size in processed_data_dict:
                                 processed_info = processed_data_dict[file_size]
                                 enriched_video_info['is_processed'] = True
                                 enriched_video_info['weight'] = processed_info.get('total_weight')
-                                print(f"Matched video '{vid_name}' with processed data (Size: {file_size}, Weight: {enriched_video_info['weight']})") # DEBUG
-                            else:
-                                print(f"No processed data found for video '{vid_name}' (Size: {file_size})") # DEBUG
-
-                        except FileNotFoundError:
-                            print(f"WARNING: Video file not found to get size: {full_video_path}") # DEBUG
-                            # Continue without processed data info for this video
-                        except Exception as e:
-                            print(f"ERROR getting size for {full_video_path}: {e}") # DEBUG
-                            # Continue without processed data info for this video
-
-
+                        except (FileNotFoundError, Exception):
+                            pass
                     enriched_competition_videos.append(enriched_video_info)
 
-                # Now, replace competition_videos_to_render with the new enriched list
                 competition_videos_to_render = enriched_competition_videos
                 print(f"Prepared {len(competition_videos_to_render)} enriched videos for rendering.") # DEBUG
-                # --- انتهى كود دمج البيانات هنا ---
 
-
-                if competition_videos_to_render and len(competition_videos_to_render) >= 2: # استخدم القائمة الجديدة هنا
+                if competition_videos_to_render and len(competition_videos_to_render) >= 2:
                      print(f"Rendering select_winner.html for JSON GET with {len(competition_videos_to_render)} videos.") # DEBUG
-                     # START: تعديل تمرير المعاملات إلى القالب
                      template_params_get = {
-                         'competition_videos': competition_videos_to_render,
-                         'num_videos': num_videos,
-                         'mode': mode,
-                         'ranking_type': ranking_type,
-                         'competition_type': competition_type,
+                         'competition_videos': competition_videos_to_render, 'num_videos': num_videos,
+                         'mode': mode, 'ranking_type': ranking_type, 'competition_type': competition_type,
                          'data': data
                      }
-                     # Pass value components correctly based on the structure from JSON
                      if isinstance(value, dict):
-                         template_params_get.update(value) # Adds min_value, max_value, min_value1..., min_times_shown, max_times_shown, or tags
-                     elif value is not None: # If value is a single number (for mode 3/4)
+                         template_params_get.update(value)
+                     elif value is not None:
                          template_params_get['value'] = value
-
                      return render_template('select_winner.html', **template_params_get)
-                     # END: تعديل تمرير المعاملات إلى القالب
                 else:
                     flash("Not enough suitable videos found for the first competition from the tournament file.", "warning")
                     print(f"Failed to get enough videos ({len(competition_videos_raw) if competition_videos_raw else 0} found) for the first competition from the JSON file.") # DEBUG
-                    # Clear potentially problematic session state if the first step fails
                     session.pop('competitions_queue', None)
                     session.pop('competition_params', None)
-                    return render_template('start_competition.html', tournament_files=tournament_files)
-                # --- End call choose_videos ---
-            except json.JSONDecodeError:
-                flash("Invalid JSON data in the tournament file.", "danger")
-                print("JSON Decode Error from tournament file.") # DEBUG
-                return render_template(
-                    'start_competition.html', tournament_files=tournament_files)
-            except ValueError as e:
-                flash(str(e), "danger")
-                print(f"Value Error processing tournament file JSON: {str(e)}") # DEBUG
-                return render_template(
-                    'start_competition.html', tournament_files=tournament_files)
-            except Exception as e: # Catch other potential errors
+                    return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
+
+            except (json.JSONDecodeError, ValueError) as e:
+                flash(f"Invalid JSON data in the tournament file: {str(e)}", "danger")
+                print(f"Error processing tournament file JSON: {str(e)}") # DEBUG
+                return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
+            except Exception as e:
                  flash(f"An unexpected error occurred: {str(e)}", "danger")
                  print(f"Unexpected error processing tournament file: {str(e)}") # DEBUG
                  import traceback
                  traceback.print_exc()
-                 return render_template(
-                    'start_competition.html', tournament_files=tournament_files)
+                 return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
 
-    # Handle POST requests or GET requests without tournament_file param
     if not session.get('selected_folder'):
         flash("Please select a folder first.", "warning")
         print("No folder selected, redirecting to select_folder.") # DEBUG
         return redirect(url_for('select_folder'))
 
-    # Initialize videos here for clarity, will be populated later
-    videos_from_json = None # Use a different name to avoid conflict
-
     if request.method == 'POST':
         print("Received POST request for competition.") # DEBUG
         
-        # --- START OF MODIFICATION ---
-        # الأولوية الأولى: استخدام البيانات من مربع النص إذا لم تكن فارغة.
-        # هذا هو التعديل الأساسي لحل المشكلة.
+        tournament_file = request.form.get('tournament_file')
+        
+        if tournament_file:
+            session['last_selected_tournament'] = tournament_file
+            print(f"A file was selected in the form: '{tournament_file}'. Saved to session.") # DEBUG
+
         json_data = request.form.get('json_data')
         
-        # الأولوية الثانية: إذا كان مربع النص فارغاً، حاول استخدام الملف المختار من القائمة.
+        # This boolean flag will track if our data came from a file, which is the only time we want to auto-filter.
+        data_is_from_file = False
+        
         if not json_data or not json_data.strip():
-            tournament_file = request.form.get('tournament_file')
-            session['last_selected_tournament'] = tournament_file
             if tournament_file:
                 print(f"Textarea is empty, loading from selected file: {tournament_file}") # DEBUG
                 try:
-                    with open(os.path.join("utilities", tournament_file), 'r') as f:
+                    with open(os.path.join("utilities", tournament_file), 'r', encoding='utf-8') as f:
                         json_data = f.read()
+                    data_is_from_file = True # Mark that we loaded from a file
                     print("Read JSON data from file as fallback.") # DEBUG
                 except Exception as e:
                     flash(f"Error loading tournament file from POST: {str(e)}", "danger")
                     print(f"Error reading tournament file from POST: {str(e)}") # DEBUG
-                    return render_template('start_competition.html', tournament_files=tournament_files)
+                    return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
         else:
              print("Using JSON data provided in the textarea.") # DEBUG
-        # --- END OF MODIFICATION ---
+             # If textarea has data, we need to know if it's because the user selected a file.
+             # The presence of `tournament_file` tells us this.
+             if tournament_file:
+                 data_is_from_file = True
 
         if json_data:
             try:
@@ -523,6 +492,19 @@ def competition():
                 if not isinstance(competitions, list):
                     raise ValueError("JSON data must be a list.")
 
+                # --- START: AUTO-FILTER LOGIC (POST) ---
+                if data_is_from_file and tournament_file:
+                    print(f"Auto-filtering unplayed matches for '{tournament_file}'...") # DEBUG
+                    filter_result = tour.filter_unplayed_matches(tournament_file)
+                    if filter_result.get('success'):
+                        original_count = len(competitions)
+                        competitions = filter_result.get('data', [])
+                        print(f"Auto-filter successful. Match count reduced from {original_count} to {len(competitions)}.") # DEBUG
+                    else:
+                        flash(f"Could not automatically filter unplayed matches: {filter_result.get('message')}", "warning")
+                        print(f"WARNING: Auto-filtering failed for {tournament_file}.") # DEBUG
+                # --- END: AUTO-FILTER LOGIC (POST) ---
+
                 data = load_data()
                 if not data:
                     flash("No competition data available.", "danger")
@@ -531,385 +513,184 @@ def competition():
 
                 session['competitions_queue'] = competitions
                 print(f"Stored competitions queue from POST, count: {len(competitions)}") # DEBUG
-                if not competitions: # Handle empty queue
-                     flash("JSON data contains an empty list of competitions.", "warning")
-                     print("JSON data provided an empty list.") # DEBUG
-                     return render_template('start_competition.html', tournament_files=tournament_files)
+                if not competitions:
+                     flash("JSON data is empty or all matches are completed.", "warning")
+                     print("JSON data provided an empty list after filtering.") # DEBUG
+                     return render_template('start_competition.html', tournament_files=tour.list_tournament_files(), last_selected_file=tournament_file)
 
                 current_competition = session['competitions_queue'].pop(0)
                 session['competition_params'] = current_competition
                 print(f"Popped first competition from POST queue. Params: {current_competition}") # DEBUG
 
-                videos_from_json = current_competition.get('videos') # Update variable name
+                videos_from_json = current_competition.get('videos')
                 mode = current_competition.get('mode', 1)
                 num_videos = current_competition.get('num_videos', 2)
                 ranking_type = current_competition.get('ranking_type', 'winner_only')
                 use_dynamic_weighting = current_competition.get('use_dynamic_weighting', False)
                 competition_type = current_competition.get('competition_type', 'random')
-                value = current_competition.get('value') # This could be a number, dict, or string
+                value = current_competition.get('value')
 
                 print(f"Starting competition from POST JSON - Mode: {mode}, Num Videos: {num_videos}, Value: {value}, Type: {competition_type}, Specific Videos: {videos_from_json}") # DEBUG
 
-                # --- Common logic after getting parameters (either from JSON or form) ---
-                data = load_data()
-                if not data:
-                    flash("No competition data available.", "danger")
-                    print("Loaded data is empty before choosing videos.") # DEBUG
-                    return render_template('start_competition.html', tournament_files=tournament_files)
-
-                # Now, use the determined parameters to choose videos
-                # Parameters are already set in variables (mode, value, num_videos, etc.)
-                # and stored in session['competition_params']
-                print(f"Calling choose_videos with: Mode={mode}, Value={value}, NumVids={num_videos}, DynWeight={use_dynamic_weighting}, CompType={competition_type}, SpecificVids={videos_from_json}") # DEBUG
-                competition_videos_raw = choose_videos_function( # Changed variable name
-                    data,
-                    mode,
-                    value,
-                    num_videos,
-                    use_dynamic_weighting,
-                    competition_type,
-                    videos_from_json or [], # Use specific videos if from JSON
-                    session=session
+                competition_videos_raw = choose_videos_function(
+                    data, mode, value, num_videos, use_dynamic_weighting,
+                    competition_type, videos_from_json or [], session=session
                 )
                 print(f"Videos chosen (raw): {competition_videos_raw}") # DEBUG
 
-                # --- ابدأ كود دمج بيانات الفيديوهات المعالجة هنا (داخل كتلة try) ---
                 processed_data_dict = load_processed_videos_data()
-                video_folder = session.get('selected_folder') # نحتاج مسار المجلد للحصول على حجم الملف
+                video_folder = session.get('selected_folder')
 
-                # Check if folder path is available
                 if not video_folder:
                      print("WARNING: selected_folder not found in session. Cannot get file sizes.") # DEBUG
-                     # Proceed without processed data info if folder not found
 
-                # Create a new list with enriched video data
-                # competition_videos_raw from choose_videos_function is (name, rating, times_shown, tags)
                 enriched_competition_videos = []
                 for vid_name, rating, times_shown, tags, *_ in competition_videos_raw:
-                    # احصل على اسم العرض المخصص من البيانات الرئيسية (data)
                     display_name_from_db = data.get(vid_name, {}).get('name', '')
-
-                    # Prepare default enriched data
                     enriched_video_info = {
-                        'name': vid_name, # احتفظ باسم الملف الأصلي هنا
-                        'display_name': display_name_from_db, # أضف الاسم المخصص هنا
-                        'rating': rating,
-                        'times_shown': times_shown,
-                        'tags': tags,
-                        'is_processed': False, # Default to not processed
-                        'weight': None         # Default weight to None
+                        'name': vid_name, 'display_name': display_name_from_db,
+                        'rating': rating, 'times_shown': times_shown, 'tags': tags,
+                        'is_processed': False, 'weight': None
                     }
-
-                    # Try to get file size and check against processed data
-                    if video_folder: # Only proceed if we have the folder path
+                    if video_folder:
                         full_video_path = os.path.join(video_folder, vid_name)
                         try:
                             file_size = os.path.getsize(full_video_path)
-                            # Check if this file size exists in our processed data dictionary
                             if file_size in processed_data_dict:
                                 processed_info = processed_data_dict[file_size]
                                 enriched_video_info['is_processed'] = True
                                 enriched_video_info['weight'] = processed_info.get('total_weight')
-                                print(f"Matched video '{vid_name}' with processed data (Size: {file_size}, Weight: {enriched_video_info['weight']})") # DEBUG
-                            else:
-                                print(f"No processed data found for video '{vid_name}' (Size: {file_size})") # DEBUG
-
-                        except FileNotFoundError:
-                            print(f"WARNING: Video file not found to get size: {full_video_path}") # DEBUG
-                            # Continue without processed data info for this video
-                        except Exception as e:
-                            print(f"ERROR getting size for {full_video_path}: {e}") # DEBUG
-                            # Continue without processed data info for this video
-
-
+                        except (FileNotFoundError, Exception):
+                            pass
                     enriched_competition_videos.append(enriched_video_info)
 
-                # Now, replace competition_videos with the new enriched list
                 competition_videos_to_render = enriched_competition_videos
                 print(f"Prepared {len(competition_videos_to_render)} enriched videos for rendering.") # DEBUG
-                # --- انتهى كود دمج البيانات هنا ---
 
-                if competition_videos_to_render and len(competition_videos_to_render) >= 2: # استخدم القائمة الجديدة هنا
+                if competition_videos_to_render and len(competition_videos_to_render) >= 2:
                     print(f"Rendering select_winner.html with {len(competition_videos_to_render)} videos from POST JSON.") # DEBUG
-                     # START: تعديل تمرير المعاملات إلى القالب
                     template_params_post_json = {
-                        'competition_videos': competition_videos_to_render,
-                        'num_videos': num_videos,
-                        'mode': mode,
-                        'ranking_type': ranking_type,
-                        'competition_type': competition_type,
+                        'competition_videos': competition_videos_to_render, 'num_videos': num_videos,
+                        'mode': mode, 'ranking_type': ranking_type, 'competition_type': competition_type,
                         'data': data
                     }
-                    # Pass value components correctly based on the structure from JSON
                     if isinstance(value, dict):
-                        template_params_post_json.update(value) # Adds min_value, max_value, min_value1..., min_times_shown, max_times_shown, or tags
-                    elif value is not None: # If value is a single number (for mode 3/4)
+                        template_params_post_json.update(value)
+                    elif value is not None:
                         template_params_post_json['value'] = value
-
                     return render_template('select_winner.html', **template_params_post_json)
-                    # END: تعديل تمرير المعاملات إلى القالب
                 else:
                     flash("Not enough suitable videos found for the selected criteria from JSON data.", "warning")
                     print(f"Failed to get enough videos ({len(competition_videos_raw) if competition_videos_raw else 0} found) based on POST JSON criteria.") # DEBUG
-                     # Clear potentially problematic session state if the first step fails
                     session.pop('competitions_queue', None)
                     session.pop('competition_params', None)
-                    return render_template('start_competition.html', tournament_files=tournament_files)
+                    return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
 
-            except json.JSONDecodeError:
-                flash("Invalid JSON data provided.", "danger")
-                print("JSON Decode Error from POST data.") # DEBUG
-                return render_template(
-                    'start_competition.html', tournament_files=tournament_files)
-            except ValueError as e:
-                flash(str(e), "danger")
-                print(f"Value Error processing POST JSON: {str(e)}") # DEBUG
-                return render_template(
-                    'start_competition.html', tournament_files=tournament_files)
-            except Exception as e: # Catch other potential errors
+            except (json.JSONDecodeError, ValueError) as e:
+                flash(f"Invalid JSON data provided: {str(e)}", "danger")
+                print(f"Error processing POST JSON: {str(e)}") # DEBUG
+                return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
+            except Exception as e:
                  flash(f"An unexpected error occurred processing POST JSON: {str(e)}", "danger")
                  print(f"Unexpected error processing POST JSON: {str(e)}") # DEBUG
                  import traceback
                  traceback.print_exc()
-                 return render_template(
-                    'start_competition.html', tournament_files=tournament_files)
+                 return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
 
-        else: # No JSON data, process form parameters
-            # ... كود معالجة النموذج ...
+        else: # No JSON data, process form parameters (This part does not need auto-filtering)
             mode = int(request.form.get('mode', 1))
             num_videos = int(request.form.get('num_videos', 2))
             ranking_type = request.form.get('ranking_type')
             use_dynamic_weighting = request.form.get('use_dynamic_weighting') == 'true'
             competition_type = request.form.get('competition_type')
             value = None
-            videos_from_json = None # Ensure it's None if using form params
-
-            # --- Logic to extract 'value' based on 'mode' from form ---
+            
             if mode == 8:
-                print("Mode 8 selected, processing ranges.") # DEBUG
-                min_value1_str = request.form.get('min_value1')
-                max_value1_str = request.form.get('max_value1')
-                min_value2_str = request.form.get('min_value2')
-                max_value2_str = request.form.get('max_value2')
-                if all([min_value1_str, max_value1_str, min_value2_str, max_value2_str]):
-                    try:
-                        value = {
-                            'min_value1': float(min_value1_str), 'max_value1': float(max_value1_str),
-                            'min_value2': float(min_value2_str), 'max_value2': float(max_value2_str)
-                        }
-                        print(f"Mode 8 ranges parsed: {value}") # DEBUG
-                    except ValueError:
-                        flash("Please enter valid numeric values for the ranges.", "danger")
-                        print("ValueError parsing mode 8 ranges.") # DEBUG
-                        return render_template('start_competition.html', tournament_files=tournament_files)
-                else:
-                    flash("Please enter values for both ranges.", "danger")
-                    print("Missing values for mode 8 ranges.") # DEBUG
-                    return render_template('start_competition.html', tournament_files=tournament_files)
+                try: value = {'min_value1': float(request.form['min_value1']), 'max_value1': float(request.form['max_value1']), 'min_value2': float(request.form['min_value2']), 'max_value2': float(request.form['max_value2'])}
+                except (ValueError, KeyError): flash("Please enter valid numeric values for the ranges.", "danger"); return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
             elif mode in [5, 6]:
-                print(f"Mode {mode} selected, processing min/max.") # DEBUG
-                min_value_str = request.form.get('min_value')
-                max_value_str = request.form.get('max_value')
-                if min_value_str and max_value_str:
-                    try:
-                        value = {'min_value': float(min_value_str), 'max_value': float(max_value_str)}
-                        print(f"Mode {mode} min/max parsed: {value}") # DEBUG
-                    except ValueError:
-                        flash("Please enter valid numeric values for min/max.", "danger")
-                        print(f"ValueError parsing mode {mode} min/max.") # DEBUG
-                        return render_template('start_competition.html', tournament_files=tournament_files)
-                else:
-                    flash("Please enter both minimum and maximum values.", "danger")
-                    print(f"Missing values for mode {mode} min/max.") # DEBUG
-                    return render_template('start_competition.html', tournament_files=tournament_files)
+                try: value = {'min_value': float(request.form['min_value']), 'max_value': float(request.form['max_value'])}
+                except (ValueError, KeyError): flash("Please enter valid numeric values for min/max.", "danger"); return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
             elif mode in [3, 4]:
-                print(f"Mode {mode} selected, processing single value.") # DEBUG
-                value_str = request.form.get('value')
-                if value_str:
-                    try:
-                        value = float(value_str)
-                        print(f"Mode {mode} value parsed: {value}") # DEBUG
-                    except ValueError:
-                        flash("Please enter a valid numeric value.", "danger")
-                        print(f"ValueError parsing mode {mode} value.") # DEBUG
-                        return render_template('start_competition.html', tournament_files=tournament_files)
-                # Allow mode 3/4 without value if needed, handle in choose_videos
-                # else:
-                #     flash("Please enter a value.", "danger")
-                #     print(f"Missing value for mode {mode}.") # DEBUG
-                #     return render_template('start_competition.html', tournament_competition_files=tournament_files)
-            # START: إضافة منطق للأوضاع الجديدة 9 و 10 من النموذج
-            elif mode == 9: # وضع مرات الظهور
-                print(f"Mode 9 selected, processing times_shown range.") # DEBUG
-                min_times_str = request.form.get('min_times_shown')
-                max_ts_str = request.form.get('max_times_shown')
-                if min_times_str is not None and max_ts_str is not None: # Use is not None to allow 0
-                    try:
-                        value = {
-                            'min_times_shown': int(min_times_str),
-                            'max_times_shown': int(max_ts_str)
-                        }
-                        print(f"Mode 9 times_shown range parsed: {value}") # DEBUG
-                    except ValueError:
-                        flash("Please enter valid numeric values for times_shown range.", "danger")
-                        print("ValueError parsing mode 9 times_shown range.") # DEBUG
-                        return render_template('start_competition.html', tournament_files=tournament_files)
-                else:
-                    flash("Please enter both minimum and maximum times_shown values.", "danger")
-                    print("Missing values for mode 9 times_shown range.") # DEBUG
-                    return render_template('start_competition.html', tournament_files=tournament_files)
-            elif mode == 10: # وضع الوسوم
-                print(f"Mode 10 selected, processing tags input.") # DEBUG
-                # Use the ID from the form ('tags_value_mode_input' as specified in the HTML update)
-                tags_input_str = request.form.get('tags_value_mode_input')
-                if tags_input_str is not None: # Use is not None to allow empty string for value
-                     # The actual parsing/cleaning happens in choose_videos_function
-                     value = {'tags': tags_input_str.strip()}
-                     print(f"Mode 10 tags parsed: {value}") # DEBUG
-                     # Note: We allow empty string here; choose_videos_function will handle it
-                else:
-                    flash("Please enter the required tags.", "danger")
-                    print("Missing tags input for mode 10.") # DEBUG
-                    return render_template('start_competition.html', tournament_files=tournament_files)
-            # END: إضافة منطق للأوضاع الجديدة 9 و 10
+                try: value_str = request.form.get('value'); value = float(value_str) if value_str else None
+                except (ValueError, KeyError): flash("Please enter a valid numeric value.", "danger"); return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
+            elif mode == 9:
+                try: value = {'min_times_shown': int(request.form['min_times_shown']), 'max_times_shown': int(request.form['max_times_shown'])}
+                except (ValueError, KeyError): flash("Please enter valid numeric values for times_shown range.", "danger"); return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
+            elif mode == 10:
+                try: value = {'tags': request.form['tags_value_mode_input'].strip()}
+                except KeyError: flash("Please enter the required tags.", "danger"); return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
 
-            # Store these parameters in session for potential reuse
-            # Store the specific value structure based on the mode
             session['competition_params'] = {
                 'mode': mode, 'value': value, 'num_videos': num_videos,
                 'ranking_type': ranking_type, 'use_dynamic_weighting': use_dynamic_weighting,
                 'competition_type': competition_type
             }
-            print(f"Stored competition params from form in session: {session['competition_params']}") # DEBUG
-            # Clear any leftover queue if we are starting manually
             session.pop('competitions_queue', None)
-            print("Cleared competitions_queue as starting manually from form.") # DEBUG
 
-            # --- Common logic after getting parameters (either from JSON or form) ---
             data = load_data()
             if not data:
                 flash("No competition data available.", "danger")
-                print("Loaded data is empty before choosing videos.") # DEBUG
-                return render_template('start_competition.html', tournament_files=tournament_files)
+                return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
 
-            # Now, use the determined parameters to choose videos
-            # Parameters are already set in variables (mode, value, num_videos, etc.)
-            # and stored in session['competition_params']
-            print(f"Calling choose_videos with: Mode={mode}, Value={value}, NumVids={num_videos}, DynWeight={use_dynamic_weighting}, CompType={competition_type}, SpecificVids={videos_from_json}") # DEBUG
-            competition_videos_raw = choose_videos_function( # Changed variable name
-                data,
-                mode,
-                value, # Use the parsed value directly
-                num_videos,
-                use_dynamic_weighting,
-                competition_type,
-                videos_from_json or [], # Use specific videos if from JSON (will be empty here for form)
-                session=session
+            competition_videos_raw = choose_videos_function(
+                data, mode, value, num_videos, use_dynamic_weighting, competition_type, [], session=session
             )
-            print(f"Videos chosen (raw): {competition_videos_raw}") # DEBUG
-
-            # --- ابدأ كود دمج بيانات الفيديوهات المعالجة هنا (داخل الجزء الذي لا يحتوي على json_data) ---
+            
             processed_data_dict = load_processed_videos_data()
-            video_folder = session.get('selected_folder') # نحتاج مسار المجلد للحصول على حجم الملف
-
-            # Check if folder path is available
-            if not video_folder:
-                 print("WARNING: selected_folder not found in session. Cannot get file sizes.") # DEBUG
-                 # Proceed without processed data info if folder not found
-
-            # Create a new list with enriched video data
-            # competition_videos_raw from choose_videos_function is (name, rating, times_shown, tags)
+            video_folder = session.get('selected_folder')
             enriched_competition_videos = []
             for vid_name, rating, times_shown, tags, *_ in competition_videos_raw:
-                # احصل على اسم العرض المخصص من البيانات الرئيسية (data)
                 display_name_from_db = data.get(vid_name, {}).get('name', '')
-
-                # Prepare default enriched data
                 enriched_video_info = {
-                    'name': vid_name, # احتفظ باسم الملف الأصلي هنا
-                    'display_name': display_name_from_db, # أضف الاسم المخصص هنا
-                    'rating': rating,
-                    'times_shown': times_shown,
-                    'tags': tags,
-                    'is_processed': False, # Default to not processed
-                    'weight': None         # Default weight to None
+                    'name': vid_name, 'display_name': display_name_from_db,
+                    'rating': rating, 'times_shown': times_shown, 'tags': tags,
+                    'is_processed': False, 'weight': None
                 }
-
-                # Try to get file size and check against processed data
-                if video_folder: # Only proceed if we have the folder path
+                if video_folder:
                     full_video_path = os.path.join(video_folder, vid_name)
                     try:
                         file_size = os.path.getsize(full_video_path)
-                        # Check if this file size exists in our processed data dictionary
                         if file_size in processed_data_dict:
                             processed_info = processed_data_dict[file_size]
                             enriched_video_info['is_processed'] = True
                             enriched_video_info['weight'] = processed_info.get('total_weight')
-                            print(f"Matched video '{vid_name}' with processed data (Size: {file_size}, Weight: {enriched_video_info['weight']})") # DEBUG
-                        else:
-                            print(f"No processed data found for video '{vid_name}' (Size: {file_size})") # DEBUG
-
-                    except FileNotFoundError:
-                        print(f"WARNING: Video file not found to get size: {full_video_path}") # DEBUG
-                        # Continue without processed data info for this video
-                    except Exception as e:
-                        print(f"ERROR getting size for {full_video_path}: {e}") # DEBUG
-                        # Continue without processed data info for this video
-
-
+                    except (FileNotFoundError, Exception):
+                        pass
                 enriched_competition_videos.append(enriched_video_info)
 
-            # Now, replace competition_videos with the new enriched list
             competition_videos_to_render = enriched_competition_videos
-            print(f"Prepared {len(competition_videos_to_render)} enriched videos for rendering.") # DEBUG
-            # --- انتهى كود دمج البيانات هنا ---
-
-
-            if competition_videos_to_render and len(competition_videos_to_render) >= 2: # استخدم القائمة الجديدة هنا
-                print(f"Rendering select_winner.html with {len(competition_videos_to_render)} videos from form POST.") # DEBUG
-                # START: تعديل تمرير المعاملات إلى القالب
+            
+            if competition_videos_to_render and len(competition_videos_to_render) >= 2:
                 template_params = {
-                    'competition_videos': competition_videos_to_render,
-                    'num_videos': num_videos,
-                    'mode': mode,
-                    'ranking_type': ranking_type,
-                    'competition_type': competition_type,
+                    'competition_videos': competition_videos_to_render, 'num_videos': num_videos,
+                    'mode': mode, 'ranking_type': ranking_type, 'competition_type': competition_type,
                     'data': data
                 }
-                # Pass value components correctly based on the parsed value structure
                 if isinstance(value, dict):
-                    template_params.update(value) # Adds min_value, max_value, min_value1..., min_times_shown, max_times_shown, or tags
-                elif value is not None: # If value is a single number (for mode 3/4)
+                    template_params.update(value)
+                elif value is not None:
                     template_params['value'] = value
-
                 return render_template('select_winner.html', **template_params)
-                # END: تعديل تمرير المعاملات إلى القالب
             else:
                 flash("Not enough suitable videos found for the selected criteria.", "warning")
-                print(f"Failed to get enough videos ({len(competition_videos_raw) if competition_videos_raw else 0} found) based on initial criteria.") # DEBUG
-                 # Clear potentially problematic session state if the first step fails
-                session.pop('competitions_queue', None)
                 session.pop('competition_params', None)
-                return render_template('start_competition.html', tournament_files=tournament_files)
+                return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
 
-
-    # If it's a GET request without a tournament file param, just show the form
+    # GET request without a tournament file param
     print("Rendering start_competition.html (GET request or fallback).") # DEBUG
-    # Clear session state if we are just loading the start page clean
     session.pop('competitions_queue', None)
     session.pop('competition_params', None)
-    session.pop('last_winner', None) # Also clear last winner
+    session.pop('last_winner', None)
     print("Cleared session state (queue, params, last_winner) on loading start page.") # DEBUG
 
-    # Sort tournament files alphabetically before rendering
     sorted_tournament_files = sorted(tournament_files)
-
     last_selected_file = session.get('last_selected_tournament')
 
     return render_template('start_competition.html', 
                            tournament_files=sorted_tournament_files,
                            last_selected_file=last_selected_file)
-
+# END: MODIFIED SECTION
 
 @app.route('/select_winner', methods=['POST'])
 def select_winner():
@@ -985,36 +766,6 @@ def select_winner():
          import traceback # Ensure traceback is imported here if needed
          traceback.print_exc()
          # We can attempt to proceed with ranking even if tag update failed
-
-
-    # --- Handle Special Action Buttons ---
-    if request.form.get('tag_only') == 'true':
-        print("Action: Apply tags only.") # DEBUG
-        # Data was already loaded and tags processed.
-        # Save data only if tags were actually updated.
-        if tag_updates_made:
-            try:
-                 save_data(data) # Save just the tag changes
-                 flash("Tags updated successfully!", "success")
-                 print("Data saved after 'tag_only' action.") # DEBUG
-            except Exception as e:
-                 flash(f"Error saving data after tag update: {e}", "danger")
-                 print(f"ERROR saving data after 'tag_only': {e}") # DEBUG
-        else:
-             flash("No tag changes detected.", "info")
-             print("No tags updated, skipping data save.") # DEBUG
-
-        # For 'tag_only', we usually want to go back to the competition start page.
-        # Or, if part of a tournament, maybe stay on the same round?
-        # The requirement was "automatic competition after end". 'tag_only' *interrupts* this.
-        # Let's redirect to the start page after 'tag_only'.
-        print("Redirecting to competition start page after 'tag_only'.") # DEBUG
-        # Clear queue/params as we exited the normal flow
-        session.pop('competitions_queue', None)
-        session.pop('competition_params', None)
-        session.pop('last_winner', None)
-        return redirect(url_for('competition'))
-
 
     # Note: The 'skip_competition' logic was already inside a try block in the original code
     # So the merge code for skip_competition should be placed inside its existing try block as well.

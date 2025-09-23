@@ -825,10 +825,9 @@
 
       <div class="text-center mt-4">
         <button type="submit" class="btn btn-success">إرسال النتائج</button>
-        <!-- إضافة الزرين الجديدين -->
-        <button type="submit" class="btn btn-info" name="tag_only" value="true">
-          تطبيق الوسوم فقط
-        </button>
+        <a href="{{ url_for('competition') }}" class="btn btn-info">
+            <i class="fas fa-list-ul"></i> العودة لاختيار المسابقة
+        </a>
         <button
           type="submit"
           class="btn btn-warning"
@@ -1009,22 +1008,17 @@
         closeButton.addEventListener("click", hideFullscreen);
 
         form.addEventListener("submit", function (event) {
-            // إضافة فحص لما إذا كان الزر "تطبيق الوسوم فقط" أو "تخطي المسابقة" قد تم النقر عليه
-            if (event.submitter && (event.submitter.name === 'tag_only' || event.submitter.name === 'skip_competition')) {
-                // إذا تم النقر على أحد الزرين، تجاوز التحقق من التقييمات والوسوم
-                errorMessage.style.display = "none"; // إخفاء رسالة الخطأ إذا كانت معروضة
-                // لا حاجة لـ event.preventDefault() هنا لأننا نريد أن يتم الإرسال
-                return; // الخروج من الدالة لمنع تنفيذ بقية الكود
+            if (event.submitter && event.submitter.name === 'skip_competition') {
+                errorMessage.style.display = "none"; 
+                return; 
             }
 
-            // هنا يتم تنفيذ التحقق إذا لم يتم النقر على زر 'tag_only' أو 'skip_competition'
             event.preventDefault();
 
             const rankInputs = document.querySelectorAll(".rank-input");
             let hasEmptyRank = false;
-            let hasEmptyTag = false; // إضافة متغير للتحقق من الوسوم
+            let hasEmptyTag = false; 
 
-            // التحقق من تقييم الملفات
             if (rankingType != "winner_only") {
                 rankInputs.forEach(function (input) {
                     if (input.value === "") {

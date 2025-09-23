@@ -354,10 +354,6 @@ def select_winner():
         print("ERROR: No folder selected in session.") # DEBUG
         return redirect(url_for('select_folder'))
 
-    # Check for special actions first
-    if request.form.get('tag_only') == 'true':
-        print("Action: Apply tags only.") # DEBUG
-        return apply_tags_only()
 
     if request.form.get('skip_competition') == 'true':
         print("Action: Skip competition.") # DEBUG
@@ -648,74 +644,6 @@ def select_winner():
         # Redirect to start page in case of error
         return redirect(url_for('competition'))
 
-
-def apply_tags_only():
-    """Applies tags submitted in the form without affecting ratings or starting a new competition."""
-    print("--- Entering apply_tags_only ---") # DEBUG
-    data = load_data()
-    if not data:
-        flash("No data found.", "danger")
-        print("ERROR apply_tags_only: Failed to load data.") # DEBUG
-        return redirect(url_for('competition'))
-
-    competition_videos = request.form.getlist('videos') # Videos shown on the page
-    print(f"apply_tags_only: Videos from form: {competition_videos}") # DEBUG
-
-    if not competition_videos:
-         flash("No videos found in the submission.", "warning")
-         print("WARNING apply_tags_only: No videos submitted.") # DEBUG
-         return redirect(url_for('competition'))
-
-    try:
-        updated_count = 0
-        for index, vid in enumerate(competition_videos, start=1): # Use 1-based index for form fields
-            if vid in data:
-                # Get tags from the corresponding form input (tag_1, tag_2, etc.)
-                tags_input = request.form.get(f'tag_{index}', None) # Default to None if not found
-
-                if tags_input is not None:
-                    # Process tags: split, strip, remove empty
-                    processed_tags = [tag.strip() for tag in tags_input.split(',') if tag.strip()]
-                    new_tags_str = ','.join(processed_tags)
-
-                    # Update only if tags changed
-                    if data[vid].get('tags', '') != new_tags_str:
-                        data[vid]['tags'] = new_tags_str
-                        print(f"apply_tags_only: Updating tags for {vid} to: {new_tags_str}") # DEBUG
-                        updated_count += 1
-                    else:
-                         print(f"apply_tags_only: Tags for {vid} unchanged.") # DEBUG
-
-                else:
-                     print(f"WARNING apply_tags_only: Tag input 'tag_{index}' not found for video {vid}.") # DEBUG
-                     # Option: Clear tags if input is missing? Or leave them as is? Leaving as is.
-                     # data[vid]['tags'] = '' # Uncomment to clear tags if input is missing
-
-            else:
-                print(f"WARNING apply_tags_only: Video {vid} from form not found in data.") # DEBUG
-                # Skip this video if not found
-
-        if updated_count > 0:
-             save_data(data)
-             print(f"apply_tags_only: Saved data after updating tags for {updated_count} videos.") # DEBUG
-             flash("Tags updated successfully!", "success")
-        else:
-             print("apply_tags_only: No tags were changed.") # DEBUG
-             flash("No tag changes detected.", "info")
-
-        # Stay on the same competition page - requires re-rendering with current state
-        # This is complex as we need all the parameters that were used to render it initially.
-        # Simplest approach: Redirect back to the main competition start page.
-        # More advanced: Store the *current* view's state and re-render.
-        # For now, redirecting to start:
-        flash("Redirecting to competition start page after applying tags.", "info")
-        return redirect(url_for('competition'))
-
-    except Exception as e:
-        flash(f"An error occurred while updating tags: {e}", "danger")
-        print(f"ERROR apply_tags_only: {e}") # DEBUG
-        traceback.print_exc()
-        return redirect(url_for('competition'))
 
 
 def skip_competition():
