@@ -197,10 +197,11 @@ def _filter_videos_non_interactive(videos_data, filters):
     return filtered_videos
 
 # START: MODIFIED SECTION
+# START: MODIFIED SECTION
 def function_make_competition(input_json_path, base_output_path, settings):
     """
     تنشئ ملف مسابقات مخصص بناءً على الإعدادات المقدمة.
-    هذه النسخة لا تستخدم input() وتقبل الوسائط مباشرة.
+    تدعم الآن الفلتر المتقدم "التقييم المتوازن".
     """
     try:
         if not os.path.exists(input_json_path):
@@ -210,36 +211,90 @@ def function_make_competition(input_json_path, base_output_path, settings):
         if not videos_data or not isinstance(videos_data, dict):
             return {'success': False, 'message': 'ملف البيانات الأساسي فارغ أو بتنسيق غير صحيح.'}
 
-        # تطبيق الفلاتر
         filters = settings.get('filters', {})
-        filtered_videos = _filter_videos_non_interactive(videos_data, filters)
+        # الخطوة 1: تطبيق الفلاتر العامة أولاً (rating, times_shown, tags)
+        initial_filtered_videos = _filter_videos_non_interactive(videos_data, filters)
 
-        if not filtered_videos:
-            return {'success': False, 'message': 'لم يتم العثور على أي فيديوهات تطابق الفلاتر المحددة.'}
+        if not initial_filtered_videos:
+            return {'success': False, 'message': 'لم يتم العثور على أي فيديوهات تطابق الفلاتر العامة المحددة.'}
 
         num_videos = settings.get('num_videos', 2)
-        if len(filtered_videos) < num_videos:
-            return {'success': False, 'message': f"عدد الفيديوهات بعد الفلترة ({len(filtered_videos)}) أقل من العدد المطلوب للمسابقة ({num_videos})."}
-        
-        video_names = list(filtered_videos.keys())
-        random.shuffle(video_names) # خلط عشوائي للفيديوهات
-
         competitions = []
-        for i in range(0, len(video_names), num_videos):
-            chunk = video_names[i:i + num_videos]
-            if len(chunk) == num_videos:
-                competition_entry = {
-                    "videos": chunk,
-                    "rating": [filtered_videos[name].get("rating", 1000) for name in chunk],
-                    "file_size": [filtered_videos[name].get("file_size", 0) for name in chunk],
-                    "mode": 1,
-                    "num_videos": num_videos,
-                    "ranking_type": "winner_only",
-                    "competition_type": "random" # يمكن تطوير هذا لاحقًا
-                }
-                competitions.append(competition_entry)
         
-        # تطبيق الحد الأقصى لعدد المسابقات إذا تم تحديده
+        # --- المنطق الجديد: التحقق من وجود فلتر التقييم المتوازن ---
+        balanced_rating_filter = filters.get('balanced_rating', '').strip()
+
+        if balanced_rating_filter:
+            # الخطوة 2: تحليل فلتر التقييم المتوازن
+            parts = [p.strip() for p in balanced_rating_filter.split(',') if p.strip()]
+            if len(parts) != 2:
+                return {'success': False, 'message': 'فلتر التقييم المتوازن يجب أن يحتوي على قسمين مفصولين بفاصلة. مثال: 1000, 1200-1400'}
+
+            group_a_ranges = _parse_range_list(parts[0], int)
+            group_b_ranges = _parse_range_list(parts[1], int)
+
+            # الخطوة 3: تقسيم الفيديوهات المفلترة إلى مجموعتين
+            videos_group_a = []
+            videos_group_b = []
+            for name, details in initial_filtered_videos.items():
+                rating = details.get('rating')
+                if rating is not None:
+                    if any(low <= rating <= high for low, high in group_a_ranges):
+                        videos_group_a.append(name)
+                    elif any(low <= rating <= high for low, high in group_b_ranges):
+                        videos_group_b.append(name)
+            
+            # الخطوة 4: التحقق من وجود عدد كافٍ من الفيديوهات في كل مجموعة
+            num_from_each = num_videos // 2
+            if len(videos_group_a) < num_from_each or len(videos_group_b) < num_from_each:
+                 return {'success': False, 'message': f"لا يوجد عدد كاف من الفيديوهات في المجموعتين لإنشاء مسابقات. المجموعة الأولى: {len(videos_group_a)} فيديو، المجموعة الثانية: {len(videos_group_b)} فيديو. المطلوب على الأقل {num_from_each} من كل مجموعة."}
+
+            random.shuffle(videos_group_a)
+            random.shuffle(videos_group_b)
+
+            # الخطوة 5: بناء المسابقات بشكل متوازن
+            while len(videos_group_a) >= num_from_each and len(videos_group_b) >= num_from_each:
+                chunk = []
+                # أخذ العدد المطلوب من كل مجموعة
+                chunk.extend(videos_group_a.pop(0) for _ in range(num_from_each))
+                chunk.extend(videos_group_b.pop(0) for _ in range(num_from_each))
+                
+                # التعامل مع العدد الفردي
+                if num_videos % 2 != 0:
+                    remaining_pool = videos_group_a + videos_group_b
+                    if remaining_pool:
+                        extra_vid = random.choice(remaining_pool)
+                        chunk.append(extra_vid)
+                        # إزالة الفيديو الإضافي من قائمته الأصلية
+                        if extra_vid in videos_group_a: videos_group_a.remove(extra_vid)
+                        else: videos_group_b.remove(extra_vid)
+
+                random.shuffle(chunk) # خلط الفيديوهات داخل المسابقة
+                
+                if len(chunk) == num_videos:
+                    competition_entry = {
+                        "videos": chunk,
+                        "rating": [videos_data[name].get("rating", 1000) for name in chunk],
+                        "file_size": [videos_data[name].get("file_size", 0) for name in chunk],
+                        "mode": 1, "num_videos": num_videos, "ranking_type": "winner_only", "competition_type": "balanced_random"
+                    }
+                    competitions.append(competition_entry)
+        else:
+            # --- المنطق القديم: في حال عدم استخدام الفلتر المتوازن ---
+            video_names = list(initial_filtered_videos.keys())
+            random.shuffle(video_names)
+            for i in range(0, len(video_names), num_videos):
+                chunk = video_names[i:i + num_videos]
+                if len(chunk) == num_videos:
+                    competition_entry = {
+                        "videos": chunk,
+                        "rating": [initial_filtered_videos[name].get("rating", 1000) for name in chunk],
+                        "file_size": [initial_filtered_videos[name].get("file_size", 0) for name in chunk],
+                        "mode": 1, "num_videos": num_videos, "ranking_type": "winner_only", "competition_type": "random"
+                    }
+                    competitions.append(competition_entry)
+        
+        # تطبيق الحد الأقصى للمسابقات وحفظ الملف (هذا الجزء لم يتغير)
         limit = settings.get('limit')
         if limit and limit > 0 and len(competitions) > limit:
             competitions = competitions[:limit]
@@ -247,13 +302,10 @@ def function_make_competition(input_json_path, base_output_path, settings):
         if not competitions:
             return {'success': False, 'message': 'لم يتمكن من إنشاء أي مسابقات. قد يكون عدد الفيديوهات المفلترة غير كافٍ.'}
 
-        # --- بداية الجزء المُعدل ---
-        # إنشاء اسم ملف فريد للناتج بالنمط المطلوب
-        random_suffix = random.randint(100, 999) # إنشاء 4 أرقام عشوائية
+        random_suffix = random.randint(100, 999)
         input_basename = _sanitize_filename(os.path.splitext(os.path.basename(input_json_path))[0])
-        output_filename = f"topcut_{input_basename}_{random_suffix}.json" # بناء الاسم الجديد
+        output_filename = f"topcut_{input_basename}_{random_suffix}.json"
         output_filepath = os.path.join(base_output_path, output_filename)
-        # --- نهاية الجزء المُعدل ---
 
         success, message = _save_json_file(competitions, output_filepath)
 
@@ -265,6 +317,115 @@ def function_make_competition(input_json_path, base_output_path, settings):
 
     except Exception as e:
         print(f"Error in function_make_competition: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'success': False, 'message': f"حدث خطأ غير متوقع: {e}"}
+# END: MODIFIED SECTION
+
+
+
+# START: MODIFIED SECTION
+def function_compare_and_correct(target_file_path, master_db_paths, output_option, base_output_path):
+    """
+    يقارن ملف بطولة مع قواعد البيانات الموثوقة، يصحح البيانات، ويستبدل الفيديوهات المفقودة.
+    """
+    try:
+        # 1. تحميل البيانات
+        target_data = _load_json_file(target_file_path)
+        if not isinstance(target_data, list):
+            return {'success': False, 'message': 'ملف البطولة المستهدف فارغ أو بتنسيق غير صحيح.'}
+
+        # دمج كل قواعد البيانات الموثوقة في قاموس واحد
+        master_data = {}
+        for db_path in master_db_paths:
+            db_content = _load_json_file(db_path)
+            if isinstance(db_content, dict):
+                master_data.update(db_content)
+        
+        if not master_data:
+            return {'success': False, 'message': 'فشل تحميل قواعد البيانات الموثوقة.'}
+
+        # بناء فهرس بحث سريع باستخدام حجم الملف
+        size_to_name_map = {details['file_size']: name for name, details in master_data.items()}
+
+        # 2. تجهيز ملفات الطوارئ
+        video_fallback_path = os.path.join(base_output_path, "elo_videos_A1000 elo tik.json")
+        pic_fallback_path = os.path.join(base_output_path, "elo_videos_A1000 elo pic.json")
+        video_fallback_data = _load_json_file(video_fallback_path)
+        pic_fallback_data = _load_json_file(pic_fallback_path)
+
+        VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mkv', '.avi', '.mov']
+        IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+
+        # 3. حلقة التصحيح
+        corrected_data = []
+        replacements_log = []
+
+        for competition in target_data:
+            corrected_comp = competition.copy()
+            # التأكد من أن القوائم قابلة للتعديل
+            corrected_comp['videos'] = list(competition['videos'])
+            corrected_comp['rating'] = list(competition['rating'])
+            corrected_comp['file_size'] = list(competition['file_size'])
+
+            for i, size in enumerate(competition['file_size']):
+                if size in size_to_name_map:
+                    # الحالة 1: الفيديو موجود - نقوم بالتصحيح
+                    correct_name = size_to_name_map[size]
+                    correct_details = master_data[correct_name]
+                    
+                    corrected_comp['videos'][i] = correct_name
+                    corrected_comp['rating'][i] = correct_details.get('rating', 1000)
+
+                else:
+                    # الحالة 2: الفيديو مفقود - نقوم بالاستبدال
+                    original_name = competition['videos'][i]
+                    ext = os.path.splitext(original_name)[1].lower()
+                    
+                    fallback_pool = None
+                    if ext in VIDEO_EXTENSIONS and video_fallback_data:
+                        fallback_pool = video_fallback_data
+                    elif ext in IMAGE_EXTENSIONS and pic_fallback_data:
+                        fallback_pool = pic_fallback_data
+                    elif video_fallback_data: # إذا لم يتطابق الامتداد، نستخدم الفيديو كافتراضي
+                        fallback_pool = video_fallback_data
+
+                    if fallback_pool:
+                        random_name = random.choice(list(fallback_pool.keys()))
+                        replacement_details = fallback_pool[random_name]
+
+                        # استبدال كل البيانات
+                        corrected_comp['videos'][i] = random_name
+                        corrected_comp['rating'][i] = replacement_details.get('rating', 1000)
+                        corrected_comp['file_size'][i] = replacement_details.get('file_size', 0)
+                        
+                        replacements_log.append(f"<li>تم استبدال الفيديو المفقود <code>{original_name}</code> بالبديل <code>{random_name}</code>.</li>")
+            
+            corrected_data.append(corrected_comp)
+
+        # 4. حفظ الملف
+        if output_option == "overwrite":
+            output_path = target_file_path
+            output_filename = os.path.basename(target_file_path)
+        else: # new_file
+            random_suffix = random.randint(1000, 9999)
+            output_filename = f"topcut_corrected_{random_suffix}.json"
+            output_path = os.path.join(base_output_path, output_filename)
+        
+        save_success, save_message = _save_json_file(corrected_data, output_path)
+
+        if not save_success:
+            return {'success': False, 'message': f"فشل حفظ الملف: {save_message}"}
+            
+        # 5. إرجاع النتيجة
+        final_message = f"نجحت عملية التصحيح! تم حفظ النتائج في الملف: <strong>{output_filename}</strong>."
+        if replacements_log:
+            final_message += "<br><br><strong>ملاحظات:</strong><ul>" + "".join(replacements_log) + "</ul>"
+            
+        return {'success': True, 'message': final_message}
+
+    except Exception as e:
+        print(f"Error in function_compare_and_correct: {e}")
         import traceback
         traceback.print_exc()
         return {'success': False, 'message': f"حدث خطأ غير متوقع: {e}"}
