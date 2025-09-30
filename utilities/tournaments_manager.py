@@ -1,10 +1,16 @@
+# START OF FILE tournaments_manager.py
+
 # C:/Users/Stark/Download/myhome/video_rating_app/utilities/tournaments_manager.py
 
 import json
 import os
 import random
 
-JSON_FOLDER = 'C:/Users/Stark/Download/myhome/video_rating_app/utilities'
+# START: MODIFIED SECTION
+# تم تعديل هذا الجزء لجعل مسار المجلد ديناميكياً بدلاً من أن يكون ثابتاً
+# هذا السطر يحدد المسار إلى المجلد الذي يوجد فيه هذا الملف (مجلد utilities)
+JSON_FOLDER = os.path.dirname(os.path.abspath(__file__))
+# END: MODIFIED SECTION
 TOUR_ARCHIVE_PATH = os.path.join(JSON_FOLDER, 'tournamentarchive.json')
 
 
@@ -180,70 +186,70 @@ def paste_competitions(filename, json_string, mode='append'):
         print(f"An unexpected error occurred during pasting: {e}")
         return False, f"An error occurred during pasting: {e}"
 
-
+# START: MODIFIED SECTION
+# تم تعديل هذه الدالة بالكامل لتكون أكثر قوة ومرونة
 def swap_competitors(filename, comp_index1, competitor_index1, comp_index2, competitor_index2):
-    """Swaps competitors between two different competitions."""
+    """
+    Swaps competitors between two different competitions. It dynamically finds all
+    list-based attributes (like 'videos', 'rating', etc.) and swaps them.
+    """
     print(f"Attempting to swap competitor {competitor_index1} in comp {comp_index1} with competitor {competitor_index2} in comp {comp_index2} in file {filename}")
 
     if comp_index1 == comp_index2:
         print("Cannot swap competitors within the same competition using this function.")
-        return False, "Cannot swap competitors within the same competition."
+        return False, "لا يمكن تبديل المتنافسين داخل نفس المسابقة."
 
     data = load_tournament_data(filename)
     if data is None:
-        print("Failed to load data for swap.")
-        return False, "Failed to load tournament data."
+        return False, "فشل في تحميل بيانات البطولة."
 
     if not isinstance(data, list):
-         print("Tournament data is not a list, cannot swap competitors.")
-         return False, "Tournament data is not in the expected list format."
+         return False, "بيانات البطولة ليست بالتنسيق المتوقع (قائمة)."
 
-    if not (0 <= comp_index1 < len(data)) or not (0 <= comp_index2 < len(data)):
-        print(f"Competition index out of bounds: {comp_index1} or {comp_index2}. File has {len(data)} competitions.")
-        return False, "One or both competition indices are out of bounds."
+    if not (0 <= comp_index1 < len(data) and 0 <= comp_index2 < len(data)):
+        return False, "فهرس مسابقة واحد أو كلاهما خارج النطاق."
 
     comp1 = data[comp_index1]
     comp2 = data[comp_index2]
 
-    if not isinstance(comp1.get('videos'), list) or not isinstance(comp2.get('videos'), list):
-         print(f"Competitions {comp_index1} or {comp_index2} do not have a 'videos' list.")
-         return False, f"Competitions {comp_index1} or {comp_index2} are missing the 'videos' list."
-
     len1 = len(comp1.get('videos', []))
     len2 = len(comp2.get('videos', []))
 
-    if not (0 <= competitor_index1 < len1) or not (0 <= competitor_index2 < len2):
-        print(f"Competitor index out of bounds: {competitor_index1} (comp {comp_index1}, size {len1}) or {competitor_index2} (comp {comp_index2}, size {len2}).")
-        return False, "One or both competitor indices are out of bounds for their respective competitions."
-
-    required_keys = ['videos', 'rating', 'file_size']
-    for key in required_keys:
-        if key not in comp1 or not isinstance(comp1[key], list) or len(comp1[key]) != len1:
-             print(f"Competition {comp_index1} is missing or has invalid list for key '{key}'")
-             return False, f"Competition {comp_index1} data is malformed (missing or invalid '{key}' list)."
-        if key not in comp2 or not isinstance(comp2[key], list) or len(comp2[key]) != len2:
-             print(f"Competition {comp_index2} is missing or has invalid list for key '{key}'")
-             return False, f"Competition {comp_index2} data is malformed (missing or invalid '{key}' list)."
+    if not (0 <= competitor_index1 < len1 and 0 <= competitor_index2 < len2):
+        return False, "فهرس متنافس واحد أو كلاهما خارج النطاق لمسابقته."
 
     try:
-        for key in required_keys:
+        # تحديد المفاتيح التي هي عبارة عن قوائم بنفس طول قائمة الفيديوهات
+        keys_to_swap1 = {k for k, v in comp1.items() if isinstance(v, list) and len(v) == len1}
+        keys_to_swap2 = {k for k, v in comp2.items() if isinstance(v, list) and len(v) == len2}
+        
+        # نحن نهتم فقط بالمفاتيح المشتركة بين المسابقتين لتبديلها
+        common_keys_to_swap = keys_to_swap1.intersection(keys_to_swap2)
+        
+        if not common_keys_to_swap:
+             return False, "لم يتم العثور على قوائم بيانات متطابقة للتبديل."
+
+        print(f"Keys to be swapped: {list(common_keys_to_swap)}")
+
+        # إجراء التبديل لكل مفتاح مشترك
+        for key in common_keys_to_swap:
             val1 = comp1[key][competitor_index1]
             val2 = comp2[key][competitor_index2]
-
+            
             comp1[key][competitor_index1] = val2
             comp2[key][competitor_index2] = val1
-            print(f"Swapped '{key}': {val1} <-> {val2}")
+            print(f"Swapped '{key}' successfully.")
 
         if save_tournament_data(filename, data):
             print("Successfully swapped competitors and saved file.")
-            return True, "Competitors swapped successfully."
+            return True, "تم تبديل المتنافسين بنجاح."
         else:
-            print("Successfully swapped competitors in memory, but failed to save file.")
-            return False, "Competitors swapped successfully in memory, but failed to save file."
+            return False, "تم تبديل المتنافسين في الذاكرة، ولكن فشل حفظ الملف."
 
     except Exception as e:
         print(f"An error occurred during swap: {e}")
-        return False, f"An error occurred during swap: {e}"
+        return False, f"حدث خطأ أثناء عملية التبديل: {e}"
+# END: MODIFIED SECTION
 
 def format_json_pretty(data):
     """Formats a Python object into a pretty-printed JSON string."""

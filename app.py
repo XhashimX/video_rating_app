@@ -2,6 +2,7 @@ import json
 import sys
 import os
 from flask_session import Session
+from flask import jsonify
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from utilities.config import SECRET_KEY, BACKUP_FOLDER
 from utilities.video_analyzer import update_names_analysis, analyze_names_data, get_video_display_name
@@ -10,6 +11,7 @@ from utilities import tournaments_manager
 from utilities.file_manager import update_video_list, update_file_names, top_videos as render_top_videos, rename_all_videos as rename_all_videos_function
 from utilities.helpers import video_handler
 from utilities.routes import init_routes
+from utilities import advanced_tools
 # --- تعديل الاستيراد هنا ---
 from utilities.video_selector import select_winner as select_winner_function, choose_videos_function
 # --- نهاية التعديل ---
@@ -17,6 +19,12 @@ from utilities.analyze import analyze_data, Color, save_analysis_to_file
 from utilities.data_manager import create_backup
 from utilities import tour
 from utilities.elo_calculator import update_ratings_multiple
+
+
+
+# 1. تعريف المسار الأساسي للمشروع (BASE_DIR)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 app = Flask(__name__, template_folder='templates',
             static_folder='static')  # Added static folder
 app.secret_key = SECRET_KEY
@@ -27,8 +35,13 @@ init_routes(app)
 JSON_FOLDER = os.path.join("utilities")
 STATUS_FOLDER = os.path.join("utilities", "status")
 
-# تعريف مسار ملف البيانات الجديدة
-PROCESSED_VIDEOS_FILE = 'C:/Users/Stark/Download/myhome/video_rating_app/utilities/processed_videos.json'
+
+# 2. استخدام المسار الأساسي لتعريف مسارات المجلدات بشكل موثوق
+JSON_FOLDER = os.path.join(BASE_DIR, "utilities")
+STATUS_FOLDER = os.path.join(BASE_DIR, "utilities", "status")
+
+# 3. تحديث المسار المطلق القديم ليصبح ديناميكياً أيضاً
+PROCESSED_VIDEOS_FILE = os.path.join(BASE_DIR, 'utilities', 'processed_videos.json')
 
 def load_processed_videos_data():
     """
@@ -306,6 +319,129 @@ def delete_tournament_file():
     except Exception as e:
         print(f"Error deleting tournament file: {e}") # DEBUG
         return jsonify({'success': False, 'message': f'حدث خطأ في الخادم: {e}'}), 500
+# END: MODIFIED SECTION
+
+
+
+
+
+# START: MODIFIED SECTION
+@app.route('/advanced_tools')
+def advanced_tools_page():
+    """
+    يعرض صفحة الأدوات المتقدمة ويمرر إليها قائمة بالملفات المتاحة.
+    """
+    try:
+        # JSON_FOLDER تم تعريفه في أعلى الملف بالفعل
+        all_files = os.listdir(JSON_FOLDER)
+        
+        # القائمة الأولى: ملفات JSON فقط لأداة "صنع المسابقات"
+        database_files = [f for f in all_files if f.endswith('.json')]
+        
+        # القائمة الثانية: ملفات JSON و TXT لأداة "الاستخراج" (قائمة اختيار المصدر)
+        source_files = [f for f in all_files if f.endswith('.json') or f.endswith('.txt')]
+
+    except FileNotFoundError:
+        database_files = []
+        source_files = []
+        flash("تنبيه: مجلد 'utilities' غير موجود.", "warning")
+
+    # نمرر كلتا القائمتين إلى القالب بأسماء مختلفة
+    return render_template('advanced_tools.html', 
+                           database_files=database_files, 
+                           source_files=source_files)
+# END: MODIFIED SECTION
+
+
+# START: MODIFIED SECTION
+@app.route('/run_tool', methods=['POST'])
+def run_tool():
+    """
+    مسار API لمعالجة الطلبات من صفحة الأدوات المتقدمة.
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'لم يتم استلام أي بيانات.'}), 400
+
+        action = data.get('action')
+        utilities_folder = os.path.join(BASE_DIR, "utilities")
+        
+        if action == 'extract_by_size':
+            content = data.get('input_content')
+            if not content or not content.strip():
+                return jsonify({'success': False, 'message': 'المحتوى فارغ. الرجاء اختيار ملف أو لصق محتوى للتحليل.'})
+            
+            try:
+                all_json_files = [f for f in os.listdir(utilities_folder) if f.endswith('.json')]
+                if not all_json_files:
+                    return jsonify({'success': False, 'message': "لم يتم العثور على ملفات قاعدة بيانات (.json) في مجلد 'utilities'."})
+                
+                database_files_paths = [os.path.join(utilities_folder, f) for f in all_json_files]
+            except FileNotFoundError:
+                 return jsonify({'success': False, 'message': "مجلد 'utilities' غير موجود."})
+
+            result = advanced_tools.function_extract_by_size(
+                input_content=content,
+                database_files=database_files_paths,
+                base_output_path=utilities_folder,
+                original_filename="user_content"
+            )
+            return jsonify(result)
+
+        elif action == 'make_competition':
+            input_file = data.get('input_json_path')
+            settings = data.get('settings')
+            if not input_file or not settings:
+                return jsonify({'success': False, 'message': 'بيانات الإدخال أو الإعدادات مفقودة.'})
+
+            full_input_path = os.path.join(utilities_folder, input_file)
+
+            result = advanced_tools.function_make_competition(
+                input_json_path=full_input_path,
+                base_output_path=utilities_folder,
+                settings=settings
+            )
+            return jsonify(result)
+        
+        # --- بداية القسم الجديد ---
+        elif action == 'compare_and_correct':
+            target_file = data.get('target_file')
+            output_option = data.get('output_option')
+
+            if not target_file:
+                return jsonify({'success': False, 'message': 'الرجاء اختيار ملف بطولة لتصحيحه.'})
+
+            # 1. تحديد قواعد البيانات الموثوقة تلقائياً
+            try:
+                master_db_names = [f for f in os.listdir(utilities_folder) if f.startswith('elo_videos') and f.endswith('.json')]
+                if not master_db_names:
+                    return jsonify({'success': False, 'message': "لم يتم العثور على ملفات قاعدة البيانات الموثوقة (elo_videos_*.json)." })
+                
+                master_db_paths = [os.path.join(utilities_folder, f) for f in master_db_names]
+            except FileNotFoundError:
+                return jsonify({'success': False, 'message': "مجلد 'utilities' غير موجود."})
+
+            target_file_path = os.path.join(utilities_folder, target_file)
+
+            # 2. استدعاء دالة المنطق الرئيسية
+            result = advanced_tools.function_compare_and_correct(
+                target_file_path=target_file_path,
+                master_db_paths=master_db_paths,
+                output_option=output_option,
+                base_output_path=utilities_folder
+            )
+            return jsonify(result)
+        # --- نهاية القسم الجديد ---
+        
+        else:
+            return jsonify({'success': False, 'message': 'الإجراء المطلوب غير معروف.'}), 400
+
+    except Exception as e:
+        print(f"Error in /run_tool: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'حدث خطأ غير متوقع في الخادم: {str(e)}'}), 500
 # END: MODIFIED SECTION
 # START: MODIFIED SECTION
 # The entire 'competition' function in app.py should be replaced with this version.
@@ -1801,30 +1937,46 @@ def tour_page():
                          current_sort=sort_type,
                          current_view=view_type)
 
-@app.route('/get_tournament_content/<filename>')
+# START: MODIFIED SECTION
+@app.route('/get_tournament_content/<path:filename>')
 def get_tournament_content(filename):
+    """
+    مسار آمن لجلب محتوى ملف من مجلد utilities.
+    يستخدمه الجافا سكريبت لملء المربع النصي.
+    """
     try:
-        # Sanitize filename - prevent directory traversal
+        # التحقق من أن اسم الملف لا يحتوي على مسارات خطيرة
         if '..' in filename or filename.startswith('/'):
-             raise ValueError("Invalid filename.")
+             return jsonify({'error': 'اسم ملف غير صالح.'}), 400
+
+        # بناء المسار الآمن للملف داخل مجلد utilities
         safe_path = os.path.join(JSON_FOLDER, filename)
-        # Double check it's still within the intended folder
+        
+        # التأكد مرة أخرى من أن المسار النهائي لا يزال داخل المجلد المسموح به
         if not os.path.abspath(safe_path).startswith(os.path.abspath(JSON_FOLDER)):
-             raise ValueError("Invalid filename path.")
-        with open(safe_path, 'r') as f:
-            data = json.load(f)
-        return json.dumps(data)
+             return jsonify({'error': 'محاولة الوصول لمسار غير مسموح به.'}), 403
+
+        with open(safe_path, 'r', encoding='utf-8') as f:
+            # محاولة قراءة الملف كـ JSON لأنه الأكثر شيوعاً
+            try:
+                data = json.load(f)
+                return jsonify(data)
+            except json.JSONDecodeError:
+                # إذا فشل، فهذا يعني أنه قد يكون ملف نصي عادي (TXT)
+                # نعود لبداية الملف لقراءته كنص
+                f.seek(0)
+                text_content = f.read()
+                # نرجع المحتوى النصي داخل كائن JSON ليتوافق مع JAVASCRIPT
+                # ملاحظة: الجافا سكريبت الذي أرسلته سيقوم بتحويل هذا النص إلى "نص"
+                return jsonify(text_content)
+
     except FileNotFoundError:
-         print(f"Tournament file not found: {filename}") # DEBUG
-         return json.dumps({'error': 'File not found'}), 404
-    except ValueError as e:
-        print(f"Invalid filename requested: {filename}, Error: {e}") # DEBUG
-        return json.dumps({'error': str(e)}), 400
+         print(f"File not found via API: {filename}")
+         return jsonify({'error': 'الملف غير موجود.'}), 404
     except Exception as e:
-        print(f"Error getting tournament content for {filename}: {e}") # DEBUG
-        return json.dumps({'error': str(e)}), 500
-
-
+        print(f"Error in get_tournament_content for {filename}: {e}")
+        return jsonify({'error': f'خطأ في الخادم: {str(e)}'}), 500
+# END: MODIFIED SECTION
 @app.route('/tour/create', methods=['POST'])
 def tour_create():
     selected_file = request.form.get('json_file')

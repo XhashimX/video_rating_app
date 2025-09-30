@@ -1,0 +1,329 @@
+<!-- START: MODIFIED SECTION -->
+{% extends "layout.html" %}
+
+{% block title %}
+الأدوات المتقدمة
+{% endblock %}
+
+{% block main %}
+<div class="container mt-4">
+    <h1 class="mb-4 text-center">الأدوات المتقدمة</h1>
+    <p class="text-center text-muted mb-5">استخدم هذه الأدوات لمعالجة وإنشاء ملفات المسابقات بشكل متقدم.</p>
+
+    <!-- منطقة عرض النتائج -->
+    <div id="results-container" class="mb-4" style="display: none;">
+        <h4>النتائج:</h4>
+        <div id="results-output" class="alert" role="alert"></div>
+    </div>
+
+    <div class="row">
+        <!-- البطاقة الأولى: الاستخراج حسب الحجم -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-search-dollar me-2"></i>1. الاستخراج حسب الحجم</h5>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <p class="card-text">اختر ملفًا لتحميل محتواه، أو ألصق محتوى لاستخراج الفيديوهات المطابقة من جميع قواعد البيانات.</p>
+                    <form id="extract-size-form" class="d-flex flex-column flex-grow-1">
+                        
+                        <div class="mb-3">
+                            <label for="source-file-selector" class="form-label">اختر ملف مصدر لتحميل محتواه (اختياري):</label>
+                            <select class="form-select" id="source-file-selector">
+                                <option value="" selected>-- اختر ملفاً --</option>
+                                {% for file in source_files %}
+                                    <option value="{{ file }}">{{ file }}</option>
+                                {% else %}
+                                    <option disabled>لا توجد ملفات .json أو .txt في مجلد 'utilities'</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="extract-content" class="form-label">المحتوى المراد تحليله:</label>
+                            <textarea class="form-control" id="extract-content" name="input_content" rows="6" placeholder="سيظهر محتوى الملف المختار هنا، أو يمكنك اللصق يدويًا..." required></textarea>
+                        </div>
+                        
+                        <div class="mt-auto">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                <span class="button-text">استخراج وبناء الملف</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- البطاقة الثانية: صنع المسابقات -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-cogs me-2"></i>2. صنع المسابقات المخصصة</h5>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <p class="card-text">اختر ملف بيانات أساسي، طبق الفلاتر المتقدمة، وحدد إعدادات المسابقات لإنشاء ملف بطولة مخصص.</p>
+                    <form id="make-competition-form" class="d-flex flex-column flex-grow-1">
+                        <div class="mb-3">
+                            <label for="competition-base-file" class="form-label">ملف البيانات الأساسي:</label>
+                            <select class="form-select" id="competition-base-file" name="input_json_path" required>
+                                {% for file in database_files %}
+                                    <option value="{{ file }}">{{ file }}</option>
+                                {% else %}
+                                    <option disabled>لا توجد ملفات</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label for="num-videos" class="form-label">فيديو لكل مسابقة:</label>
+                                <input type="number" class="form-control" id="num-videos" name="num_videos" value="2" min="2" required>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label for="limit" class="form-label">عدد المسابقات (فارغ للكل):</label>
+                                <input type="number" class="form-control" id="limit" name="limit" min="1" placeholder="الكل">
+                            </div>
+                        </div>
+                        <p class="mb-2"><strong>الفلاتر (اختياري):</strong></p>
+                        
+                        <div class="input-group input-group-sm mb-2">
+                            <span class="input-group-text" style="width: 120px;">تقييم متوازن (قسمين)</span>
+                            <input type="text" class="form-control" name="balanced_rating" placeholder="مثال: 1000, 1200-1400">
+                        </div>
+                        <div class="input-group input-group-sm mb-2">
+                            <span class="input-group-text" style="width: 120px;">التقييم (عام)</span>
+                            <input type="text" class="form-control" name="rating" placeholder="مثال: 1000, 1200-1400">
+                        </div>
+                         <div class="input-group input-group-sm mb-2">
+                            <span class="input-group-text" style="width: 120px;">مرات الظهور</span>
+                            <input type="text" class="form-control" name="times_shown" placeholder="مثال: 0, 5-10">
+                        </div>
+                         <div class="input-group input-group-sm mb-2">
+                            <span class="input-group-text" style="width: 120px;">الوسوم (Tags)</span>
+                            <input type="text" class="form-control" name="tags" placeholder="مثال: face, body">
+                        </div>
+                        
+                        <div class="mt-auto">
+                            <button type="submit" class="btn btn-success w-100 mt-3">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                <span class="button-text">إنشاء ملف المسابقات</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- البطاقة الثالثة: المقارنة والتصحيح (أصبحت مفعلة) -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-check-double me-2"></i>3. المقارنة والتصحيح</h5>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <p class="card-text">اختر ملف بطولة لتصحيحه. سيتم تحديث بيانات الفيديوهات واستبدال المفقودة منها ببدائل مناسبة.</p>
+                    <form id="compare-correct-form" class="d-flex flex-column flex-grow-1">
+                        <!-- تم إزالة fieldset disabled -->
+                         <div class="mb-3">
+                            <label for="correction-target-file" class="form-label">ملف البطولة للتصحيح:</label>
+                            <select class="form-select" id="correction-target-file" name="target_file" required>
+                                {% for file in database_files %}
+                                    <option value="{{ file }}">{{ file }}</option>
+                                {% else %}
+                                    <option disabled>لا توجد ملفات JSON</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">خيار الحفظ:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="output_option" id="output-new-file" value="new_file" checked>
+                                <label class="form-check-label" for="output-new-file">
+                                    إنشاء ملف جديد (مثال: topcut_corrected_XXXX.json)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="output_option" id="output-overwrite" value="overwrite">
+                                <label class="form-check-label" for="output-overwrite">
+                                    الكتابة فوق الملف الأصلي (لا يمكن التراجع)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto">
+                            <button type="submit" class="btn btn-info w-100">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                <span class="button-text">بدء التصحيح</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- البطاقة الرابعة: معالجة التكرارات (معطلة) -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0 text-muted"><i class="fas fa-copy me-2"></i>4. معالجة الملفات المكررة</h5>
+                </div>
+                 <div class="card-body text-muted">
+                    <p class="card-text">قارن بين ملفين مختلفين للبحث عن الفيديوهات المكررة (بنفس حجم الملف) وقم بمعالجتها.</p>
+                     <form id="handle-duplicates-form">
+                        <fieldset disabled>
+                             <div class="mb-3">
+                                <label class="form-label">اختر الملفات:</label>
+                                <input type="text" class="form-control" placeholder="هذه الميزة قيد التطوير">
+                            </div>
+                            <button type="submit" class="btn btn-secondary w-100">بحث ومعالجة</button>
+                        </fieldset>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const resultsContainer = document.getElementById('results-container');
+    const resultsOutput = document.getElementById('results-output');
+
+    const sourceFileSelector = document.getElementById('source-file-selector');
+    const extractContentTextarea = document.getElementById('extract-content');
+
+    sourceFileSelector.addEventListener('change', function() {
+        const selectedFile = this.value;
+        if (!selectedFile) { return; }
+        extractContentTextarea.value = 'جاري تحميل المحتوى...';
+        extractContentTextarea.disabled = true;
+        fetch(`/get_tournament_content/${selectedFile}`)
+            .then(response => {
+                if (!response.ok) throw new Error('فشل تحميل الملف.');
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    extractContentTextarea.value = `خطأ: ${data.error}`;
+                } else if (typeof data === 'object') {
+                    extractContentTextarea.value = JSON.stringify(data, null, 2);
+                } else {
+                    extractContentTextarea.value = data;
+                }
+            })
+            .catch(error => { extractContentTextarea.value = `حدث خطأ: ${error.message}`; })
+            .finally(() => { extractContentTextarea.disabled = false; });
+    });
+
+    function showLoading(button) {
+        button.disabled = true;
+        button.querySelector('.spinner-border').classList.remove('d-none');
+        button.querySelector('.button-text').textContent = 'جاري المعالجة...';
+    }
+
+    function hideLoading(button, originalText) {
+        button.disabled = false;
+        button.querySelector('.spinner-border').classList.add('d-none');
+        button.querySelector('.button-text').textContent = originalText;
+    }
+
+    function showResult(success, message) {
+        resultsContainer.style.display = 'block';
+        resultsOutput.className = success ? 'alert alert-success' : 'alert alert-danger';
+        resultsOutput.innerHTML = message;
+        window.scrollTo(0, 0);
+    }
+
+    // --- Form 1 Logic (No changes) ---
+    const extractForm = document.getElementById('extract-size-form');
+    extractForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        const button = extractForm.querySelector('button[type="submit"]');
+        const originalButtonText = button.querySelector('.button-text').textContent;
+        showLoading(button);
+        const requestData = {
+            action: 'extract_by_size',
+            input_content: extractContentTextarea.value
+        };
+        fetch("{{ url_for('run_tool') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData),
+        })
+        .then(response => response.json())
+        .then(data => { showResult(data.success, data.message); })
+        .catch(error => { showResult(false, 'حدث خطأ في الشبكة.'); })
+        .finally(() => { hideLoading(button, originalButtonText); });
+    });
+
+    // --- Form 2 Logic (No changes) ---
+    const makeCompetitionForm = document.getElementById('make-competition-form');
+    makeCompetitionForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        const button = makeCompetitionForm.querySelector('button[type="submit"]');
+        const originalButtonText = button.querySelector('.button-text').textContent;
+        showLoading(button);
+        const formData = new FormData(makeCompetitionForm);
+        const requestData = {
+            action: 'make_competition',
+            input_json_path: formData.get('input_json_path'),
+            settings: {
+                num_videos: parseInt(formData.get('num_videos'), 10),
+                limit: formData.get('limit') ? parseInt(formData.get('limit'), 10) : null,
+                preference: 'random',
+                filters: {
+                    balanced_rating: formData.get('balanced_rating'),
+                    rating: formData.get('rating'),
+                    times_shown: formData.get('times_shown'),
+                    tags: formData.get('tags')
+                }
+            }
+        };
+        fetch("{{ url_for('run_tool') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData),
+        })
+        .then(response => response.json())
+        .then(data => { showResult(data.success, data.message); })
+        .catch(error => { showResult(false, 'حدث خطأ في الشبكة.'); })
+        .finally(() => { hideLoading(button, originalButtonText); });
+    });
+
+    // --- Form 3 Logic (New) ---
+    const compareCorrectForm = document.getElementById('compare-correct-form');
+    compareCorrectForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const button = compareCorrectForm.querySelector('button[type="submit"]');
+        const originalButtonText = button.querySelector('.button-text').textContent;
+        showLoading(button);
+
+        const formData = new FormData(compareCorrectForm);
+        const requestData = {
+            action: 'compare_and_correct',
+            target_file: formData.get('target_file'),
+            output_option: formData.get('output_option')
+        };
+        
+        fetch("{{ url_for('run_tool') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            showResult(data.success, data.message);
+        })
+        .catch(error => {
+            showResult(false, 'حدث خطأ في الشبكة أو الاتصال بالخادم.');
+        })
+        .finally(() => {
+            hideLoading(button, originalButtonText);
+        });
+    });
+
+});
+</script>
+{% endblock %}
+<!-- END: MODIFIED SECTION -->

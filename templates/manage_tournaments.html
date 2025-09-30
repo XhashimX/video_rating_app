@@ -1,3 +1,5 @@
+<!-- START OF FILE manage_tournaments.html -->
+
 <!doctype html>
 <html lang="ar">
   <head>
@@ -445,113 +447,117 @@
           {% endif %}
           <ul class="list-group">
             {% for file in json_files %}
+            <!-- START: MODIFIED SECTION -->
+            <!-- تم تغيير `onclick` لاستدعاء دالة JavaScript جديدة لا تعيد تحميل الصفحة -->
             <li class="list-group-item {% if file == selected_file %}active{% endif %}" 
-                onclick="loadTournament('{{ file }}')" 
+                onclick="loadTournament('{{ file }}', this)" 
                 id="file-{{ loop.index0 }}">
               <i class="fas fa-file-code"></i> {{ file }}
             </li>
+            <!-- END: MODIFIED SECTION -->
             {% endfor %}
           </ul>
         </div>
 
         <div class="col-md-8">
-          {% if selected_file %}
-          <h3 id="selected-file-title">
-            <i class="fas fa-file-alt"></i> محتوى الملف: <strong>{{ selected_file }}</strong>
-          </h3>
+          <!-- START: MODIFIED SECTION -->
+          <!-- تم تعديل هذا الجزء لدعم عرض المحتوى الديناميكي بدون إعادة تحميل الصفحة -->
+          <div id="tournament-content-wrapper" {% if not selected_file %}style="display: none;"{% endif %}>
+            <h3 id="selected-file-title">
+              <i class="fas fa-file-alt"></i> محتوى الملف: <strong>{{ selected_file or '...' }}</strong>
+            </h3>
 
-          {% if file_content and file_content != '[]' %}
-          <div class="stats-info">
-            <i class="fas fa-chart-bar"></i> 
-            عدد المسابقات: <strong id="competitions-count">0</strong> | 
-            إجمالي المتنافسين: <strong id="total-competitors">0</strong>
-          </div>
-
-          <div class="json-container">
-            <button class="copy-button" onclick="copyToClipboard()">
-              <i class="far fa-copy"></i> نسخ
-            </button>
-            <pre id="json-display">{{ file_content }}</pre>
-          </div>
-
-          <form id="tournament-form" method="POST" action="{{ url_for('manage_tournaments_actions') }}">
-            <input type="hidden" name="selected_file" value="{{ selected_file }}" />
-            <input type="hidden" name="action" id="form-action" value="" />
-            <input type="hidden" name="competition_indices" id="competition-indices" value="" />
-            <input type="hidden" name="swap_comp1_index" id="swap-comp1-index" value="" />
-            <input type="hidden" name="swap_comp1_competitor_index" id="swap-comp1-competitor-index" value="" />
-            <input type="hidden" name="swap_comp2_index" id="swap-comp2-index" value="" />
-            <input type="hidden" name="swap_comp2_competitor_index" id="swap-comp2-competitor-index" value="" />
-
-            <h4><i class="fas fa-tasks"></i> إجراءات على المسابقات المحددة</h4>
-            
-            <div class="form-check mb-3">
-              <input class="form-check-input" type="checkbox" id="select-all" onclick="toggleAllCheckboxes(this)" />
-              <label class="form-check-label" for="select-all">
-                <i class="fas fa-check-square"></i> تحديد الكل
-              </label>
+            <div class="stats-info">
+              <i class="fas fa-chart-bar"></i> 
+              عدد المسابقات: <strong id="competitions-count">0</strong> | 
+              إجمالي المتنافسين: <strong id="total-competitors">0</strong>
             </div>
 
-            <div id="competitions-list">
-              <!-- Competitions will be rendered here -->
-            </div>
-
-            <div class="button-group">
-              <button type="button" class="btn btn-danger" onclick="performAction('delete')" id="delete-btn" disabled>
-                <i class="fas fa-trash-alt"></i> حذف المسابقات المحددة
-              </button>
-              <button type="button" class="btn btn-primary" onclick="prepareSwap()" id="swap-btn" disabled>
-                <i class="fas fa-exchange-alt"></i> تبديل المتنافسين
-              </button>
-            </div>
-          </form>
-
-          <div class="paste-section">
-            <h4><i class="fas fa-paste"></i> لصق مسابقات جديدة</h4>
-            <form id="paste-form" method="POST" action="{{ url_for('manage_tournaments_actions') }}">
-              <input type="hidden" name="selected_file" value="{{ selected_file }}" />
-              <input type="hidden" name="action" value="paste" />
-              
-              <textarea id="paste-json" name="pasted_json" 
-                        placeholder='الصق هنا بيانات JSON للمسابقات (قائمة من الكائنات [{"videos": [...]}, ...])'></textarea>
-              
-              <div class="button-group">
-                <button type="submit" class="btn btn-success">
-                  <i class="fas fa-paste"></i> لصق ومعالجة
-                </button>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="paste_mode" id="paste-mode-append" value="append" checked />
-                  <label class="form-check-label" for="paste-mode-append">
-                    <i class="fas fa-plus"></i> إضافة
-                  </label>
+            <div id="content-display-area">
+                <div class="json-container">
+                  <button class="copy-button" onclick="copyToClipboard()">
+                    <i class="far fa-copy"></i> نسخ
+                  </button>
+                  <pre id="json-display">{{ file_content or '[]' }}</pre>
                 </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="paste_mode" id="paste-mode-replace" value="replace" />
-                  <label class="form-check-label" for="paste-mode-replace">
-                    <i class="fas fa-sync-alt"></i> استبدال الكل
-                  </label>
+
+                <form id="tournament-form" method="POST" action="{{ url_for('manage_tournaments_actions') }}">
+                  <input type="hidden" name="selected_file" value="{{ selected_file }}" />
+                  <input type="hidden" name="action" id="form-action" value="" />
+                  <input type="hidden" name="competition_indices" id="competition-indices" value="" />
+                  <input type="hidden" name="swap_comp1_index" id="swap-comp1-index" value="" />
+                  <input type="hidden" name="swap_comp1_competitor_index" id="swap-comp1-competitor-index" value="" />
+                  <input type="hidden" name="swap_comp2_index" id="swap-comp2-index" value="" />
+                  <input type="hidden" name="swap_comp2_competitor_index" id="swap-comp2-competitor-index" value="" />
+
+                  <h4><i class="fas fa-tasks"></i> إجراءات على المسابقات المحددة</h4>
+                  
+                  <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="select-all" onclick="toggleAllCheckboxes(this)" />
+                    <label class="form-check-label" for="select-all">
+                      <i class="fas fa-check-square"></i> تحديد الكل
+                    </label>
+                  </div>
+
+                  <div id="competitions-list">
+                    <!-- Competitions will be rendered here -->
+                  </div>
+
+                  <div class="button-group">
+                    <button type="button" class="btn btn-danger" onclick="performAction('delete')" id="delete-btn" disabled>
+                      <i class="fas fa-trash-alt"></i> حذف المسابقات المحددة
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="prepareSwap()" id="swap-btn" disabled>
+                      <i class="fas fa-exchange-alt"></i> تبديل المتنافسين
+                    </button>
+                  </div>
+                </form>
+
+                <div class="paste-section">
+                  <h4><i class="fas fa-paste"></i> لصق مسابقات جديدة</h4>
+                  <form id="paste-form" method="POST" action="{{ url_for('manage_tournaments_actions') }}">
+                    <input type="hidden" name="selected_file" value="{{ selected_file }}" />
+                    <input type="hidden" name="action" value="paste" />
+                    
+                    <textarea id="paste-json" name="pasted_json" 
+                              placeholder='الصق هنا بيانات JSON للمسابقات (قائمة من الكائنات [{"videos": [...]}, ...])'></textarea>
+                    
+                    <div class="button-group">
+                      <button type="submit" class="btn btn-success">
+                        <i class="fas fa-paste"></i> لصق ومعالجة
+                      </button>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="paste_mode" id="paste-mode-append" value="append" checked />
+                        <label class="form-check-label" for="paste-mode-append">
+                          <i class="fas fa-plus"></i> إضافة
+                        </label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="paste_mode" id="paste-mode-replace" value="replace" />
+                        <label class="form-check-label" for="paste-mode-replace">
+                          <i class="fas fa-sync-alt"></i> استبدال الكل
+                        </label>
+                      </div>
+                    </div>
+                  </form>
                 </div>
-              </div>
-            </form>
+            </div>
           </div>
-          {% else %}
-          <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle"></i>
-            الملف فارغ أو لا يحتوي على مسابقات صحيحة.
-          </div>
-          {% endif %}
           
-          {% elif json_files %}
-          <div class="text-center" style="padding: 60px 20px;">
-            <i class="fas fa-hand-pointer fa-3x" style="color: #58a6ff; margin-bottom: 20px;"></i>
-            <p style="font-size: 18px; color: #8b949e;">الرجاء اختيار ملف بطولة من القائمة على اليسار.</p>
+          <div id="placeholder-wrapper" {% if selected_file %}style="display: none;"{% endif %}>
+              {% if json_files %}
+              <div class="text-center" style="padding: 60px 20px;">
+                <i class="fas fa-hand-pointer fa-3x" style="color: #58a6ff; margin-bottom: 20px;"></i>
+                <p style="font-size: 18px; color: #8b949e;">الرجاء اختيار ملف بطولة من القائمة على اليسار.</p>
+              </div>
+              {% else %}
+              <div class="text-center" style="padding: 60px 20px;">
+                <i class="fas fa-folder-open fa-3x" style="color: #da3633; margin-bottom: 20px;"></i>
+                <p style="font-size: 18px; color: #8b949e;">لا توجد ملفات بطولات (.json) في المجلد المحدد.</p>
+              </div>
+              {% endif %}
           </div>
-          {% else %}
-          <div class="text-center" style="padding: 60px 20px;">
-            <i class="fas fa-folder-open fa-3x" style="color: #da3633; margin-bottom: 20px;"></i>
-            <p style="font-size: 18px; color: #8b949e;">لا توجد ملفات بطولات (.json) في المجلد المحدد.</p>
-          </div>
-          {% endif %}
+          <!-- END: MODIFIED SECTION -->
         </div>
       </div>
     </div>
@@ -594,15 +600,19 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- START: MODIFIED SECTION -->
+    <!-- تم تعديل كود جافا سكريبت بالكامل لدعم التحميل الديناميكي وتحسين تجربة المستخدم -->
     <script>
       let lastChecked = null;
       let competitionData = null;
 
+      // هذه الدالة تعمل عند تحميل الصفحة لأول مرة
       document.addEventListener("DOMContentLoaded", function () {
-        if ({{ selected_file is not none and file_content is not none and (file_content | length) > 0 }}) {
+        // إذا كانت الصفحة قد تم تحميلها مع ملف محدد بالفعل (عبر الرابط)
+        if (document.getElementById('tournament-content-wrapper').style.display !== 'none') {
           try {
-            const rawContent = `{{ file_content | safe }}`;
-            if (rawContent && rawContent.trim() !== '' && rawContent.trim() !== '[]') {
+            const rawContent = document.getElementById('json-display').textContent;
+            if (rawContent && rawContent.trim()) {
               competitionData = JSON.parse(rawContent);
               renderCompetitionsList(competitionData);
               updateStats(competitionData);
@@ -610,10 +620,11 @@
             }
           } catch (e) {
             console.error("Error parsing initial file_content:", e);
-            alert("خطأ في تحليل محتوى الملف.");
+            alert("خطأ في تحليل محتوى الملف عند تحميل الصفحة.");
           }
         }
 
+        // إضافة مستمع للنقرات على قائمة المسابقات
         const competitionsListDiv = document.getElementById("competitions-list");
         if (competitionsListDiv) {
           competitionsListDiv.addEventListener("click", function (event) {
@@ -623,16 +634,66 @@
           });
         }
 
+        // إضافة مستمع لتغيير الاختيار في نافذة التبديل
         const swapModal = document.getElementById("swapModal");
         if (swapModal) {
-          swapModal.addEventListener('change', function() {
-            updateSwapButtonState();
-          });
+          swapModal.addEventListener('change', updateSwapButtonState);
         }
       });
 
-      function loadTournament(filename) {
-        window.location.href = "{{ url_for('manage_tournaments') }}?file=" + encodeURIComponent(filename);
+      // دالة جديدة لتحميل محتوى البطولة بدون إعادة تحميل الصفحة
+      async function loadTournament(filename, element) {
+        // إزالة علامة "active" من كل العناصر في القائمة
+        document.querySelectorAll('.list-group-item.active').forEach(li => {
+          li.classList.remove('active');
+        });
+        // إضافة علامة "active" للعنصر الذي تم النقر عليه
+        if (element) {
+          element.classList.add('active');
+        }
+
+        try {
+          // استدعاء الـ API لجلب محتوى الملف
+          const response = await fetch(`/get_tournament_content/${encodeURIComponent(filename)}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Server responded with status: ${response.status}`);
+          }
+          const data = await response.json();
+
+          // إخفاء رسالة "الرجاء اختيار ملف" وإظهار حاوية المحتوى
+          document.getElementById('placeholder-wrapper').style.display = 'none';
+          const contentWrapper = document.getElementById('tournament-content-wrapper');
+          contentWrapper.style.display = 'block';
+
+          // تحديث عنوان الملف المعروض
+          document.querySelector('#selected-file-title strong').textContent = filename;
+          
+          // تحديث حقول النماذج المخفية باسم الملف الجديد
+          document.querySelector('#tournament-form input[name="selected_file"]').value = filename;
+          document.querySelector('#paste-form input[name="selected_file"]').value = filename;
+
+          // تحويل البيانات إلى نص JSON للعرض
+          const fileContentAsText = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+          const jsonDisplay = document.getElementById("json-display");
+          jsonDisplay.textContent = fileContentAsText;
+          
+          // إعادة تلوين كود JSON
+          formatJsonDisplay();
+
+          // عرض المسابقات في القائمة
+          competitionData = Array.isArray(data) ? data : [];
+          if (competitionData.length === 0 && typeof data === 'string') {
+               document.getElementById('content-display-area').innerHTML = `<div class="alert alert-warning">لا يمكن عرض هذا الملف كمسابقات. قد يكون ملف نصي.</div>`;
+          } else {
+              renderCompetitionsList(competitionData);
+              updateStats(competitionData);
+          }
+
+        } catch (error) {
+          console.error('Failed to load tournament:', error);
+          alert(`فشل في تحميل الملف: ${filename}.\n${error.message}`);
+        }
       }
 
       function formatJsonDisplay() {
@@ -641,58 +702,38 @@
 
         let content = jsonDisplay.textContent;
         try {
+          // التأكد من أن المحتوى هو JSON صالح قبل محاولة تحليله
           const data = JSON.parse(content);
           const formattedJson = JSON.stringify(data, null, 2);
           
           let highlightedJson = formattedJson
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-          highlightedJson = highlightedJson.replace(
-            /(".*?"):\s/g,
-            '<span class="json-key">$1</span>: '
-          );
-          highlightedJson = highlightedJson.replace(
-            /".*?"/g,
-            '<span class="json-string">$&</span>'
-          );
-          highlightedJson = highlightedJson.replace(
-            /\b(true|false)\b/g,
-            '<span class="json-boolean">$&</span>'
-          );
-          highlightedJson = highlightedJson.replace(
-            /\b(null)\b/g,
-            '<span class="json-null">$&</span>'
-          );
-          highlightedJson = highlightedJson.replace(
-            /\b(-?\d+(\.\d+)?([eE][+-]?\d+)?)\b/g,
-            '<span class="json-number">$&</span>'
-          );
+          highlightedJson = highlightedJson.replace(/(".*?"):\s/g, '<span class="json-key">$1</span>: ');
+          highlightedJson = highlightedJson.replace(/(".*?")/g, (match, p1) => {
+              if (jsonDisplay.innerHTML.includes(`<span class="json-key">${p1}</span>`)) {
+                  return match;
+              }
+              return `<span class="json-string">${match}</span>`;
+          });
+          highlightedJson = highlightedJson.replace(/\b(true|false)\b/g, '<span class="json-boolean">$&</span>');
+          highlightedJson = highlightedJson.replace(/\b(null)\b/g, '<span class="json-null">$&</span>');
+          highlightedJson = highlightedJson.replace(/(?<!")\b(-?\d+(\.\d+)?([eE][+-]?\d+)?)\b(?!")/g, '<span class="json-number">$&</span>');
 
           jsonDisplay.innerHTML = highlightedJson;
         } catch (e) {
-          console.log("JSON formatting failed, keeping original");
+          // إذا فشل التحليل، فهذا يعني أنه قد لا يكون JSON، لذا نعرضه كنص عادي
+          console.log("Content is not valid JSON, displaying as plain text.");
         }
       }
 
       function updateStats(data) {
         if (!Array.isArray(data)) return;
-        
         const competitionsCount = data.length;
-        let totalCompetitors = 0;
+        const totalCompetitors = data.reduce((total, comp) => total + (comp.videos && Array.isArray(comp.videos) ? comp.videos.length : 0), 0);
         
-        data.forEach(comp => {
-          if (comp.videos && Array.isArray(comp.videos)) {
-            totalCompetitors += comp.videos.length;
-          }
-        });
-
-        const countElement = document.getElementById("competitions-count");
-        const totalElement = document.getElementById("total-competitors");
-        
-        if (countElement) countElement.textContent = competitionsCount;
-        if (totalElement) totalElement.textContent = totalCompetitors;
+        document.getElementById("competitions-count").textContent = competitionsCount;
+        document.getElementById("total-competitors").textContent = totalCompetitors;
       }
 
       function copyToClipboard() {
@@ -703,15 +744,9 @@
           const copyButton = document.querySelector(".copy-button");
           const originalText = copyButton.innerHTML;
           copyButton.innerHTML = '<i class="fas fa-check"></i> تم النسخ';
-          copyButton.style.background = 'linear-gradient(135deg, #238636, #2ea043)';
-          
-          setTimeout(() => {
-            copyButton.innerHTML = originalText;
-            copyButton.style.background = 'linear-gradient(135deg, #238636, #2ea043)';
-          }, 2000);
-        }).catch((err) => {
+          setTimeout(() => { copyButton.innerHTML = originalText; }, 2000);
+        }).catch(err => {
           console.error("Failed to copy text: ", err);
-          alert("فشل في نسخ النص. الرجاء المحاولة مرة أخرى.");
         });
       }
 
@@ -723,135 +758,84 @@
           listContainer.innerHTML = "<p class='alert alert-warning'>بيانات الملف ليست في صيغة قائمة (Array).</p>";
           return;
         }
-
         if (data.length === 0) {
-          listContainer.innerHTML = "<p class='alert alert-info'>لا توجد مسابقات في هذا الملف.</p>";
+          listContainer.innerHTML = "<div class='alert alert-info'><i class='fas fa-info-circle'></i> الملف فارغ أو لا يحتوي على مسابقات.</div>";
           return;
         }
 
         data.forEach((comp, index) => {
           const div = document.createElement("div");
-          div.classList.add("competition-entry");
-          div.setAttribute("data-index", index);
+          div.className = "competition-entry";
+          div.dataset.index = index;
 
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.id = "comp-" + index;
-          checkbox.classList.add("form-check-input", "competition-checkbox");
-          checkbox.value = index;
-
-          const label = document.createElement("label");
-          label.classList.add("form-check-label");
-          label.htmlFor = "comp-" + index;
-          
           const videosCount = comp.videos ? comp.videos.length : 0;
-          label.innerHTML = `<strong>مسابقة ${index + 1}</strong> (${videosCount} متنافس)`;
+          let innerHTML = `
+            <input type="checkbox" id="comp-${index}" class="form-check-input competition-checkbox" value="${index}">
+            <label class="form-check-label" for="comp-${index}">
+              <strong>مسابقة ${index + 1}</strong> (${videosCount} متنافس)
+            </label>
+            <div class="video-list">`;
 
-          const videosList = document.createElement("div");
-          videosList.classList.add("video-list");
-          
-          if (comp.videos && Array.isArray(comp.videos)) {
+          if (videosCount > 0) {
             comp.videos.forEach((video, videoIndex) => {
-              const videoItem = document.createElement("div");
-              videoItem.classList.add("video-item");
-              videoItem.innerHTML = `<i class="fas fa-video"></i> ${videoIndex + 1}. ${video}`;
-              videosList.appendChild(videoItem);
+              innerHTML += `<div class="video-item"><i class="fas fa-video"></i> ${videoIndex + 1}. ${video}</div>`;
             });
           } else {
-            videosList.innerHTML = '<div class="video-item">لا يوجد فيديوهات</div>';
+            innerHTML += '<div class="video-item">لا يوجد فيديوهات</div>';
           }
-
-          div.appendChild(checkbox);
-          div.appendChild(label);
-          div.appendChild(videosList);
+          
+          innerHTML += '</div>';
+          div.innerHTML = innerHTML;
           listContainer.appendChild(div);
         });
-
         updateActionButtons();
       }
 
       function handleCheckboxClick(event) {
         const currentCheckbox = event.target;
-        const checkboxes = document.querySelectorAll(".competition-checkbox");
+        const checkboxes = [...document.querySelectorAll(".competition-checkbox")];
+        const entry = currentCheckbox.closest('.competition-entry');
+        entry.classList.toggle('selected', currentCheckbox.checked);
 
         if (event.shiftKey && lastChecked) {
-          const currentIndex = Array.from(checkboxes).indexOf(currentCheckbox);
-          const lastIndex = Array.from(checkboxes).indexOf(lastChecked);
-
-          const start = Math.min(currentIndex, lastIndex);
-          const end = Math.max(currentIndex, lastIndex);
-
-          for (let i = start; i <= end; i++) {
-            checkboxes[i].checked = currentCheckbox.checked;
-            const entry = checkboxes[i].closest('.competition-entry');
-            if (currentCheckbox.checked) {
-              entry.classList.add('selected');
-            } else {
-              entry.classList.remove('selected');
-            }
-          }
-        } else {
-          const entry = currentCheckbox.closest('.competition-entry');
-          if (currentCheckbox.checked) {
-            entry.classList.add('selected');
-          } else {
-            entry.classList.remove('selected');
-          }
+          const start = checkboxes.indexOf(lastChecked);
+          const end = checkboxes.indexOf(currentCheckbox);
+          checkboxes.slice(Math.min(start, end), Math.max(start, end) + 1).forEach(cb => {
+            cb.checked = currentCheckbox.checked;
+            cb.closest('.competition-entry').classList.toggle('selected', cb.checked);
+          });
         }
-
         lastChecked = currentCheckbox;
         updateActionButtons();
       }
 
       function toggleAllCheckboxes(source) {
-        const checkboxes = document.querySelectorAll(".competition-checkbox");
-        checkboxes.forEach((checkbox) => {
+        document.querySelectorAll(".competition-checkbox").forEach(checkbox => {
           checkbox.checked = source.checked;
-          const entry = checkbox.closest('.competition-entry');
-          if (source.checked) {
-            entry.classList.add('selected');
-          } else {
-            entry.classList.remove('selected');
-          }
+          checkbox.closest('.competition-entry').classList.toggle('selected', source.checked);
         });
         lastChecked = null;
         updateActionButtons();
       }
 
       function getSelectedCompetitionIndices() {
-        const selectedIndices = [];
-        document.querySelectorAll(".competition-checkbox:checked").forEach((checkbox) => {
-          selectedIndices.push(parseInt(checkbox.value, 10));
-        });
-        return selectedIndices;
+        return [...document.querySelectorAll(".competition-checkbox:checked")].map(cb => parseInt(cb.value, 10));
       }
 
       function updateActionButtons() {
         const selectedCount = getSelectedCompetitionIndices().length;
-        const deleteBtn = document.getElementById("delete-btn");
-        const swapBtn = document.getElementById("swap-btn");
-
-        deleteBtn.disabled = selectedCount === 0;
-        swapBtn.disabled = selectedCount !== 2;
+        document.getElementById("delete-btn").disabled = selectedCount === 0;
+        document.getElementById("swap-btn").disabled = selectedCount !== 2;
       }
 
       function performAction(actionType) {
         const selectedIndices = getSelectedCompetitionIndices();
-
         if (selectedIndices.length === 0) {
           alert("الرجاء تحديد مسابقة واحدة على الأقل.");
           return;
         }
 
-        let confirmMessage = "";
-        if (actionType === "delete") {
-          confirmMessage = `هل أنت متأكد أنك تريد حذف ${selectedIndices.length} مسابقة محددة؟ هذا الإجراء لا يمكن التراجع عنه.`;
-        } else {
-          console.error("Unknown action type:", actionType);
-          return;
-        }
-
-        if (confirm(confirmMessage)) {
+        if (confirm(`هل أنت متأكد أنك تريد حذف ${selectedIndices.length} مسابقة محددة؟ هذا الإجراء لا يمكن التراجع عنه.`)) {
           document.getElementById("form-action").value = actionType;
           document.getElementById("competition-indices").value = selectedIndices.join(",");
           document.getElementById("tournament-form").submit();
@@ -860,28 +844,13 @@
 
       function prepareSwap() {
         const selectedIndices = getSelectedCompetitionIndices();
-        if (selectedIndices.length !== 2) {
-          alert("الرجاء تحديد مسابقتين بالضبط لعملية التبديل.");
-          return;
-        }
+        if (selectedIndices.length !== 2) return;
 
-        const compIndex1 = selectedIndices[0];
-        const compIndex2 = selectedIndices[1];
-
-        if (!competitionData || competitionData.length <= Math.max(compIndex1, compIndex2)) {
-          alert("خطأ في تحميل بيانات المسابقات للتبديل.");
-          console.error("competitionData missing or insufficient for swap preparation.");
-          return;
-        }
+        const [compIndex1, compIndex2] = selectedIndices;
+        if (!competitionData || !competitionData[compIndex1] || !competitionData[compIndex2]) return;
 
         const comp1 = competitionData[compIndex1];
         const comp2 = competitionData[compIndex2];
-
-        if (!comp1 || !comp2 || !Array.isArray(comp1.videos) || !Array.isArray(comp2.videos)) {
-          alert("بيانات المسابقات المحددة غير صحيحة.");
-          console.error("Invalid competition data structure for swap:", comp1, comp2);
-          return;
-        }
 
         document.getElementById("swap-comp1-index").value = compIndex1;
         document.getElementById("swap-comp2-index").value = compIndex2;
@@ -891,81 +860,56 @@
 
         document.getElementById("swap-comp1-index-display").textContent = compIndex1 + 1;
         document.getElementById("swap-comp2-index-display").textContent = compIndex2 + 1;
-
-        const swapModal = new bootstrap.Modal(document.getElementById("swapModal"));
-        swapModal.show();
+        
+        new bootstrap.Modal(document.getElementById("swapModal")).show();
         updateSwapButtonState();
       }
 
       function renderCompetitorOptions(comp, compIndex, containerId) {
         const container = document.getElementById(containerId);
         container.innerHTML = "";
-
         if (!comp.videos || comp.videos.length === 0) {
-          container.innerHTML = "<p class='alert alert-warning'>لا يوجد متنافسون في هذه المسابقة.</p>";
+          container.innerHTML = "<p class='alert alert-warning'>لا يوجد متنافسون.</p>";
           return;
         }
-
         comp.videos.forEach((videoName, competitorIndex) => {
-          const div = document.createElement("div");
-          div.classList.add("form-check", "competitor-item");
-
-          const input = document.createElement("input");
-          input.type = "radio";
-          input.name = containerId === "swap-comp1-competitors" ? "selected_competitor_comp1" : "selected_competitor_comp2";
-          input.id = `comp${compIndex}_comp${competitorIndex}`;
-          input.classList.add("form-check-input");
-          input.value = competitorIndex;
-
-          const label = document.createElement("label");
-          label.classList.add("form-check-label");
-          label.htmlFor = `comp${compIndex}_comp${competitorIndex}`;
-          label.innerHTML = `<strong>المتنافس ${competitorIndex + 1}:</strong><br><small>${videoName}</small>`;
-
-          div.appendChild(input);
-          div.appendChild(label);
-          container.appendChild(div);
+          container.innerHTML += `
+            <div class="form-check competitor-item">
+              <input type="radio" name="selected_competitor_${compIndex}" id="comp${compIndex}_comp${competitorIndex}" class="form-check-input" value="${competitorIndex}">
+              <label class="form-check-label" for="comp${compIndex}_comp${competitorIndex}">
+                <strong>المتنافس ${competitorIndex + 1}:</strong><br><small>${videoName}</small>
+              </label>
+            </div>`;
         });
       }
 
       function updateSwapButtonState() {
-        const radio1Selected = document.querySelector('input[name="selected_competitor_comp1"]:checked');
-        const radio2Selected = document.querySelector('input[name="selected_competitor_comp2"]:checked');
+        const [compIndex1, compIndex2] = getSelectedCompetitionIndices();
+        const radio1Selected = document.querySelector(`input[name="selected_competitor_${compIndex1}"]:checked`);
+        const radio2Selected = document.querySelector(`input[name="selected_competitor_${compIndex2}"]:checked`);
         document.getElementById('confirm-swap-btn').disabled = !(radio1Selected && radio2Selected);
       }
 
       function performSwap() {
-        const compIndex1 = document.getElementById("swap-comp1-index").value;
-        const compIndex2 = document.getElementById("swap-comp2-index").value;
+        const [compIndex1, compIndex2] = getSelectedCompetitionIndices();
+        const competitorIndex1 = document.querySelector(`input[name="selected_competitor_${compIndex1}"]:checked`)?.value;
+        const competitorIndex2 = document.querySelector(`input[name="selected_competitor_${compIndex2}"]:checked`)?.value;
 
-        const selectedCompetitor1Radio = document.querySelector('input[name="selected_competitor_comp1"]:checked');
-        const selectedCompetitor2Radio = document.querySelector('input[name="selected_competitor_comp2"]:checked');
-
-        if (!selectedCompetitor1Radio || !selectedCompetitor2Radio) {
+        if (competitorIndex1 === undefined || competitorIndex2 === undefined) {
           alert("الرجاء تحديد متنافس واحد من كل مسابقة.");
           return;
         }
-
-        const competitorIndex1 = selectedCompetitor1Radio.value;
-        const competitorIndex2 = selectedCompetitor2Radio.value;
 
         document.getElementById("swap-comp1-competitor-index").value = competitorIndex1;
         document.getElementById("swap-comp2-competitor-index").value = competitorIndex2;
         document.getElementById("form-action").value = "swap";
 
-        const swapModal = bootstrap.Modal.getInstance(document.getElementById("swapModal"));
-        swapModal.hide();
-
-        if (confirm(`هل أنت متأكد أنك تريد تبديل المتنافس ${parseInt(competitorIndex1, 10) + 1} من المسابقة ${parseInt(compIndex1, 10) + 1} مع المتنافس ${parseInt(competitorIndex2, 10) + 1} من المسابقة ${parseInt(compIndex2, 10) + 1}؟`)) {
-          document.getElementById("tournament-form").submit();
-        } else {
-          document.getElementById("form-action").value = "";
-          document.getElementById("swap-comp1-index").value = "";
-          document.getElementById("swap-comp1-competitor-index").value = "";
-          document.getElementById("swap-comp2-index").value = "";
-          document.getElementById("swap-comp2-competitor-index").value = "";
-        }
+        bootstrap.Modal.getInstance(document.getElementById("swapModal")).hide();
+        document.getElementById("tournament-form").submit();
       }
     </script>
+    <!-- END: MODIFIED SECTION -->
   </body>
 </html>
+
+<!-- END OF FILE manage_tournaments.html -->
