@@ -325,108 +325,184 @@ def function_make_competition(input_json_path, base_output_path, settings):
 
 
 # START: MODIFIED SECTION
-def function_compare_and_correct(target_file_path, master_db_paths, output_option, base_output_path):
+# استبدل الدالة الحالية function_make_competition بالكامل بهذه النسخة
+def function_make_competition(input_json_path, base_output_path, settings):
     """
-    يقارن ملف بطولة مع قواعد البيانات الموثوقة، يصحح البيانات، ويستبدل الفيديوهات المفقودة.
+    تنشئ ملف مسابقات مخصص بناءً على الإعدادات المقدمة.
+    تدعم الآن الفلاتر المتوازنة للتقييم، مرات الظهور، الوسوم، والأسماء.
     """
     try:
-        # 1. تحميل البيانات
-        target_data = _load_json_file(target_file_path)
-        if not isinstance(target_data, list):
-            return {'success': False, 'message': 'ملف البطولة المستهدف فارغ أو بتنسيق غير صحيح.'}
-
-        # دمج كل قواعد البيانات الموثوقة في قاموس واحد
-        master_data = {}
-        for db_path in master_db_paths:
-            db_content = _load_json_file(db_path)
-            if isinstance(db_content, dict):
-                master_data.update(db_content)
+        if not os.path.exists(input_json_path):
+            return {'success': False, 'message': f"ملف البيانات الأساسي غير موجود: {os.path.basename(input_json_path)}"}
         
-        if not master_data:
-            return {'success': False, 'message': 'فشل تحميل قواعد البيانات الموثوقة.'}
+        videos_data = _load_json_file(input_json_path)
+        if not videos_data or not isinstance(videos_data, dict):
+            return {'success': False, 'message': 'ملف البيانات الأساسي فارغ أو بتنسيق غير صحيح.'}
 
-        # بناء فهرس بحث سريع باستخدام حجم الملف
-        size_to_name_map = {details['file_size']: name for name, details in master_data.items()}
+        filters = settings.get('filters', {})
+        # الخطوة 1: تطبيق الفلاتر العامة أولاً (rating, times_shown, tags)
+        initial_filtered_videos = _filter_videos_non_interactive(videos_data, filters)
 
-        # 2. تجهيز ملفات الطوارئ
-        video_fallback_path = os.path.join(base_output_path, "elo_videos_A1000 elo tik.json")
-        pic_fallback_path = os.path.join(base_output_path, "elo_videos_A1000 elo pic.json")
-        video_fallback_data = _load_json_file(video_fallback_path)
-        pic_fallback_data = _load_json_file(pic_fallback_path)
+        if not initial_filtered_videos:
+            return {'success': False, 'message': 'لم يتم العثور على أي فيديوهات تطابق الفلاتر العامة المحددة.'}
 
-        VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mkv', '.avi', '.mov']
-        IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
-
-        # 3. حلقة التصحيح
-        corrected_data = []
-        replacements_log = []
-
-        for competition in target_data:
-            corrected_comp = competition.copy()
-            # التأكد من أن القوائم قابلة للتعديل
-            corrected_comp['videos'] = list(competition['videos'])
-            corrected_comp['rating'] = list(competition['rating'])
-            corrected_comp['file_size'] = list(competition['file_size'])
-
-            for i, size in enumerate(competition['file_size']):
-                if size in size_to_name_map:
-                    # الحالة 1: الفيديو موجود - نقوم بالتصحيح
-                    correct_name = size_to_name_map[size]
-                    correct_details = master_data[correct_name]
-                    
-                    corrected_comp['videos'][i] = correct_name
-                    corrected_comp['rating'][i] = correct_details.get('rating', 1000)
-
-                else:
-                    # الحالة 2: الفيديو مفقود - نقوم بالاستبدال
-                    original_name = competition['videos'][i]
-                    ext = os.path.splitext(original_name)[1].lower()
-                    
-                    fallback_pool = None
-                    if ext in VIDEO_EXTENSIONS and video_fallback_data:
-                        fallback_pool = video_fallback_data
-                    elif ext in IMAGE_EXTENSIONS and pic_fallback_data:
-                        fallback_pool = pic_fallback_data
-                    elif video_fallback_data: # إذا لم يتطابق الامتداد، نستخدم الفيديو كافتراضي
-                        fallback_pool = video_fallback_data
-
-                    if fallback_pool:
-                        random_name = random.choice(list(fallback_pool.keys()))
-                        replacement_details = fallback_pool[random_name]
-
-                        # استبدال كل البيانات
-                        corrected_comp['videos'][i] = random_name
-                        corrected_comp['rating'][i] = replacement_details.get('rating', 1000)
-                        corrected_comp['file_size'][i] = replacement_details.get('file_size', 0)
-                        
-                        replacements_log.append(f"<li>تم استبدال الفيديو المفقود <code>{original_name}</code> بالبديل <code>{random_name}</code>.</li>")
-            
-            corrected_data.append(corrected_comp)
-
-        # 4. حفظ الملف
-        if output_option == "overwrite":
-            output_path = target_file_path
-            output_filename = os.path.basename(target_file_path)
-        else: # new_file
-            random_suffix = random.randint(1000, 9999)
-            output_filename = f"topcut_corrected_{random_suffix}.json"
-            output_path = os.path.join(base_output_path, output_filename)
+        num_videos = settings.get('num_videos', 2)
+        competitions = []
         
-        save_success, save_message = _save_json_file(corrected_data, output_path)
+        # --- المنطق الجديد: التحقق من وجود فلاتر متوازنة وتحديد أيها نشط ---
+        active_balanced_filters = {
+            'rating': filters.get('balanced_rating', '').strip(),
+            'times_shown': filters.get('balanced_times_shown', '').strip(),
+            'tags': filters.get('balanced_tags', '').strip(),
+            'name': filters.get('balanced_names', '').strip()
+        }
+        
+        active_filters_list = [k for k, v in active_balanced_filters.items() if v]
 
-        if not save_success:
-            return {'success': False, 'message': f"فشل حفظ الملف: {save_message}"}
+        if len(active_filters_list) > 1:
+            return {'success': False, 'message': f"خطأ: تم تحديد عدة فلاتر متوازنة ({', '.join(active_filters_list)}). الرجاء استخدام فلتر متوازن واحد فقط في كل مرة."}
+
+        # إذا كان هناك فلتر متوازن واحد نشط
+        if len(active_filters_list) == 1:
+            filter_type = active_filters_list[0]
+            filter_value = active_balanced_filters[filter_type]
             
-        # 5. إرجاع النتيجة
-        final_message = f"نجحت عملية التصحيح! تم حفظ النتائج في الملف: <strong>{output_filename}</strong>."
-        if replacements_log:
-            final_message += "<br><br><strong>ملاحظات:</strong><ul>" + "".join(replacements_log) + "</ul>"
+            # الخطوة 2: تقسيم الفيديوهات إلى مجموعات بناءً على نوع الفلتر
+            groups_defs = [p.strip() for p in filter_value.split(',') if p.strip()]
             
-        return {'success': True, 'message': final_message}
+            if filter_type in ['rating', 'times_shown', 'tags'] and len(groups_defs) != 2:
+                return {'success': False, 'message': f"الفلتر المتوازن لـ '{filter_type}' يجب أن يحتوي على قسمين مفصولين بفاصلة. مثال: '1000, 1200-1400'"}
+            
+            if filter_type == 'name' and len(groups_defs) < 2:
+                return {'success': False, 'message': f"الفلتر المتوازن للأسماء يجب أن يحتوي على اسمين على الأقل مفصولين بفاصلة."}
+
+            video_groups = [[] for _ in groups_defs]
+            
+            # منطق التقسيم
+            if filter_type == 'rating' or filter_type == 'times_shown':
+                group_ranges = [_parse_range_list(part, int) for part in groups_defs]
+                key_name = 'rating' if filter_type == 'rating' else 'times_shown'
+                for name, details in initial_filtered_videos.items():
+                    value = details.get(key_name)
+                    if value is not None:
+                        for i, ranges in enumerate(group_ranges):
+                            if any(low <= value <= high for low, high in ranges):
+                                video_groups[i].append(name)
+                                break
+            
+            elif filter_type == 'tags':
+                group_tags_list = [_parse_string_list(part) for part in groups_defs]
+                for name, details in initial_filtered_videos.items():
+                    vid_tags_set = {t.strip() for t in details.get('tags', '').lower().split(',')}
+                    for i, required_tags in enumerate(group_tags_list):
+                        if any(req_tag in vid_tags_set for req_tag in required_tags):
+                             video_groups[i].append(name)
+                             break
+            
+            elif filter_type == 'name':
+                group_names = [name.lower() for name in groups_defs]
+                for vid_name, details in initial_filtered_videos.items():
+                    name_field = details.get('name', '').lower()
+                    if name_field in group_names:
+                        idx = group_names.index(name_field)
+                        video_groups[idx].append(vid_name)
+
+            # الخطوة 3: التحقق من وجود عدد كافٍ من الفيديوهات
+            num_groups = len(video_groups)
+            if num_groups == 0:
+                 return {'success': False, 'message': 'لم يتم تعريف أي مجموعات للفلتر المتوازن.'}
+
+            num_from_each = num_videos // num_groups
+            
+            if num_from_each == 0:
+                return {'success': False, 'message': f"عدد الفيديوهات لكل مسابقة ({num_videos}) أصغر من عدد المجموعات المتوازنة ({num_groups})."}
+
+            min_videos_in_any_group = min(len(g) for g in video_groups)
+            if min_videos_in_any_group < num_from_each:
+                group_counts = ", ".join([f"المجموعة {i+1}: {len(g)} فيديو" for i, g in enumerate(video_groups)])
+                return {'success': False, 'message': f"لا يوجد عدد كاف من الفيديوهات في كل المجموعات. ({group_counts}). المطلوب على الأقل {num_from_each} من كل مجموعة."}
+
+            for group in video_groups:
+                random.shuffle(group)
+
+            # الخطوة 4: بناء المسابقات بشكل متوازن
+            while all(len(g) >= num_from_each for g in video_groups):
+                chunk = []
+                for group in video_groups:
+                    chunk.extend(group.pop(0) for _ in range(num_from_each))
+                
+                remainder = num_videos % num_groups
+                if remainder > 0:
+                    remaining_pool = [vid for group in video_groups for vid in group]
+                    if len(remaining_pool) >= remainder:
+                        extra_vids = random.sample(remaining_pool, remainder)
+                        chunk.extend(extra_vids)
+                        for vid in extra_vids:
+                            for group in video_groups:
+                                if vid in group:
+                                    group.remove(vid)
+                                    break
+                
+                random.shuffle(chunk)
+                
+                if len(chunk) == num_videos:
+                    competition_entry = {
+                        "videos": chunk,
+                        "rating": [initial_filtered_videos[name].get("rating", 1000) for name in chunk],
+                        "file_size": [initial_filtered_videos[name].get("file_size", 0) for name in chunk],
+                        "mode": 1, "num_videos": num_videos, "ranking_type": "winner_only", "competition_type": "balanced_random"
+                    }
+                    competitions.append(competition_entry)
+        
+        else: # لا يوجد فلاتر متوازنة، استخدم المنطق العشوائي القديم
+            video_names = list(initial_filtered_videos.keys())
+            random.shuffle(video_names)
+            for i in range(0, len(video_names), num_videos):
+                chunk = video_names[i:i + num_videos]
+                if len(chunk) == num_videos:
+                    competition_entry = {
+                        "videos": chunk,
+                        "rating": [initial_filtered_videos[name].get("rating", 1000) for name in chunk],
+                        "file_size": [initial_filtered_videos[name].get("file_size", 0) for name in chunk],
+                        "mode": 1, "num_videos": num_videos, "ranking_type": "winner_only", "competition_type": "random"
+                    }
+                    competitions.append(competition_entry)
+        
+        # الجزء المتبقي من الدالة لم يتغير
+        limit = settings.get('limit')
+        if limit and limit > 0 and len(competitions) > limit:
+            competitions = competitions[:limit]
+
+        if not competitions:
+            return {'success': False, 'message': 'لم يتمكن من إنشاء أي مسابقات. قد يكون عدد الفيديوهات المفلترة غير كافٍ.'}
+
+        random_suffix = random.randint(100, 999)
+        input_basename = _sanitize_filename(os.path.splitext(os.path.basename(input_json_path))[0])
+        output_filename = f"topcut_{input_basename}_{random_suffix}.json"
+        output_filepath = os.path.join(base_output_path, output_filename)
+
+        success, message = _save_json_file(competitions, output_filepath)
+
+        if success:
+            final_message = f"نجحت العملية! تم إنشاء {len(competitions)} مسابقة وحفظها في الملف: <strong>{output_filename}</strong>"
+            return {'success': True, 'message': final_message}
+        else:
+            return {'success': False, 'message': f"فشل حفظ الملف: {message}"}
 
     except Exception as e:
-        print(f"Error in function_compare_and_correct: {e}")
+        print(f"Error in function_make_competition: {e}")
         import traceback
         traceback.print_exc()
         return {'success': False, 'message': f"حدث خطأ غير متوقع: {e}"}
+# END: MODIFIED SECTION
+
+# START: MODIFIED SECTION
+# أضف هذه الدالة المساعدة الجديدة في ملف utilities/advanced_tools.py
+def _parse_string_list(input_str):
+    """
+    تحلل سلسلة نصية مفصولة بفواصل مثل 'face, body' إلى قائمة.
+    """
+    if not input_str or not input_str.strip():
+        return []
+    return [item.strip().lower() for item in input_str.split(',') if item.strip()]
 # END: MODIFIED SECTION

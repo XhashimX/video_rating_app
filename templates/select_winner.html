@@ -413,11 +413,19 @@
         pointer-events: auto;
       }
 
-      .controls-overlay.hidden .rank-buttons,
-      .controls-overlay.hidden .next-button-container {
+      .controls-overlay.hidden .rank-buttons {
         opacity: 0;
         pointer-events: none;
       }
+
+      /* START: MODIFIED SECTION - هذا هو التعديل السحري في CSS */
+      /* هذه القاعدة الجديدة تجبر زر "التالي" على البقاء ظاهرًا وقابلاً للنقر دائمًا */
+      .controls-overlay.hidden .next-button-container {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+      }
+      /* END: MODIFIED SECTION */
+
 
       video {
         position: relative;
@@ -772,6 +780,7 @@
             {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
             {% if video.name.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')) %}
             <div class="video-wrapper">
+              <!-- START: MODIFIED SECTION - تم إرجاع زر "التالي" إلى هنا -->
               <div class="controls-overlay">
                 {% if ranking_type != 'winner_only' %}
                 <div class="rank-buttons">
@@ -798,6 +807,7 @@
                   </button>
                 </div>
               </div>
+              <!-- END: MODIFIED SECTION -->
               <div class="video-container">
                 <video playsinline>
                   {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
@@ -1283,7 +1293,8 @@
             }
           });
         });
-
+        
+        // START: MODIFIED SECTION - الكود الخاص بالتشغيل التلقائي لا يزال هنا ويعمل
         nextButtons.forEach(function (button) {
           button.addEventListener("click", function () {
             const nextIndex = this.dataset.next;
@@ -1291,9 +1302,20 @@
 
             if (nextCard) {
               nextCard.scrollIntoView({ behavior: "smooth", block: "center" });
+              
+              const nextVideo = nextCard.querySelector("video");
+              if (nextVideo) {
+                document.querySelectorAll('video').forEach(vid => {
+                  if (vid !== nextVideo) {
+                    vid.pause();
+                  }
+                });
+                nextVideo.play();
+              }
             }
           });
         });
+        // END: MODIFIED SECTION
 
         winnerRadios.forEach(function (radio) {
           radio.addEventListener("change", function () {
@@ -1301,6 +1323,7 @@
           });
         });
 
+// START: MODIFIED SECTION - استبدل كتلة tagLabels.forEach بالكامل بهذه النسخة
         const tagLabels = document.querySelectorAll('.form-check-label.tag-btn');
         tagLabels.forEach(label => {
           label.addEventListener('click', function (event) {
@@ -1359,9 +1382,22 @@
              }
 
              console.log(`Updated tag_${index} hidden input to: "${hiddenInput.value}"`); // DEBUG
+             
+             // --- بداية الإضافة المطلوبة ---
+             // ابحث عن بطاقة الفيديو الأب التي تحتوي على هذا الوسم
+             const parentCard = this.closest('.video-card');
+             if (parentCard) {
+                 // ابحث عن زر "التالي" داخل هذه البطاقة
+                 const nextButton = parentCard.querySelector('.next-button');
+                 // إذا تم العثور على الزر، قم بالنقر عليه
+                 if (nextButton) {
+                     nextButton.click();
+                 }
+             }
+             // --- نهاية الإضافة المطلوبة ---
           });
         });
-
+// END: MODIFIED SECTION
         // تهيئة حالة أزرار الوسوم عند تحميل الصفحة بناءً على القيمة الحالية للحقل المخفي
          document.querySelectorAll('input[name^="tag_"]').forEach(hiddenInput => {
              const index = hiddenInput.name.split('_')[1]; // استخلاص الفهرس من اسم الحقل المخفي

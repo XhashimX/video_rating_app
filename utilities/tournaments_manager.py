@@ -291,6 +291,98 @@ def remove_from_archive(filename):
           print(f"Removed '{archive_key}' from tournament archive.")
 
 
+# START: MODIFIED SECTION
+# أضف هاتين الدالتين في نهاية ملف utilities/tournaments_manager.py
+
+def delete_tournament_file(filename):
+    """
+    Deletes a specified tournament file and its entry from the archive.
+    """
+    print(f"Attempting to delete file: {filename}")
+    
+    # 1. Security Checks
+    if not filename or '..' in filename or filename.startswith('/'):
+        print(f"Security warning: Invalid filename '{filename}' for deletion.")
+        return False, "اسم ملف غير صالح."
+
+    file_path = os.path.join(JSON_FOLDER, filename)
+    abs_file_path = os.path.abspath(file_path)
+    abs_json_folder = os.path.abspath(JSON_FOLDER)
+
+    if not abs_file_path.startswith(abs_json_folder):
+        print(f"Security warning: Attempt to delete file outside JSON folder: {abs_file_path}")
+        return False, "محاولة حذف ملف خارج المجلد المسموح به."
+
+    # 2. Deletion Logic
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"Successfully deleted file: {file_path}")
+            # Also remove from archive
+            remove_from_archive(filename)
+            return True, f"تم حذف الملف '{filename}' بنجاح."
+        else:
+            print(f"File not found for deletion: {file_path}")
+            return False, "الملف غير موجود."
+    except Exception as e:
+        print(f"Error deleting file {filename}: {e}")
+        return False, f"حدث خطأ أثناء حذف الملف: {e}"
+
+def rename_tournament_file(old_filename, new_filename):
+    """
+    Renames a specified tournament file and updates its entry in the archive.
+    """
+    print(f"Attempting to rename '{old_filename}' to '{new_filename}'")
+
+    # 1. Security & Validation Checks
+    if not all([old_filename, new_filename]) or '..' in old_filename or old_filename.startswith('/') or '..' in new_filename or new_filename.startswith('/'):
+        print(f"Security warning: Invalid filename for rename.")
+        return False, "أسماء الملفات غير صالحة."
+
+    if not new_filename.endswith('.json'):
+        new_filename += '.json'
+        print(f"Appended .json to new filename: {new_filename}")
+
+    old_path = os.path.join(JSON_FOLDER, old_filename)
+    new_path = os.path.join(JSON_FOLDER, new_filename)
+    
+    abs_old_path = os.path.abspath(old_path)
+    abs_new_path = os.path.abspath(new_path)
+    abs_json_folder = os.path.abspath(JSON_FOLDER)
+
+    if not abs_old_path.startswith(abs_json_folder) or not abs_new_path.startswith(abs_json_folder):
+        print("Security warning: Rename attempt outside of the allowed folder.")
+        return False, "محاولة إعادة تسمية ملف خارج المجلد المسموح به."
+        
+    if not os.path.exists(old_path):
+        return False, "الملف الأصلي غير موجود."
+    
+    if os.path.exists(new_path):
+        return False, "يوجد ملف آخر بنفس الاسم الجديد."
+
+    # 2. Rename Logic
+    try:
+        os.rename(old_path, new_path)
+        print(f"Successfully renamed file to {new_path}")
+        
+        # Update archive
+        archive = load_tournament_archive()
+        old_key = os.path.splitext(old_filename)[0]
+        new_key = os.path.splitext(new_filename)[0]
+
+        if old_key in archive:
+            archive[new_key] = archive.pop(old_key)
+            save_tournament_archive(archive)
+            print(f"Updated archive from '{old_key}' to '{new_key}'")
+
+        return True, f"تم تغيير اسم الملف إلى '{new_filename}' بنجاح."
+    except Exception as e:
+        print(f"Error renaming file: {e}")
+        return False, f"حدث خطأ أثناء إعادة تسمية الملف: {e}"
+# END: MODIFIED SECTION
+
+
+
 if __name__ == '__main__':
     print("Listing JSON files:")
     files = list_json_files()

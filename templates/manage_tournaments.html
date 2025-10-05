@@ -57,7 +57,40 @@
         margin-bottom: 2px;
         border-radius: 6px;
         padding: 12px 16px;
+        /* START: MODIFIED SECTION - لإضافة مساحة للأيقونات */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        /* END: MODIFIED SECTION */
       }
+      
+      /* START: MODIFIED SECTION - تنسيقات جديدة للأيقونات */
+      .list-group-item .file-actions {
+        display: flex;
+        gap: 12px;
+        opacity: 0.6;
+        transition: opacity 0.2s ease-in-out;
+      }
+
+      .list-group-item:hover .file-actions {
+        opacity: 1;
+      }
+      
+      .file-actions i {
+        cursor: pointer;
+        color: #8b949e;
+        transition: color 0.2s ease-in-out;
+      }
+      
+      .file-actions .fa-edit:hover {
+        color: #58a6ff; /* أزرق */
+      }
+
+      .file-actions .fa-trash-alt:hover {
+        color: #da3633; /* أحمر */
+      }
+      /* END: MODIFIED SECTION */
+
 
       .list-group-item:hover {
         background-color: #30363d;
@@ -122,23 +155,6 @@
       .json-container::-webkit-scrollbar-thumb {
         background: #58a6ff;
         border-radius: 4px;
-      }
-
-      .json-key {
-        color: #79c0ff;
-        font-weight: 600;
-      }
-      .json-string {
-        color: #a5d6ff;
-      }
-      .json-number {
-        color: #79c0ff;
-      }
-      .json-boolean {
-        color: #ffa657;
-      }
-      .json-null {
-        color: #8b949e;
       }
 
       .copy-button {
@@ -445,23 +461,26 @@
             <i class="fas fa-file-alt"></i> عدد الملفات: {{ json_files|length }}
           </div>
           {% endif %}
-          <ul class="list-group">
+          <ul class="list-group" id="files-list"> <!-- START: MODIFIED SECTION - أضفنا ID للقائمة -->
             {% for file in json_files %}
-            <!-- START: MODIFIED SECTION -->
-            <!-- تم تغيير `onclick` لاستدعاء دالة JavaScript جديدة لا تعيد تحميل الصفحة -->
             <li class="list-group-item {% if file == selected_file %}active{% endif %}" 
-                onclick="loadTournament('{{ file }}', this)" 
-                id="file-{{ loop.index0 }}">
-              <i class="fas fa-file-code"></i> {{ file }}
+                data-filename="{{ file }}" 
+                id="file-item-{{ file|replace('.', '-') }}">
+              <!-- START: MODIFIED SECTION - تم تعديل onclick وتغيير الهيكل -->
+              <span class="file-name" onclick="loadTournament('{{ file }}', this.parentElement)">
+                <i class="fas fa-file-code"></i> {{ file }}
+              </span>
+              <div class="file-actions">
+                <i class="fas fa-edit" title="إعادة تسمية الملف" onclick="renameFile('{{ file }}', event)"></i>
+                <i class="fas fa-trash-alt" title="حذف الملف" onclick="deleteFile('{{ file }}', event)"></i>
+              </div>
+              <!-- END: MODIFIED SECTION -->
             </li>
-            <!-- END: MODIFIED SECTION -->
             {% endfor %}
           </ul>
         </div>
 
         <div class="col-md-8">
-          <!-- START: MODIFIED SECTION -->
-          <!-- تم تعديل هذا الجزء لدعم عرض المحتوى الديناميكي بدون إعادة تحميل الصفحة -->
           <div id="tournament-content-wrapper" {% if not selected_file %}style="display: none;"{% endif %}>
             <h3 id="selected-file-title">
               <i class="fas fa-file-alt"></i> محتوى الملف: <strong>{{ selected_file or '...' }}</strong>
@@ -478,7 +497,9 @@
                   <button class="copy-button" onclick="copyToClipboard()">
                     <i class="far fa-copy"></i> نسخ
                   </button>
-                  <pre id="json-display">{{ file_content or '[]' }}</pre>
+                  <!-- START: MODIFIED SECTION - سيتم عرض المحتوى الخام هنا -->
+                  <pre id="json-display">{{ file_content or '' }}</pre>
+                  <!-- END: MODIFIED SECTION -->
                 </div>
 
                 <form id="tournament-form" method="POST" action="{{ url_for('manage_tournaments_actions') }}">
@@ -557,7 +578,6 @@
               </div>
               {% endif %}
           </div>
-          <!-- END: MODIFIED SECTION -->
         </div>
       </div>
     </div>
@@ -600,31 +620,31 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <!-- START: MODIFIED SECTION -->
-    <!-- تم تعديل كود جافا سكريبت بالكامل لدعم التحميل الديناميكي وتحسين تجربة المستخدم -->
+    <!-- تم تعديل كود جافا سكريبت بالكامل لدعم الميزات الجديدة والعرض الدقيق للملفات -->
     <script>
       let lastChecked = null;
       let competitionData = null;
 
-      // هذه الدالة تعمل عند تحميل الصفحة لأول مرة
       document.addEventListener("DOMContentLoaded", function () {
-        // إذا كانت الصفحة قد تم تحميلها مع ملف محدد بالفعل (عبر الرابط)
         if (document.getElementById('tournament-content-wrapper').style.display !== 'none') {
-          try {
-            const rawContent = document.getElementById('json-display').textContent;
-            if (rawContent && rawContent.trim()) {
+          const rawContent = document.getElementById('json-display').textContent;
+          if (rawContent && rawContent.trim()) {
+            try {
               competitionData = JSON.parse(rawContent);
               renderCompetitionsList(competitionData);
               updateStats(competitionData);
-              formatJsonDisplay();
+            } catch (e) {
+                // إذا فشل التحليل، فهذا يعني أن المحتوى قد لا يكون JSON صالحًا
+                // سنعرضه كنص خام، ونعطل قائمة المسابقات
+                console.warn("Initial content is not valid JSON. Displaying as raw text.");
+                renderCompetitionsList(null); // سيؤدي إلى عرض رسالة تحذير
+                updateStats([]);
             }
-          } catch (e) {
-            console.error("Error parsing initial file_content:", e);
-            alert("خطأ في تحليل محتوى الملف عند تحميل الصفحة.");
           }
         }
 
-        // إضافة مستمع للنقرات على قائمة المسابقات
         const competitionsListDiv = document.getElementById("competitions-list");
         if (competitionsListDiv) {
           competitionsListDiv.addEventListener("click", function (event) {
@@ -633,97 +653,55 @@
             }
           });
         }
-
-        // إضافة مستمع لتغيير الاختيار في نافذة التبديل
+        
         const swapModal = document.getElementById("swapModal");
         if (swapModal) {
           swapModal.addEventListener('change', updateSwapButtonState);
         }
       });
 
-      // دالة جديدة لتحميل محتوى البطولة بدون إعادة تحميل الصفحة
       async function loadTournament(filename, element) {
-        // إزالة علامة "active" من كل العناصر في القائمة
         document.querySelectorAll('.list-group-item.active').forEach(li => {
           li.classList.remove('active');
         });
-        // إضافة علامة "active" للعنصر الذي تم النقر عليه
         if (element) {
           element.classList.add('active');
         }
 
         try {
-          // استدعاء الـ API لجلب محتوى الملف
           const response = await fetch(`/get_tournament_content/${encodeURIComponent(filename)}`);
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Server responded with status: ${response.status}`);
-          }
-          const data = await response.json();
+          const result = await response.json();
 
-          // إخفاء رسالة "الرجاء اختيار ملف" وإظهار حاوية المحتوى
+          if (!result.success) {
+              throw new Error(result.message || `Server responded with status: ${response.status}`);
+          }
+
           document.getElementById('placeholder-wrapper').style.display = 'none';
           const contentWrapper = document.getElementById('tournament-content-wrapper');
           contentWrapper.style.display = 'block';
-
-          // تحديث عنوان الملف المعروض
-          document.querySelector('#selected-file-title strong').textContent = filename;
           
-          // تحديث حقول النماذج المخفية باسم الملف الجديد
+          document.querySelector('#selected-file-title strong').textContent = filename;
           document.querySelector('#tournament-form input[name="selected_file"]').value = filename;
           document.querySelector('#paste-form input[name="selected_file"]').value = filename;
 
-          // تحويل البيانات إلى نص JSON للعرض
-          const fileContentAsText = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
           const jsonDisplay = document.getElementById("json-display");
-          jsonDisplay.textContent = fileContentAsText;
-          
-          // إعادة تلوين كود JSON
-          formatJsonDisplay();
+          // عرض المحتوى الخام كما هو تماماً
+          jsonDisplay.textContent = result.raw_content;
 
-          // عرض المسابقات في القائمة
-          competitionData = Array.isArray(data) ? data : [];
-          if (competitionData.length === 0 && typeof data === 'string') {
-               document.getElementById('content-display-area').innerHTML = `<div class="alert alert-warning">لا يمكن عرض هذا الملف كمسابقات. قد يكون ملف نصي.</div>`;
-          } else {
-              renderCompetitionsList(competitionData);
-              updateStats(competitionData);
+          // محاولة تحليل المحتوى الخام لعرض قائمة المسابقات
+          try {
+              competitionData = JSON.parse(result.raw_content);
+          } catch(e) {
+              console.warn("Content of the loaded file is not valid JSON.");
+              competitionData = null; // فشل التحليل
           }
+
+          renderCompetitionsList(competitionData);
+          updateStats(Array.isArray(competitionData) ? competitionData : []);
 
         } catch (error) {
           console.error('Failed to load tournament:', error);
           alert(`فشل في تحميل الملف: ${filename}.\n${error.message}`);
-        }
-      }
-
-      function formatJsonDisplay() {
-        const jsonDisplay = document.getElementById("json-display");
-        if (!jsonDisplay) return;
-
-        let content = jsonDisplay.textContent;
-        try {
-          // التأكد من أن المحتوى هو JSON صالح قبل محاولة تحليله
-          const data = JSON.parse(content);
-          const formattedJson = JSON.stringify(data, null, 2);
-          
-          let highlightedJson = formattedJson
-            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-          highlightedJson = highlightedJson.replace(/(".*?"):\s/g, '<span class="json-key">$1</span>: ');
-          highlightedJson = highlightedJson.replace(/(".*?")/g, (match, p1) => {
-              if (jsonDisplay.innerHTML.includes(`<span class="json-key">${p1}</span>`)) {
-                  return match;
-              }
-              return `<span class="json-string">${match}</span>`;
-          });
-          highlightedJson = highlightedJson.replace(/\b(true|false)\b/g, '<span class="json-boolean">$&</span>');
-          highlightedJson = highlightedJson.replace(/\b(null)\b/g, '<span class="json-null">$&</span>');
-          highlightedJson = highlightedJson.replace(/(?<!")\b(-?\d+(\.\d+)?([eE][+-]?\d+)?)\b(?!")/g, '<span class="json-number">$&</span>');
-
-          jsonDisplay.innerHTML = highlightedJson;
-        } catch (e) {
-          // إذا فشل التحليل، فهذا يعني أنه قد لا يكون JSON، لذا نعرضه كنص عادي
-          console.log("Content is not valid JSON, displaying as plain text.");
         }
       }
 
@@ -749,15 +727,77 @@
           console.error("Failed to copy text: ", err);
         });
       }
+      
+      async function sendFileAction(payload) {
+        try {
+            const response = await fetch('/api/manage_tournament_file', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('API call failed:', error);
+            return { success: false, message: `فشل الاتصال بالخادم: ${error.message}` };
+        }
+      }
+
+      async function deleteFile(filename, event) {
+        event.stopPropagation(); // منع تحميل الملف عند النقر على الأيقونة
+        if (confirm(`هل أنت متأكد أنك تريد حذف الملف '${filename}'؟ لا يمكن التراجع عن هذا الإجراء.`)) {
+            const result = await sendFileAction({ action: 'delete', filename: filename });
+            alert(result.message);
+            if (result.success) {
+                // إزالة الملف من القائمة في الواجهة
+                const fileItem = document.getElementById(`file-item-${filename.replace('.', '-')}`);
+                if (fileItem) fileItem.remove();
+            }
+        }
+      }
+
+      async function renameFile(oldFilename, event) {
+        event.stopPropagation(); // منع تحميل الملف
+        const newFilename = prompt(`أدخل الاسم الجديد للملف '${oldFilename}':`, oldFilename);
+
+        if (newFilename && newFilename.trim() !== '' && newFilename !== oldFilename) {
+            const result = await sendFileAction({ action: 'rename', old_filename: oldFilename, new_filename: newFilename });
+            alert(result.message);
+            if (result.success) {
+                // تحديث اسم الملف في الواجهة
+                const fileItem = document.getElementById(`file-item-${oldFilename.replace('.', '-')}`);
+                if(fileItem) {
+                    fileItem.dataset.filename = result.new_filename;
+                    fileItem.id = `file-item-${result.new_filename.replace('.', '-')}`;
+                    fileItem.querySelector('.file-name').textContent = result.new_filename;
+                    // تحديث دوال onclick
+                    fileItem.querySelector('.file-name').setAttribute('onclick', `loadTournament('${result.new_filename}', this.parentElement)`);
+                    fileItem.querySelector('.fa-edit').setAttribute('onclick', `renameFile('${result.new_filename}', event)`);
+                    fileItem.querySelector('.fa-trash-alt').setAttribute('onclick', `deleteFile('${result.new_filename}', event)`);
+                }
+            }
+        } else if (newFilename) {
+          alert("لم يتم تغيير الاسم.");
+        }
+      }
 
       function renderCompetitionsList(data) {
         const listContainer = document.getElementById("competitions-list");
         listContainer.innerHTML = "";
+        
+        // إظهار أو إخفاء قسم الإجراءات بالكامل
+        const actionsForm = document.getElementById('tournament-form');
+        const pasteSection = document.querySelector('.paste-section');
 
         if (!Array.isArray(data)) {
-          listContainer.innerHTML = "<p class='alert alert-warning'>بيانات الملف ليست في صيغة قائمة (Array).</p>";
+          listContainer.innerHTML = "<p class='alert alert-warning'>لا يمكن عرض محتوى هذا الملف كقائمة مسابقات لأنه ليس بصيغة JSON صالحة.</p>";
+          actionsForm.style.display = 'none';
+          pasteSection.style.display = 'none';
           return;
         }
+
+        actionsForm.style.display = 'block';
+        pasteSection.style.display = 'block';
+
         if (data.length === 0) {
           listContainer.innerHTML = "<div class='alert alert-info'><i class='fas fa-info-circle'></i> الملف فارغ أو لا يحتوي على مسابقات.</div>";
           return;
@@ -884,14 +924,18 @@
       }
 
       function updateSwapButtonState() {
-        const [compIndex1, compIndex2] = getSelectedCompetitionIndices();
+        const selectedIndices = getSelectedCompetitionIndices();
+        if (selectedIndices.length !== 2) return;
+        const [compIndex1, compIndex2] = selectedIndices;
         const radio1Selected = document.querySelector(`input[name="selected_competitor_${compIndex1}"]:checked`);
         const radio2Selected = document.querySelector(`input[name="selected_competitor_${compIndex2}"]:checked`);
         document.getElementById('confirm-swap-btn').disabled = !(radio1Selected && radio2Selected);
       }
 
       function performSwap() {
-        const [compIndex1, compIndex2] = getSelectedCompetitionIndices();
+        const selectedIndices = getSelectedCompetitionIndices();
+        if (selectedIndices.length !== 2) return;
+        const [compIndex1, compIndex2] = selectedIndices;
         const competitorIndex1 = document.querySelector(`input[name="selected_competitor_${compIndex1}"]:checked`)?.value;
         const competitorIndex2 = document.querySelector(`input[name="selected_competitor_${compIndex2}"]:checked`)?.value;
 

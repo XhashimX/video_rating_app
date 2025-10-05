@@ -1,0 +1,1755 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مراقب فيديوهات TikTok</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header .subtitle {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+        
+        .header .timestamp {
+            font-size: 1em;
+            opacity: 0.8;
+            margin-top: 10px;
+        }
+        
+        .user-section {
+            background: white;
+            border-radius: 20px;
+            padding: 0;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .user-section.collapsed .gallery {
+            display: none;
+        }
+        
+        .user-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 30px;
+            border-bottom: 3px solid #667eea;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .user-header:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: white;
+        }
+        
+        .user-details h2 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+        
+        .user-details .video-count {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .user-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .user-link {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: transform 0.3s ease;
+        }
+        
+        .user-link:hover {
+            transform: scale(1.05);
+        }
+        
+        .collapse-icon {
+            font-size: 1.5em;
+            color: #667eea;
+            transition: transform 0.3s ease;
+        }
+        
+        .user-section.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        
+        .gallery-container {
+            padding: 30px;
+        }
+        
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .video-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: relative;
+        }
+        
+        .video-card.hidden {
+            display: none;
+        }
+        
+        .video-card.selected {
+            outline: 4px solid #667eea;
+            outline-offset: 2px;
+        }
+        
+        .video-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        .thumbnail-container {
+            position: relative;
+            width: 100%;
+            padding-top: 177.78%;
+            background: #e9ecef;
+            overflow: hidden;
+        }
+        
+        .thumbnail {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .no-thumbnail {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #adb5bd;
+            font-size: 3em;
+        }
+        
+        .play-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .video-card:hover .play-overlay {
+            opacity: 1;
+        }
+        
+        .play-icon {
+            width: 0;
+            height: 0;
+            border-left: 20px solid #667eea;
+            border-top: 12px solid transparent;
+            border-bottom: 12px solid transparent;
+            margin-right: -5px;
+        }
+        
+        .video-info {
+            padding: 15px;
+        }
+        
+        .video-number {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .video-id {
+            color: #6c757d;
+            font-size: 0.8em;
+            direction: ltr;
+            text-align: left;
+            font-family: monospace;
+        }
+        
+        .new-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4757;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+            z-index: 10;
+            animation: pulse 2s infinite;
+        }
+        
+        .video-actions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 10;
+        }
+        
+        .action-btn {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            transition: transform 0.2s ease;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .hide-btn {
+            color: #ff4757;
+        }
+        
+        .select-btn {
+            color: #667eea;
+        }
+        
+        .video-card.selected .select-btn {
+            background: #667eea;
+            color: white;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        
+        .stats {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        
+        .stats h2 {
+            color: #667eea;
+            margin-bottom: 25px;
+            font-size: 2em;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-item {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            font-size: 1.1em;
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            opacity: 0.9;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state-icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        
+        .floating-toolbar {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: none;
+            gap: 15px;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .floating-toolbar.show {
+            display: flex;
+        }
+        
+        .toolbar-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+            font-size: 1em;
+        }
+        
+        .toolbar-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .copy-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .deselect-btn {
+            background: #e9ecef;
+            color: #666;
+        }
+        
+        .selection-count {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: none;
+            align-items: center;
+            gap: 15px;
+            z-index: 1001;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .notification.show {
+            display: flex;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .notification.success {
+            border-right: 4px solid #10b981;
+        }
+        
+        .notification.error {
+            border-right: 4px solid #ff4757;
+        }
+        
+        .notification-icon {
+            font-size: 2em;
+        }
+        
+        .notification-text {
+            color: #333;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 مراقب فيديوهات TikTok</h1>
+            <p class="subtitle">مراقبة 2 حساب - 60 فيديو</p>
+            <p class="timestamp">آخر تحديث: 2025-10-01 05:47:00</p>
+        </div>
+        
+        <div class="stats">
+            <h2>📊 الإحصائيات العامة</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number">2</span>
+                    <span class="stat-label">عدد الحسابات</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">60</span>
+                    <span class="stat-label">إجمالي الفيديوهات</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">0</span>
+                    <span class="stat-label">فيديوهات جديدة</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-aloyouiii">
+            <div class="user-header" onclick="toggleUser('aloyouiii')">
+                <div class="user-info">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-details">
+                        <h2>@aloyouiii</h2>
+                        <p class="video-count">30 فيديو</p>
+                    </div>
+                </div>
+                <div class="user-actions">
+                    <a href="https://www.tiktok.com/@aloyouiii" target="_blank" class="user-link" onclick="event.stopPropagation()">
+                        زيارة الحساب 🔗
+                    </a>
+                    <span class="collapse-icon">▼</span>
+                </div>
+            </div>
+            
+            <div class="gallery-container">
+                <div class="gallery">
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7554021426378984711" data-video-id="7554021426378984711" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7554021426378984711')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7554021426378984711.jpg" alt="فيديو 1" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #1</div>
+                        <div class="video-id">7554021426378984711</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7553285355210804498" data-video-id="7553285355210804498" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7553285355210804498')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7553285355210804498.jpg" alt="فيديو 2" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #2</div>
+                        <div class="video-id">7553285355210804498</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7552505813953219847" data-video-id="7552505813953219847" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7552505813953219847')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7552505813953219847.jpg" alt="فيديو 3" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #3</div>
+                        <div class="video-id">7552505813953219847</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7552505605710187794" data-video-id="7552505605710187794" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7552505605710187794')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7552505605710187794.jpg" alt="فيديو 4" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #4</div>
+                        <div class="video-id">7552505605710187794</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7551846271544265991" data-video-id="7551846271544265991" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7551846271544265991')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7551846271544265991.jpg" alt="فيديو 5" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #5</div>
+                        <div class="video-id">7551846271544265991</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7550245789449211144" data-video-id="7550245789449211144" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7550245789449211144')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7550245789449211144.jpg" alt="فيديو 6" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #6</div>
+                        <div class="video-id">7550245789449211144</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7527165060083387655" data-video-id="7527165060083387655" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7527165060083387655')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7527165060083387655.jpg" alt="فيديو 7" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #7</div>
+                        <div class="video-id">7527165060083387655</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7526880825388928274" data-video-id="7526880825388928274" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7526880825388928274')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7526880825388928274.jpg" alt="فيديو 8" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #8</div>
+                        <div class="video-id">7526880825388928274</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7525306262636989703" data-video-id="7525306262636989703" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7525306262636989703')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7525306262636989703.jpg" alt="فيديو 9" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #9</div>
+                        <div class="video-id">7525306262636989703</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7521310760337804551" data-video-id="7521310760337804551" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7521310760337804551')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7521310760337804551.jpg" alt="فيديو 10" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #10</div>
+                        <div class="video-id">7521310760337804551</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7519293521715580168" data-video-id="7519293521715580168" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7519293521715580168')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7519293521715580168.jpg" alt="فيديو 11" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #11</div>
+                        <div class="video-id">7519293521715580168</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7518286154798533906" data-video-id="7518286154798533906" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7518286154798533906')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7518286154798533906.jpg" alt="فيديو 12" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #12</div>
+                        <div class="video-id">7518286154798533906</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7518191383245622535" data-video-id="7518191383245622535" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7518191383245622535')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7518191383245622535.jpg" alt="فيديو 13" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #13</div>
+                        <div class="video-id">7518191383245622535</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7516694690255604999" data-video-id="7516694690255604999" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7516694690255604999')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7516694690255604999.jpg" alt="فيديو 14" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #14</div>
+                        <div class="video-id">7516694690255604999</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7515347224138763538" data-video-id="7515347224138763538" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7515347224138763538')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7515347224138763538.jpg" alt="فيديو 15" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #15</div>
+                        <div class="video-id">7515347224138763538</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7515024241885023506" data-video-id="7515024241885023506" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7515024241885023506')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7515024241885023506.jpg" alt="فيديو 16" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #16</div>
+                        <div class="video-id">7515024241885023506</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7514631217870900488" data-video-id="7514631217870900488" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7514631217870900488')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7514631217870900488.jpg" alt="فيديو 17" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #17</div>
+                        <div class="video-id">7514631217870900488</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7513559722675522834" data-video-id="7513559722675522834" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7513559722675522834')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7513559722675522834.jpg" alt="فيديو 18" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #18</div>
+                        <div class="video-id">7513559722675522834</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7513481052019625223" data-video-id="7513481052019625223" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7513481052019625223')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7513481052019625223.jpg" alt="فيديو 19" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #19</div>
+                        <div class="video-id">7513481052019625223</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7513478874630491410" data-video-id="7513478874630491410" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7513478874630491410')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7513478874630491410.jpg" alt="فيديو 20" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #20</div>
+                        <div class="video-id">7513478874630491410</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7513478579439832327" data-video-id="7513478579439832327" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7513478579439832327')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7513478579439832327.jpg" alt="فيديو 21" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #21</div>
+                        <div class="video-id">7513478579439832327</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7508700426217213202" data-video-id="7508700426217213202" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7508700426217213202')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7508700426217213202.jpg" alt="فيديو 22" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #22</div>
+                        <div class="video-id">7508700426217213202</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7506362598389058823" data-video-id="7506362598389058823" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7506362598389058823')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7506362598389058823.jpg" alt="فيديو 23" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #23</div>
+                        <div class="video-id">7506362598389058823</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7505663076646096146" data-video-id="7505663076646096146" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7505663076646096146')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7505663076646096146.jpg" alt="فيديو 24" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #24</div>
+                        <div class="video-id">7505663076646096146</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7501506438607457543" data-video-id="7501506438607457543" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7501506438607457543')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7501506438607457543.jpg" alt="فيديو 25" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #25</div>
+                        <div class="video-id">7501506438607457543</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7499873063777963272" data-video-id="7499873063777963272" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7499873063777963272')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7499873063777963272.jpg" alt="فيديو 26" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #26</div>
+                        <div class="video-id">7499873063777963272</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7499869242020351250" data-video-id="7499869242020351250" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7499869242020351250')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7499869242020351250.jpg" alt="فيديو 27" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #27</div>
+                        <div class="video-id">7499869242020351250</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7499718697708276999" data-video-id="7499718697708276999" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7499718697708276999')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7499718697708276999.jpg" alt="فيديو 28" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #28</div>
+                        <div class="video-id">7499718697708276999</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7498293728747048199" data-video-id="7498293728747048199" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7498293728747048199')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7498293728747048199.jpg" alt="فيديو 29" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #29</div>
+                        <div class="video-id">7498293728747048199</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@aloyouiii/video/7497871118276037895" data-video-id="7497871118276037895" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@aloyouiii/video/7497871118276037895')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_aloyouiii\7497871118276037895.jpg" alt="فيديو 30" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #30</div>
+                        <div class="video-id">7497871118276037895</div>
+                    </div>
+                </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-talaashamass">
+            <div class="user-header" onclick="toggleUser('talaashamass')">
+                <div class="user-info">
+                    <div class="user-avatar">👤</div>
+                    <div class="user-details">
+                        <h2>@talaashamass</h2>
+                        <p class="video-count">30 فيديو</p>
+                    </div>
+                </div>
+                <div class="user-actions">
+                    <a href="https://www.tiktok.com/@talaashamass" target="_blank" class="user-link" onclick="event.stopPropagation()">
+                        زيارة الحساب 🔗
+                    </a>
+                    <span class="collapse-icon">▼</span>
+                </div>
+            </div>
+            
+            <div class="gallery-container">
+                <div class="gallery">
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7533725499558923527" data-video-id="7533725499558923527" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7533725499558923527')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7533725499558923527.jpg" alt="فيديو 1" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #1</div>
+                        <div class="video-id">7533725499558923527</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7516601636995845384" data-video-id="7516601636995845384" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7516601636995845384')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7516601636995845384.jpg" alt="فيديو 2" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #2</div>
+                        <div class="video-id">7516601636995845384</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7549629640197917970" data-video-id="7549629640197917970" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7549629640197917970')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7549629640197917970.jpg" alt="فيديو 3" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #3</div>
+                        <div class="video-id">7549629640197917970</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7554823665330801938" data-video-id="7554823665330801938" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7554823665330801938')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7554823665330801938.jpg" alt="فيديو 4" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #4</div>
+                        <div class="video-id">7554823665330801938</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7553709346199309586" data-video-id="7553709346199309586" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7553709346199309586')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7553709346199309586.jpg" alt="فيديو 5" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #5</div>
+                        <div class="video-id">7553709346199309586</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7553348836895362312" data-video-id="7553348836895362312" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7553348836895362312')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7553348836895362312.jpg" alt="فيديو 6" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #6</div>
+                        <div class="video-id">7553348836895362312</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7552225780999212296" data-video-id="7552225780999212296" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7552225780999212296')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7552225780999212296.jpg" alt="فيديو 7" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #7</div>
+                        <div class="video-id">7552225780999212296</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7551856949780811016" data-video-id="7551856949780811016" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7551856949780811016')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7551856949780811016.jpg" alt="فيديو 8" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #8</div>
+                        <div class="video-id">7551856949780811016</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7551481986955758855" data-video-id="7551481986955758855" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7551481986955758855')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7551481986955758855.jpg" alt="فيديو 9" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #9</div>
+                        <div class="video-id">7551481986955758855</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7550363740059815175" data-video-id="7550363740059815175" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7550363740059815175')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7550363740059815175.jpg" alt="فيديو 10" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #10</div>
+                        <div class="video-id">7550363740059815175</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7547784827081166098" data-video-id="7547784827081166098" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7547784827081166098')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7547784827081166098.jpg" alt="فيديو 11" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #11</div>
+                        <div class="video-id">7547784827081166098</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7546297996514823431" data-video-id="7546297996514823431" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7546297996514823431')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7546297996514823431.jpg" alt="فيديو 12" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #12</div>
+                        <div class="video-id">7546297996514823431</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7545915001706384647" data-video-id="7545915001706384647" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7545915001706384647')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7545915001706384647.jpg" alt="فيديو 13" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #13</div>
+                        <div class="video-id">7545915001706384647</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7545170277190143240" data-video-id="7545170277190143240" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7545170277190143240')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7545170277190143240.jpg" alt="فيديو 14" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #14</div>
+                        <div class="video-id">7545170277190143240</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7544793187932540178" data-video-id="7544793187932540178" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7544793187932540178')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7544793187932540178.jpg" alt="فيديو 15" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #15</div>
+                        <div class="video-id">7544793187932540178</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7544431628781653255" data-video-id="7544431628781653255" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7544431628781653255')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7544431628781653255.jpg" alt="فيديو 16" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #16</div>
+                        <div class="video-id">7544431628781653255</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7543683532925832455" data-video-id="7543683532925832455" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7543683532925832455')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7543683532925832455.jpg" alt="فيديو 17" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #17</div>
+                        <div class="video-id">7543683532925832455</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7542951495092817159" data-video-id="7542951495092817159" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7542951495092817159')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7542951495092817159.jpg" alt="فيديو 18" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #18</div>
+                        <div class="video-id">7542951495092817159</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7542207993820007698" data-video-id="7542207993820007698" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7542207993820007698')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7542207993820007698.jpg" alt="فيديو 19" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #19</div>
+                        <div class="video-id">7542207993820007698</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7541103547040009480" data-video-id="7541103547040009480" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7541103547040009480')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7541103547040009480.jpg" alt="فيديو 20" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #20</div>
+                        <div class="video-id">7541103547040009480</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7540356949364280583" data-video-id="7540356949364280583" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7540356949364280583')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7540356949364280583.jpg" alt="فيديو 21" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #21</div>
+                        <div class="video-id">7540356949364280583</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7539237002252766482" data-video-id="7539237002252766482" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7539237002252766482')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7539237002252766482.jpg" alt="فيديو 22" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #22</div>
+                        <div class="video-id">7539237002252766482</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7537382838715403528" data-video-id="7537382838715403528" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7537382838715403528')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7537382838715403528.jpg" alt="فيديو 23" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #23</div>
+                        <div class="video-id">7537382838715403528</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7537011105651035400" data-video-id="7537011105651035400" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7537011105651035400')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7537011105651035400.jpg" alt="فيديو 24" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #24</div>
+                        <div class="video-id">7537011105651035400</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7535899278384958727" data-video-id="7535899278384958727" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7535899278384958727')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7535899278384958727.jpg" alt="فيديو 25" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #25</div>
+                        <div class="video-id">7535899278384958727</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7535158235280559368" data-video-id="7535158235280559368" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7535158235280559368')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7535158235280559368.jpg" alt="فيديو 26" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #26</div>
+                        <div class="video-id">7535158235280559368</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7534042778016255239" data-video-id="7534042778016255239" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7534042778016255239')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7534042778016255239.jpg" alt="فيديو 27" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #27</div>
+                        <div class="video-id">7534042778016255239</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7532927667981651207" data-video-id="7532927667981651207" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7532927667981651207')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7532927667981651207.jpg" alt="فيديو 28" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #28</div>
+                        <div class="video-id">7532927667981651207</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7531817204837305608" data-video-id="7531817204837305608" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7531817204837305608')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7531817204837305608.jpg" alt="فيديو 29" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #29</div>
+                        <div class="video-id">7531817204837305608</div>
+                    </div>
+                </div>
+
+                <div class="video-card" data-url="https://www.tiktok.com/@talaashamass/video/7531455273806957842" data-video-id="7531455273806957842" onclick="handleVideoClick(event, this)">
+                    <div class="thumbnail-container">
+                        
+                        <div class="video-actions">
+                            <button class="action-btn hide-btn" onclick="hideVideo(event, 'https://www.tiktok.com/@talaashamass/video/7531455273806957842')" title="إخفاء">👁️</button>
+                            <button class="action-btn select-btn" onclick="toggleSelect(event, this)" title="تحديد">✓</button>
+                        </div>
+                        <img src="thumbnails_talaashamass\7531455273806957842.jpg" alt="فيديو 30" class="thumbnail">
+                        <div class="play-overlay">
+                            <div class="play-icon"></div>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-number">فيديو #30</div>
+                        <div class="video-id">7531455273806957842</div>
+                    </div>
+                </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <div class="floating-toolbar" id="floatingToolbar">
+        <span class="selection-count" id="selectionCount">0 محدد</span>
+        <button class="toolbar-btn copy-btn" onclick="copySelected()">نسخ الروابط 📋</button>
+        <button class="toolbar-btn deselect-btn" onclick="deselectAll()">إلغاء التحديد ✕</button>
+    </div>
+    
+    <div class="notification" id="notification">
+        <span class="notification-icon" id="notificationIcon"></span>
+        <span class="notification-text" id="notificationText"></span>
+    </div>
+    
+    <script>
+        // تحميل الفيديوهات المخفية من localStorage
+        let hiddenVideos = JSON.parse(localStorage.getItem('hiddenVideos') || '[]');
+        let selectedVideos = new Set();
+        
+        // إخفاء الفيديوهات المحفوظة عند تحميل الصفحة
+        window.addEventListener('DOMContentLoaded', function() {
+            hiddenVideos.forEach(url => {
+                const card = document.querySelector(`[data-url="${url}"]`);
+                if (card) {
+                    card.classList.add('hidden');
+                }
+            });
+        });
+        
+        // دالة لإخفاء الفيديو
+        function hideVideo(event, url) {
+            event.stopPropagation();
+            event.preventDefault();
+            
+            const card = document.querySelector(`[data-url="${url}"]`);
+            if (card) {
+                card.classList.add('hidden');
+                
+                // حفظ في localStorage
+                if (!hiddenVideos.includes(url)) {
+                    hiddenVideos.push(url);
+                    localStorage.setItem('hiddenVideos', JSON.stringify(hiddenVideos));
+                }
+                
+                showNotification('تم إخفاء الفيديو بنجاح', 'success');
+            }
+        }
+        
+        // دالة لتحديد/إلغاء تحديد الفيديو
+        function toggleSelect(event, btn) {
+            event.stopPropagation();
+            event.preventDefault();
+            
+            const card = btn.closest('.video-card');
+            const url = card.dataset.url;
+            
+            if (selectedVideos.has(url)) {
+                selectedVideos.delete(url);
+                card.classList.remove('selected');
+            } else {
+                selectedVideos.add(url);
+                card.classList.add('selected');
+            }
+            
+            updateToolbar();
+        }
+        
+        // دالة لمعالجة النقر على الفيديو
+        function handleVideoClick(event, card) {
+            // إذا كان هناك فيديوهات محددة، نضيف/نزيل هذا الفيديو
+            if (selectedVideos.size > 0) {
+                event.preventDefault();
+                const selectBtn = card.querySelector('.select-btn');
+                toggleSelect(event, selectBtn);
+            } else {
+                // إذا لم يكن هناك فيديوهات محددة، نفتح الرابط
+                window.open(card.dataset.url, '_blank');
+            }
+        }
+        
+        // دالة لتحديث شريط الأدوات
+        function updateToolbar() {
+            const toolbar = document.getElementById('floatingToolbar');
+            const count = document.getElementById('selectionCount');
+            
+            if (selectedVideos.size > 0) {
+                toolbar.classList.add('show');
+                count.textContent = selectedVideos.size + ' محدد';
+            } else {
+                toolbar.classList.remove('show');
+            }
+        }
+        
+        // دالة لنسخ الروابط المحددة
+        function copySelected() {
+            if (selectedVideos.size === 0) return;
+            
+            const urls = Array.from(selectedVideos).join('\n');
+            
+            navigator.clipboard.writeText(urls).then(() => {
+                showNotification(`تم نسخ ${selectedVideos.size} رابط`, 'success');
+                deselectAll();
+            }).catch(err => {
+                showNotification('فشل النسخ', 'error');
+            });
+        }
+        
+        // دالة لإلغاء تحديد الكل
+        function deselectAll() {
+            selectedVideos.clear();
+            document.querySelectorAll('.video-card.selected').forEach(card => {
+                card.classList.remove('selected');
+            });
+            updateToolbar();
+        }
+        
+        // دالة لإظهار/إخفاء قسم المستخدم
+        function toggleUser(username) {
+            const section = document.getElementById('user-' + username);
+            section.classList.toggle('collapsed');
+        }
+        
+        // دالة لإظهار الإشعارات
+        function showNotification(text, type) {
+            const notification = document.getElementById('notification');
+            const icon = document.getElementById('notificationIcon');
+            const textEl = document.getElementById('notificationText');
+            
+            notification.className = 'notification show ' + type;
+            textEl.textContent = text;
+            icon.textContent = type === 'success' ? '✓' : '✕';
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

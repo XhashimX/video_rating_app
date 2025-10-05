@@ -193,7 +193,7 @@
         <a href="{{ url_for('names_analysis_page') }}" class="btn btn-info"
           ><i class="fas fa-chart-bar"></i> تحليل الأسماء</a
         >
-        <a href="{{ url_for('tour_page') }}" class="btn btn-danger"
+        <a href="{{ url_for('tour_page') }}" class="btn btn-primary"
           ><i class="fas fa-road"></i> المسابقة (Tour)</a
         >
          <!-- اضف هذا الزر الجديد هنا -->
@@ -203,6 +203,10 @@
         <!-- --- هذا هو الزر الجديد الذي تمت إضافته --- -->
         <a href="{{ url_for('advanced_tools_page') }}" class="btn btn-dark"
            ><i class="fas fa-cogs"></i> الأدوات المتقدمة</a
+        >
+        <!-- --- هذا هو الزر الجديد لصفحة الفلترة والحذف --- -->
+        <a href="{{ url_for('filter_and_delete') }}" class="btn btn-danger"
+           ><i class="fas fa-filter"></i> فلترة وحذف الفيديوهات</a
         >
       </div>
       {% else %}

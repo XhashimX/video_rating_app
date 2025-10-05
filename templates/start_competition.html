@@ -398,243 +398,253 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 
+
+
 <!-- START: MODIFIED SECTION -->
-<!-- The entire <script> block in start_competition.html should be replaced with this -->
+<!-- استبدل وسم <script> بالكامل في ملف templates/start_competition.html -->
 <script>
-  const modeSelect = document.getElementById("mode");
-  const valueInput = document.getElementById("valueInput");
-  const minMaxInput = document.getElementById("min-max-input");
-  const rangeInputs = document.getElementById("range-inputs");
-  const timesShownInput = document.getElementById("times-shown-input");
-  const tagsModeInput = document.getElementById("tags-mode-input");
-  const tournamentFileSelect = document.getElementById("tournament_file");
-  const jsonDataTextarea = document.getElementById("json_data");
-
-  const filterBtn = document.getElementById("filter-unplayed-btn");
-  const deleteBtn = document.getElementById("delete-tournament-btn");
-  const regroupBtn = document.getElementById("regroup-btn");
-
-  tournamentFileSelect.addEventListener("change", function () {
-    const selectedFile = this.value;
+  document.addEventListener('DOMContentLoaded', function() {
+    const modeSelect = document.getElementById("mode");
+    const valueInput = document.getElementById("valueInput");
+    const minMaxInput = document.getElementById("min-max-input");
+    const rangeInputs = document.getElementById("range-inputs");
+    const timesShownInput = document.getElementById("times-shown-input");
+    const tagsModeInput = document.getElementById("tags-mode-input");
+    const tournamentFileSelect = document.getElementById("tournament_file");
+    const jsonDataTextarea = document.getElementById("json_data");
     const competitionCountSpan = document.getElementById('competition-count');
 
-    if (selectedFile) {
-      filterBtn.style.display = "block";
-      deleteBtn.style.display = "block";
-      regroupBtn.style.display = "block";
+    const filterBtn = document.getElementById("filter-unplayed-btn");
+    const deleteBtn = document.getElementById("delete-tournament-btn");
+    const regroupBtn = document.getElementById("regroup-btn");
 
-      fetch("/get_tournament_content/" + selectedFile)
-        .then((response) => response.json())
-        .then((data) => {
-            jsonDataTextarea.value = JSON.stringify(data, null, 4);
-            if (Array.isArray(data)) {
-                competitionCountSpan.textContent = `إجمالي المسابقات: ${data.length}`;
-            } else {
-                competitionCountSpan.textContent = '';
-            }
-        })
-        .catch((error) => console.error("Error:", error));
-    } else {
-        jsonDataTextarea.value = "";
-        competitionCountSpan.textContent = '';
-        filterBtn.style.display = "none";
-        deleteBtn.style.display = "none";
-        regroupBtn.style.display = "none";
+    function updateFileContent(selectedFile) {
+        if (selectedFile) {
+            filterBtn.style.display = "inline-block";
+            deleteBtn.style.display = "inline-block";
+            regroupBtn.style.display = "inline-block";
+
+            // جلب محتوى الملف من الخادم
+            fetch("/get_tournament_content/" + encodeURIComponent(selectedFile))
+                .then((response) => response.json())
+                .then((data) => {
+                    // *** التعديل الرئيسي هنا ***
+                    // بدلاً من عرض الكائن 'data' بأكمله، نستخرج فقط 'raw_content'
+                    if (data.success && data.raw_content) {
+                        try {
+                            // نحاول تنسيق المحتوى إذا كان JSON صالحًا
+                            const parsedJson = JSON.parse(data.raw_content);
+                            jsonDataTextarea.value = JSON.stringify(parsedJson, null, 4);
+                            if (Array.isArray(parsedJson)) {
+                                competitionCountSpan.textContent = `إجمالي المسابقات: ${parsedJson.length}`;
+                            } else {
+                                competitionCountSpan.textContent = 'المحتوى ليس قائمة مسابقات.';
+                            }
+                        } catch (e) {
+                            // إذا لم يكن JSON، نعرضه كنص خام كما هو
+                            jsonDataTextarea.value = data.raw_content;
+                            competitionCountSpan.textContent = 'المحتوى ليس بصيغة JSON.';
+                        }
+                    } else {
+                        // في حالة وجود خطأ من الخادم
+                        jsonDataTextarea.value = `فشل تحميل المحتوى: ${data.message || 'خطأ غير معروف'}`;
+                        competitionCountSpan.textContent = '';
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error fetching file content:", error);
+                    jsonDataTextarea.value = `خطأ في الشبكة: ${error.message}`;
+                    competitionCountSpan.textContent = '';
+                });
+        } else {
+            jsonDataTextarea.value = "";
+            competitionCountSpan.textContent = '';
+            filterBtn.style.display = "none";
+            deleteBtn.style.display = "none";
+            regroupBtn.style.display = "none";
+        }
     }
-  });
-  
-  if (tournamentFileSelect.value) {
-      tournamentFileSelect.dispatchEvent(new Event('change'));
-  }
-  
-  filterBtn.addEventListener("click", function() {
-    const selectedFile = tournamentFileSelect.value;
-    if (!selectedFile) {
-        alert("الرجاء اختيار ملف بطولة أولاً.");
-        return;
+
+    tournamentFileSelect.addEventListener("change", function () {
+        updateFileContent(this.value);
+    });
+
+    if (tournamentFileSelect.value) {
+        updateFileContent(tournamentFileSelect.value);
     }
 
-    this.disabled = true;
-    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جار الفلترة...';
-    
-    fetch('/filter_unplayed/' + selectedFile)
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw new Error(err.error || err.message || 'حدث خطأ في الشبكة أو الخادم.') });
-            }
-            return response.json();
-        })
-        .then(result => {
-            if (result.error) {
-                throw new Error(result.error);
-            }
+    filterBtn.addEventListener("click", function() {
+        const selectedFile = tournamentFileSelect.value;
+        if (!selectedFile) {
+            alert("الرجاء اختيار ملف بطولة أولاً.");
+            return;
+        }
 
-            // --- THIS IS THE ONLY CHANGE ---
-            // The 'if (result.status === 'completed')' block has been removed.
-            // Now, we will simply process the data received, even if it's empty.
-
-            if (result.status === 'completion_failed') {
-                throw new Error(result.message);
-            }
-
-            // The 'data' key will contain the unplayed matches, which will be an empty array
-            // if the round is complete. This will correctly clear the textarea.
-            if (typeof result.data !== 'undefined') {
-                const filteredData = result.data;
-                jsonDataTextarea.value = JSON.stringify(filteredData, null, 4);
-                const competitionCountSpan = document.getElementById('competition-count');
-                competitionCountSpan.textContent = `المسابقات المتبقية: ${filteredData.length}`;
-                
-                // You can add a silent, non-blocking notification if you want
-                if (filteredData.length === 0) {
-                    console.log("Filter complete: All matches have been played in this round.");
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جار الفلترة...';
+        
+        fetch('/filter_unplayed/' + encodeURIComponent(selectedFile))
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error || err.message || 'حدث خطأ في الشبكة أو الخادم.') });
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (result.error) {
+                    throw new Error(result.error);
                 }
 
-            } else {
-                // This block handles the new 'completed' status without redirection
                 if (result.status === 'completed') {
-                    // When the round is complete, the `continue_tournament` function is called
-                    // on the backend, which rewrites the tournament file with the *next* round.
-                    // To see the result, the user simply needs to re-select the file, or we
-                    // can trigger it automatically. Here we'll just log it.
-                    console.log(result.message);
-                    console.log("Round complete. The tournament file has been updated with the next round. Please re-select it to see the changes.");
-                    // We will now refresh the content from the server by triggering the change event again.
-                    // This will reload the file content, showing the new round automatically.
-                    tournamentFileSelect.dispatchEvent(new Event('change'));
+                    alert(result.message || 'اكتملت الجولة! سيتم الآن تحديث الملف لعرض الجولة التالية.');
+                    // نقوم بإعادة تحميل محتوى الملف تلقائياً لإظهار الجولة الجديدة
+                    updateFileContent(selectedFile);
+
+                } else if (result.status === 'completion_failed') {
+                    throw new Error(result.message);
+                
+                } else if (typeof result.data !== 'undefined') {
+                    const filteredData = result.data;
+                    jsonDataTextarea.value = JSON.stringify(filteredData, null, 4);
+                    competitionCountSpan.textContent = `المسابقات المتبقية: ${filteredData.length}`;
+                    if (filteredData.length === 0) {
+                        alert("تمت فلترة الملف. كل المباريات في هذه الجولة قد اكتملت.");
+                    }
                 } else {
                     throw new Error('تم استلام رد غير متوقع من الخادم.');
                 }
-            }
-        })
-        .catch(error => {
-            console.error('خطأ أثناء الفلترة:', error);
-            alert('حدث خطأ: ' + error.message);
-        })
-        .finally(() => {
-            this.disabled = false;
-            this.innerHTML = '<i class="fas fa-filter"></i> متابعة غير المكتمل';
-        });
-  });
-
-  deleteBtn.addEventListener("click", function() {
-    const selectedFile = tournamentFileSelect.value;
-    if (!selectedFile) {
-        alert("الرجاء اختيار ملف بطولة أولاً.");
-        return;
-    }
-    if (!confirm("هل أنت متأكد أنك تريد حذف ملف البطولة '" + selectedFile + "'؟ هذا الإجراء لا يمكن التراجع عنه.")) {
-        return;
-    }
-    this.disabled = true;
-    fetch('/delete_tournament_file', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ filename: selectedFile }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.reload();
-        } else {
-            alert("فشل الحذف: " + data.message);
-            this.disabled = false;
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert("حدث خطأ أثناء الاتصال بالخادم.");
-        this.disabled = false;
+            })
+            .catch(error => {
+                console.error('خطأ أثناء الفلترة:', error);
+                alert('حدث خطأ: ' + error.message);
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-filter"></i> متابعة غير المكتمل';
+            });
     });
-  });
 
-  regroupBtn.addEventListener("click", function() {
-    const selectedFile = tournamentFileSelect.value;
-    if (!selectedFile) {
-        alert("الرجاء اختيار ملف بطولة أولاً.");
-        return;
-    }
-
-    const newSizeStr = prompt("أدخل العدد الجديد للفيديوهات في كل مسابقة (2 أو أكثر):", "2");
-    if (newSizeStr === null) { 
-        return;
-    }
-
-    const newSize = parseInt(newSizeStr, 10);
-    if (isNaN(newSize) || newSize < 2) {
-        alert("الرجاء إدخال رقم صحيح أكبر من أو يساوي 2.");
-        return;
-    }
-    
-    if (!confirm("سيتم إعادة كتابة الملف '" + selectedFile + "' بالكامل بالترتيب الجديد. هل أنت متأكد؟")) {
-        return;
-    }
-    
-    this.disabled = true;
-
-    fetch('/regroup_competitions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-            filename: selectedFile,
-            new_num_videos: newSize 
-        }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            window.location.reload();
-        } else {
-            alert("فشل إعادة التجميع: " + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert("حدث خطأ أثناء الاتصال بالخادم.");
-    })
-    .finally(() => {
-        this.disabled = false;
+    deleteBtn.addEventListener("click", function() {
+      const selectedFile = tournamentFileSelect.value;
+      if (!selectedFile) {
+          alert("الرجاء اختيار ملف بطولة أولاً.");
+          return;
+      }
+      if (!confirm("هل أنت متأكد أنك تريد حذف ملف البطولة '" + selectedFile + "'؟ هذا الإجراء لا يمكن التراجع عنه.")) {
+          return;
+      }
+      this.disabled = true;
+      fetch('/api/manage_tournament_file', { // تم التحديث لاستخدام المسار الجديد
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action: 'delete', filename: selectedFile }),
+      })
+      .then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              alert(data.message);
+              window.location.reload();
+          } else {
+              alert("فشل الحذف: " + data.message);
+              this.disabled = false;
+          }
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          alert("حدث خطأ أثناء الاتصال بالخادم.");
+          this.disabled = false;
+      });
     });
-  });
 
-  modeSelect.addEventListener("change", function () {
-    valueInput.style.display = "none";
-    minMaxInput.style.display = "none";
-    rangeInputs.style.display = "none";
-    timesShownInput.style.display = "none";
-    tagsModeInput.style.display = "none";
-    const allValueInputs = document.querySelectorAll('#valueInput input, #min-max-input input, #range-inputs input, #times-shown-input input, #tags-mode-input input');
-    allValueInputs.forEach(input => {
-        input.required = false;
+    regroupBtn.addEventListener("click", function() {
+      const selectedFile = tournamentFileSelect.value;
+      if (!selectedFile) {
+          alert("الرجاء اختيار ملف بطولة أولاً.");
+          return;
+      }
+
+      const newSizeStr = prompt("أدخل العدد الجديد للفيديوهات في كل مسابقة (2 أو أكثر):", "2");
+      if (newSizeStr === null) { 
+          return;
+      }
+
+      const newSize = parseInt(newSizeStr, 10);
+      if (isNaN(newSize) || newSize < 2) {
+          alert("الرجاء إدخال رقم صحيح أكبر من أو يساوي 2.");
+          return;
+      }
+      
+      if (!confirm("سيتم إعادة كتابة الملف '" + selectedFile + "' بالكامل بالترتيب الجديد. هل أنت متأكد؟")) {
+          return;
+      }
+      
+      this.disabled = true;
+
+      fetch('/regroup_competitions', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+              filename: selectedFile,
+              new_num_videos: newSize 
+          }),
+      })
+      .then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              alert(data.message);
+              // إعادة تحميل محتوى الملف المحدث بدلاً من إعادة تحميل الصفحة
+              updateFileContent(selectedFile);
+          } else {
+              alert("فشل إعادة التجميع: " + data.message);
+          }
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          alert("حدث خطأ أثناء الاتصال بالخادم.");
+      })
+      .finally(() => {
+          this.disabled = false;
+      });
     });
-    if (this.value === "3" || this.value === "4") {
-      valueInput.style.display = "block";
-      document.getElementById("value").required = true;
-    } else if (this.value === "5" || this.value === "6") {
-      minMaxInput.style.display = "block";
-      document.getElementById("min_value").required = true;
-      document.getElementById("max_value").required = true;
-    } else if (this.value === "8") {
-      rangeInputs.style.display = "block";
-      document.getElementById("min_value1").required = true;
-      document.getElementById("max_value1").required = true;
-      document.getElementById("min_value2").required = true;
-      document.getElementById("max_value2").required = true;
-    } else if (this.value === "9") {
-      timesShownInput.style.display = "block";
-      document.getElementById("min_times_shown").required = true;
-      document.getElementById("max_times_shown").required = true;
-    } else if (this.value === "10") {
-      tagsModeInput.style.display = "block";
-      document.getElementById("tags_value_mode_input").required = true;
-    }
+
+    modeSelect.addEventListener("change", function () {
+      valueInput.style.display = "none";
+      minMaxInput.style.display = "none";
+      rangeInputs.style.display = "none";
+      timesShownInput.style.display = "none";
+      tagsModeInput.style.display = "none";
+      const allValueInputs = document.querySelectorAll('#valueInput input, #min-max-input input, #range-inputs input, #times-shown-input input, #tags-mode-input input');
+      allValueInputs.forEach(input => {
+          input.required = false;
+      });
+      if (this.value === "3" || this.value === "4") {
+        valueInput.style.display = "block";
+        document.getElementById("value").required = true;
+      } else if (this.value === "5" || this.value === "6") {
+        minMaxInput.style.display = "block";
+        document.getElementById("min_value").required = true;
+        document.getElementById("max_value").required = true;
+      } else if (this.value === "8") {
+        rangeInputs.style.display = "block";
+        document.getElementById("min_value1").required = true;
+        document.getElementById("max_value1").required = true;
+        document.getElementById("min_value2").required = true;
+        document.getElementById("max_value2").required = true;
+      } else if (this.value === "9") {
+        timesShownInput.style.display = "block";
+        document.getElementById("min_times_shown").required = true;
+        document.getElementById("max_times_shown").required = true;
+      } else if (this.value === "10") {
+        tagsModeInput.style.display = "block";
+        document.getElementById("tags_value_mode_input").required = true;
+      }
+    });
+    modeSelect.dispatchEvent(new Event('change'));
   });
-  modeSelect.dispatchEvent(new Event('change'));
 </script>
-<!-- END: MODIFIED SECTION -->  </body>
+    <!-- END: MODIFIED SECTION -->  </body>
 </html>

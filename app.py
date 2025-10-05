@@ -12,6 +12,7 @@ from utilities.file_manager import update_video_list, update_file_names, top_vid
 from utilities.helpers import video_handler
 from utilities.routes import init_routes
 from utilities import advanced_tools
+from utilities.video_filter import get_deletion_candidates, load_skipped_videos, save_skipped_videos
 # --- تعديل الاستيراد هنا ---
 from utilities.video_selector import select_winner as select_winner_function, choose_videos_function
 # --- نهاية التعديل ---
@@ -182,6 +183,113 @@ def index():
     selected_folder = session.get('selected_folder')
     return render_template('index.html', selected_folder=selected_folder)
 # ... (بقية كود app.py قبل هذا الجزء) ...
+
+# START: MODIFIED SECTION - أضف هذه الدالة الجديدة بالكامل في app.py
+
+@app.route('/filter_delete', methods=['GET', 'POST'])
+def filter_and_delete():
+    """
+    يعرض صفحة فلترة وحذف الفيديوهات ويعالج عمليات الحذف والتخطي.
+    """
+    if not session.get('selected_folder'):
+        flash("يرجى اختيار مجلد أولاً للوصول لهذه الصفحة.", "warning")
+        return redirect(url_for('index'))
+
+    # تحميل بيانات الفيديوهات الحالية
+    all_videos_data = load_data()
+    if not all_videos_data:
+        flash("لم يتم العثور على بيانات فيديوهات للمجلد المحدد.", "danger")
+        return redirect(url_for('index'))
+
+    # الحصول على قائمة الفيديوهات المرشحة للحذف (بعد استبعاد المتخطاة)
+    candidates = get_deletion_candidates(all_videos_data)
+    total_candidates_count = len(candidates)
+    
+    # تحديد حجم الدفعة (عدد الفيديوهات المعروضة في كل صفحة)
+    batch_size = 6 # يمكنك تغيير هذا الرقم لعرض 3 أو 6 أو 9...
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        page = int(request.form.get('page', 1))
+        
+        # فيديوهات تم عرضها في الدفعة الحالية
+        videos_in_batch = request.form.getlist('videos_in_batch')
+        
+        if action == 'delete':
+            videos_to_delete = request.form.getlist('videos_to_delete')
+            videos_to_skip = [v for v in videos_in_batch if v not in videos_to_delete]
+            
+            deleted_count = 0
+            skipped_count = 0
+            
+            # --- منطق الحذف ---
+            if videos_to_delete:
+                selected_folder = session.get('selected_folder')
+                for video_name in videos_to_delete:
+                    # حذف من قاموس البيانات
+                    if video_name in all_videos_data:
+                        del all_videos_data[video_name]
+                    
+                    # حذف الملف الفعلي من المجلد
+                    try:
+                        file_path = os.path.join(selected_folder, video_name)
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                            deleted_count += 1
+                    except Exception as e:
+                        print(f"Error deleting file {video_name}: {e}")
+                
+                # حفظ البيانات بعد الحذف
+                save_data(all_videos_data)
+            
+            # --- منطق التخطي ---
+            if videos_to_skip:
+                skipped_videos_set = load_skipped_videos()
+                for video_name in videos_to_skip:
+                    # نحتاج حجم الملف للتخطي
+                    file_size = request.form.get(f'filesize_{video_name}')
+                    if file_size:
+                        skipped_videos_set.add(int(file_size))
+                        skipped_count += 1
+                save_skipped_videos(skipped_videos_set)
+
+            flash(f"تم حذف {deleted_count} فيديوهات وتخطي {skipped_count} بنجاح.", "success")
+            # أعد التوجيه إلى نفس الصفحة (GET) لإظهار الدفعة التالية من القائمة المحدثة
+            return redirect(url_for('filter_and_delete'))
+
+        elif action == 'skip':
+            # تخطي كل الفيديوهات في الدفعة الحالية
+            skipped_videos_set = load_skipped_videos()
+            skipped_count = 0
+            for video_name in videos_in_batch:
+                file_size = request.form.get(f'filesize_{video_name}')
+                if file_size:
+                    skipped_videos_set.add(int(file_size))
+                    skipped_count += 1
+            save_skipped_videos(skipped_videos_set)
+            flash(f"تم تخطي {skipped_count} فيديوهات. عرض الدفعة التالية.", "info")
+            # أعد التوجيه إلى نفس الصفحة (GET) لإظهار الدفعة التالية من القائمة المحدثة
+            return redirect(url_for('filter_and_delete'))
+
+    # --- منطق العرض (GET) ---
+    page = int(request.args.get('page', 1))
+    start_index = (page - 1) * batch_size
+    end_index = start_index + batch_size
+    
+    # الحصول على الدفعة الحالية من الفيديوهات لعرضها
+    candidates_batch = candidates[start_index:end_index]
+    
+    return render_template(
+        'filter_and_delete.html',
+        candidates_batch=candidates_batch,
+        page=page,
+        total_candidates=total_candidates_count
+    )
+
+# END: MODIFIED SECTION
+
+
+
 
 @app.route('/names_analysis')
 def names_analysis_page():
@@ -1937,46 +2045,82 @@ def tour_page():
                          current_sort=sort_type,
                          current_view=view_type)
 
+
+
 # START: MODIFIED SECTION
+# استبدل الدالة الحالية بهذه النسخة في ملف app.py
 @app.route('/get_tournament_content/<path:filename>')
 def get_tournament_content(filename):
     """
-    مسار آمن لجلب محتوى ملف من مجلد utilities.
-    يستخدمه الجافا سكريبت لملء المربع النصي.
+    مسار آمن لجلب محتوى ملف من مجلد utilities كنص خام.
+    يستخدمه الجافا سكريبت لملء المربع النصي بالمحتوى الأصلي دون تغيير.
     """
     try:
         # التحقق من أن اسم الملف لا يحتوي على مسارات خطيرة
         if '..' in filename or filename.startswith('/'):
-             return jsonify({'error': 'اسم ملف غير صالح.'}), 400
+            return jsonify({'success': False, 'message': 'اسم ملف غير صالح.'}), 400
 
         # بناء المسار الآمن للملف داخل مجلد utilities
         safe_path = os.path.join(JSON_FOLDER, filename)
         
         # التأكد مرة أخرى من أن المسار النهائي لا يزال داخل المجلد المسموح به
         if not os.path.abspath(safe_path).startswith(os.path.abspath(JSON_FOLDER)):
-             return jsonify({'error': 'محاولة الوصول لمسار غير مسموح به.'}), 403
+            return jsonify({'success': False, 'message': 'محاولة الوصول لمسار غير مسموح به.'}), 403
 
         with open(safe_path, 'r', encoding='utf-8') as f:
-            # محاولة قراءة الملف كـ JSON لأنه الأكثر شيوعاً
-            try:
-                data = json.load(f)
-                return jsonify(data)
-            except json.JSONDecodeError:
-                # إذا فشل، فهذا يعني أنه قد يكون ملف نصي عادي (TXT)
-                # نعود لبداية الملف لقراءته كنص
-                f.seek(0)
-                text_content = f.read()
-                # نرجع المحتوى النصي داخل كائن JSON ليتوافق مع JAVASCRIPT
-                # ملاحظة: الجافا سكريبت الذي أرسلته سيقوم بتحويل هذا النص إلى "نص"
-                return jsonify(text_content)
+            # قراءة محتوى الملف بالكامل كنص واحد خام
+            raw_content = f.read()
+            
+        # إرجاع المحتوى الخام داخل كائن JSON
+        # هذا يسهل على JavaScript التعامل معه
+        return jsonify({'success': True, 'raw_content': raw_content, 'filename': filename})
 
     except FileNotFoundError:
-         print(f"File not found via API: {filename}")
-         return jsonify({'error': 'الملف غير موجود.'}), 404
+        print(f"File not found via API: {filename}")
+        return jsonify({'success': False, 'message': 'الملف غير موجود.'}), 404
     except Exception as e:
         print(f"Error in get_tournament_content for {filename}: {e}")
-        return jsonify({'error': f'خطأ في الخادم: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': f'خطأ في الخادم: {str(e)}'}), 500
+
+# أضف هذه الدالة الجديدة في أي مكان مناسب داخل ملف app.py
+# (مثلاً، بعد دالة manage_tournaments_actions)
+@app.route('/api/manage_tournament_file', methods=['POST'])
+def manage_tournament_file_api():
+    """
+    API endpoint to handle file deletion and renaming.
+    """
+    from utilities import tournaments_manager # استيراد داخل الدالة لتجنب المشاكل
+    
+    try:
+        data = request.get_json()
+        action = data.get('action')
+        filename = data.get('filename')
+        
+        if action == 'delete':
+            if not filename:
+                return jsonify({'success': False, 'message': 'اسم الملف مطلوب للحذف.'}), 400
+            
+            success, message = tournaments_manager.delete_tournament_file(filename)
+            return jsonify({'success': success, 'message': message})
+
+        elif action == 'rename':
+            old_filename = data.get('old_filename')
+            new_filename = data.get('new_filename')
+
+            if not old_filename or not new_filename:
+                return jsonify({'success': False, 'message': 'الاسم القديم والجديد مطلوبان.'}), 400
+            
+            success, message = tournaments_manager.rename_tournament_file(old_filename, new_filename)
+            return jsonify({'success': success, 'message': message, 'new_filename': new_filename if success else old_filename})
+            
+        else:
+            return jsonify({'success': False, 'message': 'الإجراء غير معروف.'}), 400
+            
+    except Exception as e:
+        print(f"Error in manage_tournament_file_api: {e}")
+        return jsonify({'success': False, 'message': f'حدث خطأ في الخادم: {str(e)}'}), 500
 # END: MODIFIED SECTION
+
 @app.route('/tour/create', methods=['POST'])
 def tour_create():
     selected_file = request.form.get('json_file')
