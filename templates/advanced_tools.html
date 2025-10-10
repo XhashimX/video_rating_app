@@ -57,7 +57,6 @@
         </div>
 
         <!-- البطاقة الثانية: صنع المسابقات -->
-        <!-- START: MODIFIED SECTION - تم تعديل هذه البطاقة بالكامل -->
         <div class="col-lg-6 mb-4">
             <div class="card h-100">
                 <div class="card-header">
@@ -136,7 +135,6 @@
                 </div>
             </div>
         </div>
-        <!-- END: MODIFIED SECTION -->
 
         <!-- البطاقة الثالثة: المقارنة والتصحيح -->
         <div class="col-lg-6 mb-4">
@@ -185,26 +183,74 @@
             </div>
         </div>
 
-        <!-- البطاقة الرابعة: معالجة التكرارات (معطلة) -->
+        <!-- START: MODIFIED SECTION - تم تعديل هذه البطاقة بالكامل -->
+        <!-- البطاقة الرابعة: معالجة الأوزان وإنشاء البطولة -->
         <div class="col-lg-6 mb-4">
             <div class="card h-100">
-                <div class="card-header bg-light">
-                    <h5 class="card-title mb-0 text-muted"><i class="fas fa-copy me-2"></i>4. معالجة الملفات المكررة</h5>
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-balance-scale me-2"></i>4. معالجة الأوزان وإنشاء البطولة</h5>
                 </div>
-                 <div class="card-body text-muted">
-                    <p class="card-text">قارن بين ملفين مختلفين للبحث عن الفيديوهات المكررة (بنفس حجم الملف) وقم بمعالجتها.</p>
-                     <form id="handle-duplicates-form">
-                        <fieldset disabled>
-                             <div class="mb-3">
-                                <label class="form-label">اختر الملفات:</label>
-                                <input type="text" class="form-control" placeholder="هذه الميزة قيد التطوير">
+                <div class="card-body d-flex flex-column">
+                    <p class="card-text">
+                        يعالج <code>tournamentarchive.json</code> لتحديث أوزان الفيديوهات في <code>processed_videos.json</code>،
+                        مع تصحيح البيانات أولاً، ثم ينشئ بطولة جديدة بناءً على الخيارات المحددة.
+                    </p>
+                    <form id="process-weights-form" class="d-flex flex-column flex-grow-1">
+                        <div class="row">
+                            <div class="col-md-7 mb-3">
+                                <label for="item-type-filter" class="form-label">فلترة المشاركين حسب النوع:</label>
+                                <select class="form-select" id="item-type-filter" name="item_type_filter">
+                                    <option value="all" selected>الكل</option>
+                                    <option value="video">فيديو فقط</option>
+                                    <option value="image">صور فقط</option>
+                                </select>
                             </div>
-                            <button type="submit" class="btn btn-secondary w-100">بحث ومعالجة</button>
-                        </fieldset>
+                             <div class="col-md-5 mb-3">
+                                <label for="num-participants" class="form-label">عدد المشاركين:</label>
+                                <input type="number" class="form-control" id="num-participants" name="num_participants" value="16" min="2" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="selection-method" class="form-label">طريقة اختيار المشاركين:</label>
+                            <select class="form-select" id="selection-method" name="selection_method">
+                                <option value="top">الأعلى وزناً</option>
+                                <option value="bottom">الأقل وزناً</option>
+                                <option value="middle">الوسط (اختيار مباشر)</option>
+                                <option value="middle_range">المجال الأوسط (عشوائي 50%)</option>
+                                <option value="random" selected>عشوائي</option>
+                                <option value="weight_range_manual">نطاق الوزن + إضافة يدوية</option>
+                            </select>
+                        </div>
+
+                        <!-- حقول خيارات نطاق الوزن (مخفية بشكل افتراضي) -->
+                        <div id="weight-range-options" style="display: none;">
+                            <p class="mb-2"><strong>إعدادات نطاق الوزن والإضافة اليدوية:</strong></p>
+                             <div class="row">
+                                <div class="col-6 mb-2">
+                                    <input type="number" class="form-control" name="min_weight" placeholder="أقل وزن">
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <input type="number" class="form-control" name="max_weight" placeholder="أعلى وزن">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="manual-sizes" class="form-label">أحجام الملفات للإضافة اليدوية (مفصولة بفاصلة):</label>
+                                <textarea class="form-control" name="manual_sizes" id="manual-sizes" rows="2" placeholder="مثال: 12345, 67890"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto">
+                            <button type="submit" class="btn btn-warning w-100">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                <span class="button-text">معالجة وإنشاء البطولة</span>
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
         </div>
+        <!-- END: MODIFIED SECTION -->
     </div>
 </div>
 
@@ -233,7 +279,6 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .then(data => {
                 if(data.success) {
-                    // تم تعديل هذا الجزء ليعرض المحتوى الخام مباشرة
                     extractContentTextarea.value = data.raw_content;
                 } else {
                     extractContentTextarea.value = `خطأ: ${data.message || 'فشل تحميل المحتوى'}`;
@@ -257,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function showResult(success, message) {
         resultsContainer.style.display = 'block';
-        resultsOutput.className = success ? 'alert alert-success' : 'alert alert-danger';
+        resultsOutput.className = success ? 'alert alert-success' : 'alert alert-info';
         resultsOutput.innerHTML = message;
         window.scrollTo(0, 0);
     }
@@ -285,7 +330,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // --- منطق الفورم الثاني (صنع المسابقات) ---
-    // START: MODIFIED SECTION - تم تعديل هذا الجزء
     const makeCompetitionForm = document.getElementById('make-competition-form');
     makeCompetitionForm.addEventListener('submit', function (event) {
         event.preventDefault();
@@ -300,11 +344,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 num_videos: parseInt(formData.get('num_videos'), 10),
                 limit: formData.get('limit') ? parseInt(formData.get('limit'), 10) : null,
                 filters: {
-                    // الفلاتر العامة
                     rating: formData.get('rating'),
                     times_shown: formData.get('times_shown'),
                     tags: formData.get('tags'),
-                    // الفلاتر المتوازنة الجديدة
                     balanced_rating: formData.get('balanced_rating'),
                     balanced_times_shown: formData.get('balanced_times_shown'),
                     balanced_tags: formData.get('balanced_tags'),
@@ -322,7 +364,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(error => { showResult(false, 'حدث خطأ في الشبكة.'); })
         .finally(() => { hideLoading(button, originalButtonText); });
     });
-    // END: MODIFIED SECTION
 
     // --- منطق الفورم الثالث (التصحيح) ---
     const compareCorrectForm = document.getElementById('compare-correct-form');
@@ -350,6 +391,60 @@ document.addEventListener('DOMContentLoaded', function () {
         .finally(() => { hideLoading(button, originalButtonText); });
     });
 
+    // START: MODIFIED SECTION - تمت إضافة هذا الجزء بالكامل
+    // --- منطق الفورم الرابع (معالجة الأوزان) ---
+    const processWeightsForm = document.getElementById('process-weights-form');
+    const selectionMethodSelect = document.getElementById('selection-method');
+    const weightRangeOptions = document.getElementById('weight-range-options');
+
+    // إظهار/إخفاء خيارات نطاق الوزن بناءً على طريقة الاختيار
+    selectionMethodSelect.addEventListener('change', function() {
+        if (this.value === 'weight_range_manual') {
+            weightRangeOptions.style.display = 'block';
+        } else {
+            weightRangeOptions.style.display = 'none';
+        }
+    });
+
+    processWeightsForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const button = processWeightsForm.querySelector('button[type="submit"]');
+        const originalButtonText = button.querySelector('.button-text').textContent;
+        showLoading(button);
+
+        const formData = new FormData(processWeightsForm);
+        
+        // تحويل الأحجام النصية إلى قائمة أرقام
+        const manualSizesStr = formData.get('manual_sizes') || '';
+        const manualSizes = manualSizesStr.split(',')
+            .map(s => s.trim())
+            .filter(s => s !== '')
+            .map(s => parseInt(s, 10))
+            .filter(n => !isNaN(n));
+
+        const requestData = {
+            action: 'process_weights_and_create',
+            settings: {
+                item_type_filter: formData.get('item_type_filter'),
+                num_participants: parseInt(formData.get('num_participants'), 10),
+                selection_method: formData.get('selection_method'),
+                min_weight: formData.get('min_weight') ? parseFloat(formData.get('min_weight')) : null,
+                max_weight: formData.get('max_weight') ? parseFloat(formData.get('max_weight')) : null,
+                manual_sizes: manualSizes
+            }
+        };
+
+        fetch("{{ url_for('run_tool') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.json())
+        .then(data => { showResult(data.success, data.message); })
+        .catch(error => { showResult(false, 'حدث خطأ في الشبكة أو الاتصال بالخادم.'); })
+        .finally(() => { hideLoading(button, originalButtonText); });
+    });
+    // END: MODIFIED SECTION
 });
 </script>
 {% endblock %}

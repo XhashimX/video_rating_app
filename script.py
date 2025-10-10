@@ -815,7 +815,7 @@ def get_tiktok_videos_with_thumbnails(username, existing_links=None, is_first_ru
     
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=True,
+            headless=False,
             args=[
                 '--disable-blink-features=AutomationControlled',
                 '--disable-dev-shm-usage',

@@ -512,7 +512,6 @@ def run_tool():
             )
             return jsonify(result)
         
-        # --- بداية القسم الجديد ---
         elif action == 'compare_and_correct':
             target_file = data.get('target_file')
             output_option = data.get('output_option')
@@ -520,7 +519,6 @@ def run_tool():
             if not target_file:
                 return jsonify({'success': False, 'message': 'الرجاء اختيار ملف بطولة لتصحيحه.'})
 
-            # 1. تحديد قواعد البيانات الموثوقة تلقائياً
             try:
                 master_db_names = [f for f in os.listdir(utilities_folder) if f.startswith('elo_videos') and f.endswith('.json')]
                 if not master_db_names:
@@ -532,7 +530,6 @@ def run_tool():
 
             target_file_path = os.path.join(utilities_folder, target_file)
 
-            # 2. استدعاء دالة المنطق الرئيسية
             result = advanced_tools.function_compare_and_correct(
                 target_file_path=target_file_path,
                 master_db_paths=master_db_paths,
@@ -540,8 +537,20 @@ def run_tool():
                 base_output_path=utilities_folder
             )
             return jsonify(result)
+
+        # --- بداية القسم الجديد ---
+        elif action == 'process_weights_and_create':
+            settings = data.get('settings')
+            if not settings:
+                 return jsonify({'success': False, 'message': 'الإعدادات مفقودة.'})
+            
+            result = advanced_tools.function_process_weights_and_create_tournament(
+                settings=settings,
+                base_utilities_path=utilities_folder
+            )
+            return jsonify(result)
         # --- نهاية القسم الجديد ---
-        
+            
         else:
             return jsonify({'success': False, 'message': 'الإجراء المطلوب غير معروف.'}), 400
 
@@ -551,8 +560,11 @@ def run_tool():
         traceback.print_exc()
         return jsonify({'success': False, 'message': f'حدث خطأ غير متوقع في الخادم: {str(e)}'}), 500
 # END: MODIFIED SECTION
-# START: MODIFIED SECTION
-# The entire 'competition' function in app.py should be replaced with this version.
+
+
+
+
+
 @app.route('/competition', methods=['GET', 'POST'])
 def competition():
     """

@@ -1,4 +1,5 @@
-# START: MODIFIED SECTION
+# START OF FILE utilities/advanced_tools.py
+
 import json
 import re
 import os
@@ -196,136 +197,6 @@ def _filter_videos_non_interactive(videos_data, filters):
     
     return filtered_videos
 
-# START: MODIFIED SECTION
-# START: MODIFIED SECTION
-def function_make_competition(input_json_path, base_output_path, settings):
-    """
-    تنشئ ملف مسابقات مخصص بناءً على الإعدادات المقدمة.
-    تدعم الآن الفلتر المتقدم "التقييم المتوازن".
-    """
-    try:
-        if not os.path.exists(input_json_path):
-            return {'success': False, 'message': f"ملف البيانات الأساسي غير موجود: {os.path.basename(input_json_path)}"}
-        
-        videos_data = _load_json_file(input_json_path)
-        if not videos_data or not isinstance(videos_data, dict):
-            return {'success': False, 'message': 'ملف البيانات الأساسي فارغ أو بتنسيق غير صحيح.'}
-
-        filters = settings.get('filters', {})
-        # الخطوة 1: تطبيق الفلاتر العامة أولاً (rating, times_shown, tags)
-        initial_filtered_videos = _filter_videos_non_interactive(videos_data, filters)
-
-        if not initial_filtered_videos:
-            return {'success': False, 'message': 'لم يتم العثور على أي فيديوهات تطابق الفلاتر العامة المحددة.'}
-
-        num_videos = settings.get('num_videos', 2)
-        competitions = []
-        
-        # --- المنطق الجديد: التحقق من وجود فلتر التقييم المتوازن ---
-        balanced_rating_filter = filters.get('balanced_rating', '').strip()
-
-        if balanced_rating_filter:
-            # الخطوة 2: تحليل فلتر التقييم المتوازن
-            parts = [p.strip() for p in balanced_rating_filter.split(',') if p.strip()]
-            if len(parts) != 2:
-                return {'success': False, 'message': 'فلتر التقييم المتوازن يجب أن يحتوي على قسمين مفصولين بفاصلة. مثال: 1000, 1200-1400'}
-
-            group_a_ranges = _parse_range_list(parts[0], int)
-            group_b_ranges = _parse_range_list(parts[1], int)
-
-            # الخطوة 3: تقسيم الفيديوهات المفلترة إلى مجموعتين
-            videos_group_a = []
-            videos_group_b = []
-            for name, details in initial_filtered_videos.items():
-                rating = details.get('rating')
-                if rating is not None:
-                    if any(low <= rating <= high for low, high in group_a_ranges):
-                        videos_group_a.append(name)
-                    elif any(low <= rating <= high for low, high in group_b_ranges):
-                        videos_group_b.append(name)
-            
-            # الخطوة 4: التحقق من وجود عدد كافٍ من الفيديوهات في كل مجموعة
-            num_from_each = num_videos // 2
-            if len(videos_group_a) < num_from_each or len(videos_group_b) < num_from_each:
-                 return {'success': False, 'message': f"لا يوجد عدد كاف من الفيديوهات في المجموعتين لإنشاء مسابقات. المجموعة الأولى: {len(videos_group_a)} فيديو، المجموعة الثانية: {len(videos_group_b)} فيديو. المطلوب على الأقل {num_from_each} من كل مجموعة."}
-
-            random.shuffle(videos_group_a)
-            random.shuffle(videos_group_b)
-
-            # الخطوة 5: بناء المسابقات بشكل متوازن
-            while len(videos_group_a) >= num_from_each and len(videos_group_b) >= num_from_each:
-                chunk = []
-                # أخذ العدد المطلوب من كل مجموعة
-                chunk.extend(videos_group_a.pop(0) for _ in range(num_from_each))
-                chunk.extend(videos_group_b.pop(0) for _ in range(num_from_each))
-                
-                # التعامل مع العدد الفردي
-                if num_videos % 2 != 0:
-                    remaining_pool = videos_group_a + videos_group_b
-                    if remaining_pool:
-                        extra_vid = random.choice(remaining_pool)
-                        chunk.append(extra_vid)
-                        # إزالة الفيديو الإضافي من قائمته الأصلية
-                        if extra_vid in videos_group_a: videos_group_a.remove(extra_vid)
-                        else: videos_group_b.remove(extra_vid)
-
-                random.shuffle(chunk) # خلط الفيديوهات داخل المسابقة
-                
-                if len(chunk) == num_videos:
-                    competition_entry = {
-                        "videos": chunk,
-                        "rating": [videos_data[name].get("rating", 1000) for name in chunk],
-                        "file_size": [videos_data[name].get("file_size", 0) for name in chunk],
-                        "mode": 1, "num_videos": num_videos, "ranking_type": "winner_only", "competition_type": "balanced_random"
-                    }
-                    competitions.append(competition_entry)
-        else:
-            # --- المنطق القديم: في حال عدم استخدام الفلتر المتوازن ---
-            video_names = list(initial_filtered_videos.keys())
-            random.shuffle(video_names)
-            for i in range(0, len(video_names), num_videos):
-                chunk = video_names[i:i + num_videos]
-                if len(chunk) == num_videos:
-                    competition_entry = {
-                        "videos": chunk,
-                        "rating": [initial_filtered_videos[name].get("rating", 1000) for name in chunk],
-                        "file_size": [initial_filtered_videos[name].get("file_size", 0) for name in chunk],
-                        "mode": 1, "num_videos": num_videos, "ranking_type": "winner_only", "competition_type": "random"
-                    }
-                    competitions.append(competition_entry)
-        
-        # تطبيق الحد الأقصى للمسابقات وحفظ الملف (هذا الجزء لم يتغير)
-        limit = settings.get('limit')
-        if limit and limit > 0 and len(competitions) > limit:
-            competitions = competitions[:limit]
-
-        if not competitions:
-            return {'success': False, 'message': 'لم يتمكن من إنشاء أي مسابقات. قد يكون عدد الفيديوهات المفلترة غير كافٍ.'}
-
-        random_suffix = random.randint(100, 999)
-        input_basename = _sanitize_filename(os.path.splitext(os.path.basename(input_json_path))[0])
-        output_filename = f"topcut_{input_basename}_{random_suffix}.json"
-        output_filepath = os.path.join(base_output_path, output_filename)
-
-        success, message = _save_json_file(competitions, output_filepath)
-
-        if success:
-            final_message = f"نجحت العملية! تم إنشاء {len(competitions)} مسابقة وحفظها في الملف: <strong>{output_filename}</strong>"
-            return {'success': True, 'message': final_message}
-        else:
-            return {'success': False, 'message': f"فشل حفظ الملف: {message}"}
-
-    except Exception as e:
-        print(f"Error in function_make_competition: {e}")
-        import traceback
-        traceback.print_exc()
-        return {'success': False, 'message': f"حدث خطأ غير متوقع: {e}"}
-# END: MODIFIED SECTION
-
-
-
-# START: MODIFIED SECTION
-# استبدل الدالة الحالية function_make_competition بالكامل بهذه النسخة
 def function_make_competition(input_json_path, base_output_path, settings):
     """
     تنشئ ملف مسابقات مخصص بناءً على الإعدادات المقدمة.
@@ -494,10 +365,7 @@ def function_make_competition(input_json_path, base_output_path, settings):
         import traceback
         traceback.print_exc()
         return {'success': False, 'message': f"حدث خطأ غير متوقع: {e}"}
-# END: MODIFIED SECTION
 
-# START: MODIFIED SECTION
-# أضف هذه الدالة المساعدة الجديدة في ملف utilities/advanced_tools.py
 def _parse_string_list(input_str):
     """
     تحلل سلسلة نصية مفصولة بفواصل مثل 'face, body' إلى قائمة.
@@ -505,4 +373,387 @@ def _parse_string_list(input_str):
     if not input_str or not input_str.strip():
         return []
     return [item.strip().lower() for item in input_str.split(',') if item.strip()]
+
+# --- الدالة الثالثة: المقارنة والتصحيح (النسخة المصححة) ---
+
+def function_compare_and_correct(target_file_path, master_db_paths, output_option, base_output_path):
+    """
+    تقارن ملف بطولة مع قواعد البيانات الرئيسية باستخدام حجم الملف كمعرف فريد،
+    وتقوم بتحديث اسم الفيديو وتقييمه.
+    """
+    try:
+        # 1. تحميل ملف البطولة الهدف
+        target_data = _load_json_file(target_file_path)
+        if not target_data or not isinstance(target_data, list):
+            return {'success': False, 'message': 'ملف البطولة الهدف فارغ أو بتنسيق غير صحيح.'}
+
+        # 2. بناء قاموس بحث سريع من قواعد البيانات الرئيسية باستخدام file_size كمفتاح
+        master_lookup = {}
+        for db_path in master_db_paths:
+            db_data = _load_json_file(db_path)
+            if db_data and isinstance(db_data, dict):
+                for vid_name, details in db_data.items():
+                    if 'file_size' in details:
+                        # القيمة تحتوي على كل ما نحتاجه: الاسم المحدث والتقييم المحدث
+                        master_lookup[details['file_size']] = {
+                            'name': vid_name,
+                            'rating': details.get('rating', 1000)
+                        }
+        
+        if not master_lookup:
+            return {'success': False, 'message': 'فشل تحميل أي من قواعد البيانات الرئيسية أو أنها لا تحتوي على بيانات حجم الملف.'}
+        
+        # 3. إعداد العدادات
+        name_updates = 0
+        rating_updates = 0
+        unfound_count = 0
+        
+        # 4. المرور على كل مسابقة وتصحيحها (العمل على نسخة من البيانات)
+        corrected_competitions = json.loads(json.dumps(target_data)) # إنشاء نسخة عميقة
+
+        for competition in corrected_competitions:
+            # التحقق من وجود القوائم اللازمة
+            if not all(k in competition for k in ['file_size', 'videos', 'rating']):
+                continue # تخطي المسابقات ذات التنسيق الخاطئ
+            
+            # التكرار باستخدام الفهرس لتتمكن من تعديل القوائم
+            for i in range(len(competition['file_size'])):
+                current_size = competition['file_size'][i]
+                
+                if current_size in master_lookup:
+                    # الحالة 1: تم العثور على الحجم - قم بالتحديث
+                    master_entry = master_lookup[current_size]
+                    
+                    # تحديث الاسم إذا كان مختلفاً
+                    if competition['videos'][i] != master_entry['name']:
+                        competition['videos'][i] = master_entry['name']
+                        name_updates += 1
+                        
+                    # تحديث التقييم إذا كان مختلفاً
+                    if abs(competition['rating'][i] - master_entry['rating']) > 0.01:
+                        competition['rating'][i] = master_entry['rating']
+                        rating_updates += 1
+                else:
+                    # الحالة 2: لم يتم العثور على الحجم - تسجيله كغير موجود
+                    unfound_count += 1
+
+        # 5. حفظ الملف الناتج
+        output_filename = ""
+        if output_option == 'overwrite':
+            output_filepath = target_file_path
+            output_filename = os.path.basename(target_file_path)
+        else: # new_file
+            timestamp = datetime.now().strftime("%H%M%S")
+            base_name = os.path.splitext(os.path.basename(target_file_path))[0]
+            output_filename = f"{base_name}_corrected_{timestamp}.json"
+            output_filepath = os.path.join(base_output_path, output_filename)
+            
+        success, message = _save_json_file(corrected_competitions, output_filepath)
+
+        if success:
+            final_message = (
+                f"اكتمل التصحيح بنجاح للملف <strong>{output_filename}</strong>.<br>"
+                f"- تم تحديث <strong>{name_updates}</strong> اسم فيديو.<br>"
+                f"- تم تحديث <strong>{rating_updates}</strong> تقييم.<br>"
+                f"- تم العثور على <strong>{unfound_count}</strong> فيديو غير موجود في قاعدة البيانات الرئيسية (تم تجاهله)."
+            )
+            return {'success': True, 'message': final_message}
+        else:
+            return {'success': False, 'message': f"فشل حفظ الملف: {message}"}
+
+    except Exception as e:
+        print(f"Error in function_compare_and_correct: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'success': False, 'message': f"حدث خطأ غير متوقع: {e}"}
+        
+# --- الدالة الرابعة: معالجة الأوزان وإنشاء البطولات (النسخة المعدلة) ---
+
+# --- ثوابت وإعدادات خاصة بالدالة الرابعة ---
+VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm']
+IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']
+
+STANDARD_WEIGHT_RULES = {
+    "top1": {"base_percent": 0.50, "bonus_percent": 0.10},
+    "top2": {"base_percent": 0.30, "bonus_percent": 0.05},
+    "top3": {"base_percent": 0.10, "bonus_percent": 0.00},
+    "top4": {"base_percent": 0.10, "bonus_percent": 0.00}
+}
+TWO_ITEM_WEIGHT_RULES = {"top1": 0.60, "top2": 0.40}
+RELEVANT_RANKS = ["top1", "top2", "top3", "top4"]
+
+# --- دوال مساعدة للدالة الرابعة ---
+
+def _build_master_lookup(master_db_paths):
+    """يبني قاموس بحث سريع من قواعد البيانات الموثوقة."""
+    master_lookup = {}
+    for db_path in master_db_paths:
+        db_data = _load_json_file(db_path)
+        if db_data and isinstance(db_data, dict):
+            for vid_name, details in db_data.items():
+                if 'file_size' in details:
+                    master_lookup[details['file_size']] = {
+                        'video_name': vid_name,
+                        'name': details.get('name', ''), # اسم العرض
+                        'rating': details.get('rating', 1000),
+                        'file_size': details['file_size']
+                    }
+    return master_lookup
+
+def _correct_and_load_processed_items(filepath, master_lookup):
+    """
+    يحمل ملف العناصر المعالجة ويصحح اسم وتقييم كل عنصر.
+    """
+    items_by_size = {}
+    corrections_count = 0
+    data = _load_json_file(filepath)
+    if not data or not isinstance(data, list):
+        return items_by_size, corrections_count
+    
+    for item in data:
+        if 'file_size' not in item:
+            continue
+        
+        file_size = item['file_size']
+        if file_size in master_lookup:
+            master_entry = master_lookup[file_size]
+            # التحقق مما إذا كان هناك تغيير
+            if item.get('video_name') != master_entry['video_name'] or abs(item.get('latest_rating', 0) - master_entry['rating']) > 0.01:
+                corrections_count += 1
+            # التحديث دائمًا لضمان التوافق
+            item['video_name'] = master_entry['video_name']
+            item['latest_rating'] = master_entry['rating']
+        
+        items_by_size[file_size] = item
+        
+    return items_by_size, corrections_count
+
+def _filter_items_by_type(items_list, item_type):
+    """فلترة العناصر بناءً على نوعها (فيديو أو صورة)."""
+    if item_type == 'video':
+        allowed_extensions = VIDEO_EXTENSIONS
+    elif item_type == 'image':
+        allowed_extensions = IMAGE_EXTENSIONS
+    else:
+        return items_list
+    return [item for item in items_list if item.get('file_extension') in allowed_extensions]
+
+
+def function_process_weights_and_create_tournament(settings, base_utilities_path):
+    """
+    الدالة الرئيسية التي تنفذ كل منطق معالجة الأوزان وتصحيح البيانات وإنشاء البطولات.
+    """
+    try:
+        # --- 1. تحديد المسارات والملفات ---
+        ARCHIVE_FILE = os.path.join(base_utilities_path, 'tournamentarchive.json')
+        PROCESSED_ITEMS_FILE = os.path.join(base_utilities_path, 'processed_videos.json')
+        
+        master_db_names = [f for f in os.listdir(base_utilities_path) if f.startswith('elo_videos') and f.endswith('.json')]
+        if not master_db_names:
+            return {'success': False, 'message': "لم يتم العثور على ملفات قاعدة البيانات الموثوقة (elo_videos_*.json)."}
+        master_db_paths = [os.path.join(base_utilities_path, f) for f in master_db_names]
+
+        # --- 2. بناء قاموس البحث الموثوق وتصحيح البيانات الحالية ---
+        master_lookup = _build_master_lookup(master_db_paths)
+        if not master_lookup:
+            return {'success': False, 'message': 'فشل بناء قاعدة البيانات الموثوقة.'}
+
+        existing_items_by_size, corrections_in_processed = _correct_and_load_processed_items(PROCESSED_ITEMS_FILE, master_lookup)
+        
+        # --- 3. معالجة أرشيف البطولات وتصحيح بياناته ---
+        archive_data = _load_json_file(ARCHIVE_FILE)
+        if not archive_data:
+            return {'success': False, 'message': 'ملف أرشيف البطولات (tournamentarchive.json) فارغ أو غير موجود.'}
+
+        archive_items_by_size = {}
+        corrections_in_archive = 0
+
+        for tour_key, tour_data in archive_data.items():
+            try:
+                base_weight = float(tour_key.split('.', 1)[0])
+            except (ValueError, IndexError):
+                continue
+
+            present_ranks = [r for r in RELEVANT_RANKS if r in tour_data]
+            is_two_item = (len(present_ranks) == 2 and "top1" in present_ranks and "top2" in present_ranks)
+
+            for rank_key in present_ranks:
+                item_info = tour_data[rank_key]
+                item_name_key = "video" if "video" in item_info else "image"
+                item_name = item_info.get(item_name_key)
+                file_size = item_info.get("file_size")
+
+                if not item_name or not file_size:
+                    continue
+                
+                # تصحيح الاسم والتقييم هنا
+                if file_size in master_lookup:
+                    master_entry = master_lookup[file_size]
+                    if item_name != master_entry['video_name'] or abs(item_info.get("new_rating", 0) - master_entry['rating']) > 0.01:
+                        corrections_in_archive += 1
+                    item_name = master_entry['video_name']
+                    latest_rating = master_entry['rating']
+                else:
+                    latest_rating = item_info.get("new_rating", item_info.get("old_rating", 0))
+
+                _, ext = os.path.splitext(item_name)
+                
+                weight = 0
+                if is_two_item and rank_key in TWO_ITEM_WEIGHT_RULES:
+                    weight = TWO_ITEM_WEIGHT_RULES[rank_key] * base_weight
+                elif rank_key in STANDARD_WEIGHT_RULES:
+                    rule = STANDARD_WEIGHT_RULES[rank_key]
+                    weight = (rule["base_percent"] + rule["bonus_percent"]) * base_weight
+
+                if file_size not in archive_items_by_size:
+                    archive_items_by_size[file_size] = {
+                        "video_name": item_name,
+                        "file_extension": ext.lower(),
+                        "total_weight": weight,
+                        "latest_rating": latest_rating,
+                        "file_size": file_size
+                    }
+                else:
+                    archive_items_by_size[file_size]["total_weight"] += weight
+                    archive_items_by_size[file_size]["latest_rating"] = latest_rating # تحديث التقييم لآخر ظهور
+
+        # --- 4. دمج البيانات وحفظها ---
+        for fs, data in archive_items_by_size.items():
+             existing_items_by_size[fs] = data # الكتابة فوق البيانات القديمة ببيانات الأرشيف المحدثة
+
+        processed_list = sorted(existing_items_by_size.values(), key=lambda x: x.get('total_weight', 0), reverse=True)
+        _save_json_file(processed_list, PROCESSED_ITEMS_FILE)
+        
+        # --- 5. فلترة وبناء قائمة المشاركين للبطولة الجديدة ---
+        item_type = settings.get('item_type_filter', 'all')
+        selection_method = settings.get('selection_method', 'random')
+        num_participants = settings.get('num_participants', 16)
+        
+        items_with_weight = [item for item in processed_list if item.get("total_weight", 0) > 0]
+        
+        # فلترة أولية حسب النوع
+        filtered_items_for_selection = _filter_items_by_type(items_with_weight, item_type)
+        
+        selected_items = []
+
+        if selection_method in ['top', 'bottom', 'middle', 'middle_range', 'random']:
+            if not filtered_items_for_selection:
+                return {'success': False, 'message': f"لا توجد عناصر من نوع '{item_type}' بوزن أكبر من صفر."}
+            
+            if num_participants > len(filtered_items_for_selection):
+                num_participants = len(filtered_items_for_selection)
+
+            if selection_method == 'top':
+                selected_items = filtered_items_for_selection[:num_participants]
+            elif selection_method == 'bottom':
+                selected_items = filtered_items_for_selection[-num_participants:]
+            elif selection_method == 'middle':
+                start = max(0, (len(filtered_items_for_selection) - num_participants) // 2)
+                selected_items = filtered_items_for_selection[start : start + num_participants]
+            elif selection_method == 'middle_range':
+                total = len(filtered_items_for_selection)
+                start = total // 4
+                end = total * 3 // 4
+                middle_pool = filtered_items_for_selection[start:end]
+                if not middle_pool:
+                     return {'success': False, 'message': "لا توجد عناصر كافية لتطبيق فلتر المجال الأوسط."}
+                num_to_sample = min(num_participants, len(middle_pool))
+                selected_items = random.sample(middle_pool, num_to_sample)
+            elif selection_method == 'random':
+                selected_items = random.sample(filtered_items_for_selection, num_participants)
+
+        elif selection_method == 'weight_range_manual':
+            min_w = settings.get('min_weight', 0)
+            max_w = settings.get('max_weight', float('inf'))
+            manual_sizes = settings.get('manual_sizes', [])
+            
+            range_pool = [item for item in filtered_items_for_selection if min_w <= item.get("total_weight", 0) <= max_w]
+            
+            manual_items = []
+            manual_found_count = 0
+            manual_not_found = []
+
+            for size in manual_sizes:
+                # البحث في القائمة المعالجة أولاً، ثم في قاعدة البيانات الموثوقة
+                if size in existing_items_by_size:
+                    manual_items.append(existing_items_by_size[size])
+                    manual_found_count +=1
+                elif size in master_lookup:
+                    entry = master_lookup[size]
+                    _, ext = os.path.splitext(entry['video_name'])
+                    manual_items.append({
+                        "video_name": entry['video_name'], "file_extension": ext.lower(),
+                        "total_weight": 0, "latest_rating": entry['rating'], "file_size": size
+                    })
+                    manual_found_count +=1
+                else:
+                    manual_not_found.append(str(size))
+            
+            # إزالة العناصر المضافة يدوياً من المجمع لتجنب التكرار
+            manual_sizes_set = set(manual_sizes)
+            range_pool = [item for item in range_pool if item['file_size'] not in manual_sizes_set]
+            
+            needed_from_pool = max(0, num_participants - len(manual_items))
+            if needed_from_pool > 0 and range_pool:
+                num_to_sample = min(needed_from_pool, len(range_pool))
+                selected_items = manual_items + random.sample(range_pool, num_to_sample)
+            else:
+                selected_items = manual_items
+            
+            if len(selected_items) > num_participants:
+                selected_items = selected_items[:num_participants]
+
+        if not selected_items:
+            return {'success': False, 'message': "لم يتم اختيار أي عناصر لإنشاء البطولة."}
+        
+        # --- 6. بناء وحفظ ملف البطولة ---
+        random.shuffle(selected_items)
+        tournament = []
+        for i in range(0, len(selected_items) -1, 2):
+            item1 = selected_items[i]
+            item2 = selected_items[i+1]
+            tournament.append({
+                "videos": [item1["video_name"], item2["video_name"]],
+                "rating": [item1["latest_rating"], item2["latest_rating"]],
+                "file_size": [item1["file_size"], item2["file_size"]],
+                "mode": 1, "num_videos": 2, "ranking_type": "winner_only", "competition_type": "random"
+            })
+
+# START: MODIFIED SECTION
+        # --- 7. حساب الوزن وتجهيز اسم الملف والرسالة النهائية ---
+
+        # حساب الوزن الإجمالي للمشاركين في البطولة
+        total_tournament_weight = sum(item.get('total_weight', 0) for item in selected_items)
+        
+        # إنشاء اسم الملف الجديد
+        input_basename = "unknown_source"
+        if master_db_names:
+            # استخدام اسم أول ملف قاعدة بيانات موثوق كأساس
+            input_basename = _sanitize_filename(os.path.splitext(master_db_names[0])[0])
+            
+        random_suffix = random.randint(100, 999)
+        output_filename = f"topcut_{input_basename}_{random_suffix}.json"
+        output_filepath = os.path.join(base_utilities_path, output_filename)
+        
+        _save_json_file(tournament, output_filepath)
+
+        # إعداد رسالة النتيجة النهائية
+        final_message = (
+            f"اكتملت المعالجة بنجاح!<br>"
+            f"- تم تحديث <strong>{corrections_in_processed}</strong> عنصر في `processed_videos.json`.<br>"
+            f"- تم تصحيح <strong>{corrections_in_archive}</strong> إدخال أثناء قراءة الأرشيف.<br>"
+            f"- تم إنشاء بطولة جديدة بـ <strong>{len(selected_items)}</strong> مشارك.<br>"
+            f"- الوزن الإجمالي للبطولة: <strong>{total_tournament_weight:.2f}</strong>.<br>"
+            f"- تم حفظ البطولة في الملف: <strong>{output_filename}</strong>."
+        )
+        if 'manual_not_found' in locals() and manual_not_found:
+             final_message += f"<br>- <span class='text-danger'>تحذير: لم يتم العثور على الأحجام التالية: {', '.join(manual_not_found)}.</span>"
+
+        return {'success': True, 'message': final_message}
 # END: MODIFIED SECTION
+
+    except Exception as e:
+        print(f"Error in function_process_weights_and_create_tournament: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'success': False, 'message': f"حدث خطأ غير متوقع: {e}"}

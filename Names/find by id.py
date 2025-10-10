@@ -1,4 +1,3 @@
-# START: MODIFIED SECTION
 # -*- coding: utf-8 -*-
 import sys
 import re
@@ -10,6 +9,29 @@ from concurrent.futures import ThreadPoolExecutor, as_completed # لاستخدا
 DELETED_IDS_FILE = "deleted_ids.txt"
 # اسم ملف الإدخال الثابت
 INPUT_FILE = "video_ids.txt"
+
+# START: MODIFIED SECTION
+def load_processed_ids(output_file):
+    """
+    يقرأ ملف المخرجات الحالي ويستخرج كل الـ IDs التي تم العثور عليها بنجاح سابقًا.
+    هذا يمنع إعادة معالجة نفس الـ ID مرتين.
+
+    Returns:
+        set: مجموعة من المعرفات التي تمت معالجتها بنجاح.
+    """
+    processed_ids = set()
+    if os.path.exists(output_file):
+        try:
+            with open(output_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if ' : ' in line:
+                        video_id = line.split(' : ', 1)[0].strip()
+                        if video_id:
+                            processed_ids.add(video_id)
+        except IOError as e:
+            print(f"تحذير: لا يمكن قراءة ملف المخرجات الحالي {output_file}: {e}", file=sys.stderr)
+    return processed_ids
+# END: MODIFIED SECTION
 
 def load_deleted_ids():
     """
@@ -84,12 +106,17 @@ if __name__ == "__main__":
     input_file_path = INPUT_FILE
     base_name = os.path.splitext(os.path.basename(input_file_path))[0]
     output_file_name = f"{base_name}_output.txt"
-
-    print(f"جاري معالجة معرفات الفيديو من الملف: {input_file_path} باستخدام 70 عاملاً متزامناً.")
-    print(f"سيتم حفظ النتائج الصالحة في الملف: {output_file_name}")
+    
+    # START: MODIFIED SECTION
+    # تحميل المعرفات التي تمت معالجتها بنجاح سابقًا
+    processed_ids = load_processed_ids(output_file_name)
+    print(f"تم تحميل {len(processed_ids)} معرفات تمت معالجتها بنجاح سابقًا من {output_file_name}.")
+    
+    print(f"\nجاري معالجة معرفات الفيديو من الملف: {input_file_path} باستخدام 70 عاملاً متزامناً.")
+    print(f"سيتم **إضافة** النتائج الصالحة الجديدة إلى الملف: {output_file_name}")
     print(f"سيتم تسجيل المعرفات التي لا يمكن العثور على اسم مستخدم لها في: {DELETED_IDS_FILE}\n")
 
-    # قائمة لتخزين المعرفات التي تحتاج للمعالجة (ليست في deleted_ids)
+    # قائمة لتخزين المعرفات التي تحتاج للمعالجة (ليست في deleted_ids أو processed_ids)
     ids_to_process = []
     skipped_count = 0
 
@@ -100,7 +127,9 @@ if __name__ == "__main__":
                 video_id = line.strip()
                 if not video_id:
                     continue
-                if video_id in deleted_ids:
+                
+                # التحقق من أن الـ ID ليس في قائمة المحذوفات أو قائمة المعالجة الناجحة
+                if video_id in deleted_ids or video_id in processed_ids:
                     skipped_count += 1
                 else:
                     ids_to_process.append(video_id)
@@ -108,7 +137,7 @@ if __name__ == "__main__":
         print(f"خطأ: لا يمكن قراءة ملف الإدخال {input_file_path}: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"تم العثور على {len(ids_to_process)} معرفات جديدة للمعالجة، وتجاوز {skipped_count} معرفة سابقة.")
+    print(f"تم العثور على {len(ids_to_process)} معرفات جديدة للمعالجة، وتجاوز {skipped_count} معرفة سابقة (موجودة في المخرجات أو قائمة المحذوفات).")
     if not ids_to_process:
         print("لا توجد معرفات جديدة للمعالجة. تم الانتهاء.")
         sys.exit(0)
@@ -123,7 +152,8 @@ if __name__ == "__main__":
     with ThreadPoolExecutor(max_workers=70) as executor:
         future_to_id = {executor.submit(get_tiktok_username, vid_id): vid_id for vid_id in ids_to_process}
 
-        with open(output_file_name, 'w') as outfile:
+        # تم تغيير وضع الفتح من 'w' (كتابة) إلى 'a' (إضافة)
+        with open(output_file_name, 'a', encoding='utf-8') as outfile:
             for future in as_completed(future_to_id):
                 processed_count += 1
                 sys.stdout.write(f"\rجاري معالجة: {processed_count}/{len(ids_to_process)} ID (تم العثور: {found_count}, تم الإضافة للمحذوف: {added_to_deleted_count})")
@@ -139,13 +169,13 @@ if __name__ == "__main__":
                         deleted_ids.add(video_id)
                         save_deleted_id(video_id)
                         added_to_deleted_count += 1
+    # END: MODIFIED SECTION
 
     print("\n\nتمت المعالجة بنجاح.")
     print(f"إجمالي معرفات الفيديو التي تم العثور عليها في الملف: {len(ids_to_process) + skipped_count}")
-    print(f"معرفات الفيديو التي تم تجاهلها (موجودة في {DELETED_IDS_FILE}): {skipped_count}")
+    print(f"معرفات الفيديو التي تم تجاهلها (موجودة في {DELETED_IDS_FILE} أو {output_file_name}): {skipped_count}")
     print(f"معرفات الفيديو التي تم معالجتها فعلياً: {processed_count}")
     print(f"معرفات الفيديو التي تم العثور على أسماء مستخدمين لها: {found_count}")
     print(f"معرفات الفيديو الجديدة التي لم يتم العثور على أسماء مستخدمين لها وتمت إضافتها إلى {DELETED_IDS_FILE}: {added_to_deleted_count}")
     print(f"النتائج الصالحة محفوظة في الملف: {output_file_name}")
     print(f"المعرفات غير الصالحة/المحذوفة موجودة في: {DELETED_IDS_FILE}")
-# END: MODIFIED SECTION

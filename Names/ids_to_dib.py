@@ -19,24 +19,34 @@ VIDEOS_DIRECTORY_PATH = r"C:\Users\Stark\Download\myhome\video_rating_app\NS\Tik
 # 2. الدوال المساعدة - لا تحتاج لتعديل هذا الجزء
 # ==============================================================================
 
+# START: MODIFIED SECTION
 def extract_id_from_url(url: str) -> str | None:
     """
     يستخرج رقم الـ ID من رابط تيك توك.
-    مثال: '.../video/7526880825388928274' -> '7526880825388928274'
+    أمثلة: 
+    '.../video/7526880825388928274' -> '7526880825388928274'
+    '.../hdplay/7554553515532668215.mp4' -> '7554553515532668215'
     """
     url = url.strip()
     if not url:
         return None
     
-    # الطريقة الأسهل هي أخذ آخر جزء من الرابط بعد تقسيمه بـ '/'
     try:
-        video_id = url.split('/')[-1]
-        # التحقق من أن الجزء الأخير هو رقم بالفعل
+        # 1. خذ الجزء الأخير من الرابط بعد آخر علامة '/'
+        last_part = url.split('/')[-1]
+        
+        # 2. افصل هذا الجزء عند أول نقطة '.' لإزالة امتداد الملف مثل .mp4
+        #    سيؤدي هذا إلى تحويل '755...215.mp4' إلى '755...215'
+        #    وإذا لم يكن هناك نقطة، سيبقى النص كما هو '752...274'
+        video_id = last_part.split('.')[0]
+
+        # 3. التحقق من أن الجزء المتبقي هو رقم بالفعل
         if video_id.isdigit():
             return video_id
     except IndexError:
         return None # في حال كان الرابط فارغاً أو غير صالح
     return None
+# END: MODIFIED SECTION
 
 def extract_id_from_filename(filename: str) -> str | None:
     """
