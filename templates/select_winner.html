@@ -219,6 +219,12 @@
            color: #ffcc00; /* لون أصفر مميز للوزن مثلاً */
            margin-left: 5px; /* مسافة صغيرة بعد الوزن */
        }
+      /* START: MODIFIED SECTION - إضافة تنسيق CSS للترتيب */
+       .rank-value {
+           font-weight: bold;
+           color: #0dcaf0; /* لون سماوي مميز للترتيب */
+       }
+      /* END: MODIFIED SECTION */
 
       .winner-radio {
         display: flex;
@@ -683,6 +689,9 @@
               | الظهور:
               {# الوصول إلى عدد مرات الظهور باستخدام video.times_shown بدلاً من video[2] #}
               <span class="appearance-value">{{ video.times_shown }}</span>
+              <!-- START: MODIFIED SECTION - إضافة عرض الترتيب هنا -->
+              | الترتيب: <span class="rank-value">{{ video.rank }}</span>
+              <!-- END: MODIFIED SECTION -->
               {# عرض الوزن بشكل شرطي بناءً على video.is_processed و video.weight #}
               {% if video.is_processed and video.weight is not none %}
               | الوزن: <span class="weight-value">{{ "%.2f" | format(video.weight) }}</span> {# تنسيق الوزن لرقمين عشريين #}

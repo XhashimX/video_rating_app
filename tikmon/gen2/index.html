@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>متتبع فيديوهات TikTok</title>
+    <style>
+        :root {
+            --bg-dark-primary: #121212;
+            --bg-dark-secondary: #1e1e1e;
+            --bg-dark-tertiary: #2a2a2a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-primary: #bb86fc;
+            --accent-secondary: #03dac6;
+            --success-color: #4CAF50;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-dark-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.8em;
+            color: var(--accent-primary);
+            text-shadow: 0 0 10px rgba(187, 134, 252, 0.3);
+        }
+        
+        .user-section {
+            background: var(--bg-dark-secondary);
+            border-radius: 12px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            border: 1px solid #333;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .user-header {
+            background: linear-gradient(90deg, #3a3a3a 0%, #2a2a2a 100%);
+            padding: 18px 25px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s ease;
+        }
+        
+        .user-header:hover {
+            background: linear-gradient(90deg, #4a4a4a 0%, #3a3a3a 100%);
+        }
+        
+        .user-header h2 {
+            font-size: 1.6em;
+            color: var(--accent-secondary);
+        }
+        
+        .toggle-icon {
+            transition: transform 0.3s ease;
+            font-size: 1.5em;
+            color: var(--text-secondary);
+        }
+        
+        .user-section.active .toggle-icon {
+            transform: rotate(180deg);
+        }
+        
+        .user-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .user-section.active .user-content {
+            max-height: 10000px;
+        }
+        
+        .stats {
+            padding: 15px 25px;
+            background: var(--bg-dark-tertiary);
+            border-bottom: 1px solid #333;
+            color: var(--text-secondary);
+        }
+        
+        .stats strong {
+            color: var(--text-primary);
+        }
+        
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            padding: 25px;
+        }
+        
+        .video-card {
+            background: var(--bg-dark-tertiary);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #444;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+        
+        .video-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+        }
+        
+        .video-card.new::before {
+            content: "جديد";
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--success-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            z-index: 1;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+        
+        .video-thumbnail {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            display: block;
+            border-bottom: 1px solid #444;
+        }
+        
+        .video-info {
+            padding: 15px;
+        }
+        
+        .video-link {
+            display: inline-block;
+            background: var(--accent-primary);
+            color: #121212;
+            font-weight: bold;
+            padding: 10px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .video-link:hover {
+            background: var(--accent-secondary);
+            transform: scale(1.05);
+        }
+        
+        .video-date {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .no-thumbnail {
+            width: 100%;
+            height: 400px;
+            background: #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #555;
+            font-size: 4em;
+            border-bottom: 1px solid #444;
+        }
+        
+        .last-update {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-top: 30px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 متتبع فيديوهات TikTok</h1>
+
+        <div class="user-section" id="user-marshalukyanova" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('marshalukyanova')">
+                <h2>@marshalukyanova</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-dana.alerksousi8" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('dana.alerksousi8')">
+                <h2>@dana.alerksousi8</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-hajar0220" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('hajar0220')">
+                <h2>@hajar0220</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-rahma_ghorbel7" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('rahma_ghorbel7')">
+                <h2>@rahma_ghorbel7</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-taline._.jouni" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('taline._.jouni')">
+                <h2>@taline._.jouni</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-vanistrimer" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('vanistrimer')">
+                <h2>@vanistrimer</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-hotblockchain" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('hotblockchain')">
+                <h2>@hotblockchain</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-maramramadan2" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('maramramadan2')">
+                <h2>@maramramadan2</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-hotblockchainnnnnnn" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('hotblockchainnnnnnn')">
+                <h2>@hotblockchainnnnnnn</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-tarankaaa" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('tarankaaa')">
+                <h2>@tarankaaa</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-its.assil0" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('its.assil0')">
+                <h2>@its.assil0</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-myriam_mjk" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('myriam_mjk')">
+                <h2>@myriam_mjk</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-brendatrindade_" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('brendatrindade_')">
+                <h2>@brendatrindade_</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-aseelaishaa" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('aseelaishaa')">
+                <h2>@aseelaishaa</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-evelinaavaa" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('evelinaavaa')">
+                <h2>@evelinaavaa</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-vanilopa_tik" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('vanilopa_tik')">
+                <h2>@vanilopa_tik</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-nour_.m0" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('nour_.m0')">
+                <h2>@nour_.m0</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-aloyouiii" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('aloyouiii')">
+                <h2>@aloyouiii</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-z.i.z.o.s" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('z.i.z.o.s')">
+                <h2>@z.i.z.o.s</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-j_o_d_y02" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('j_o_d_y02')">
+                <h2>@j_o_d_y02</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="user-section" id="user-camvred1" data-has-new="false">
+            <div class="user-header" onclick="toggleUser('camvred1')">
+                <h2>@camvred1</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="user-content">
+                <div class="stats">
+                    <strong>إجمالي الفيديوهات:</strong> 0 | 
+                    <strong style="color: var(--success-color);">الجديدة:</strong> 0
+                </div>
+                <div class="videos-grid">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="last-update">
+            آخر تحديث: 2025/10/27 09:04:26
+        </div>
+    </div>
+    
+    <script>
+        function toggleUser(username) {
+            const section = document.getElementById('user-' + username);
+            section.classList.toggle('active');
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = document.querySelectorAll('.user-section');
+            let openedASection = false;
+            
+            sections.forEach(section => {
+                if (section.dataset.hasNew === 'true') {
+                    section.classList.add('active');
+                    openedASection = true;
+                }
+            });
+            
+            if (!openedASection && sections.length > 0) {
+                sections[0].classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>

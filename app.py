@@ -1,6 +1,7 @@
 import json
 import sys
 import os
+import socket  # START: MODIFIED SECTION
 from flask_session import Session
 from flask import jsonify
 from flask import Flask, render_template, request, redirect, url_for, flash, session
@@ -396,6 +397,34 @@ def regroup_competitions():
         print(f"Error in regroup_competitions: {e}")
         return jsonify({'success': False, 'message': f'حدث خطأ في الخادم: {e}'}), 500
 # END: MODIFIED SECTION
+
+
+
+
+
+# START: ADDED SECTION - أضف هذه الدالة الجديدة بالكامل في app.py
+def create_ranking_map(data):
+    """
+    تأخذ بيانات الفيديوهات، ترتبها حسب التقييم، وتُرجع قاموسًا
+    يربط اسم كل فيديو بترتيبه الرقمي.
+    مثال: {'video_A.mp4': 1, 'video_C.mp4': 2, ...}
+    """
+    if not data:
+        return {}
+
+    # 1. تحويل القاموس إلى قائمة من tuples ليسهل ترتيبها
+    #    نستخدم .get('rating', 1000) لضمان وجود قيمة افتراضية في حال عدم وجود مفتاح التقييم
+    sorted_videos = sorted(data.items(), key=lambda item: item[1].get('rating', 1000), reverse=True)
+
+    # 2. إنشاء "خريطة الترتيب"
+    #    نمر على القائمة المرتبة ونعين لكل فيديو ترتيبه (الفهرس + 1)
+    ranking_map = {video_name: rank + 1 for rank, (video_name, video_info) in enumerate(sorted_videos)}
+
+    return ranking_map
+# END: ADDED SECTION
+
+
+
 @app.route('/delete_tournament_file', methods=['POST'])
 def delete_tournament_file():
     """
@@ -564,7 +593,7 @@ def run_tool():
 
 
 
-
+# START: MODIFIED SECTION
 @app.route('/competition', methods=['GET', 'POST'])
 def competition():
     """
@@ -649,14 +678,20 @@ def competition():
                 if not video_folder:
                      print("WARNING: selected_folder not found in session. Cannot get file sizes.") # DEBUG
 
+                # START: MODIFIED SECTION
+                ranking_map = create_ranking_map(data) # إنشاء خريطة الترتيب
+                # END: MODIFIED SECTION
                 enriched_competition_videos = []
                 for vid_name, rating, times_shown, tags, *_ in competition_videos_raw:
                     display_name_from_db = data.get(vid_name, {}).get('name', '')
+                    # START: MODIFIED SECTION
                     enriched_video_info = {
                         'name': vid_name, 'display_name': display_name_from_db,
                         'rating': rating, 'times_shown': times_shown, 'tags': tags,
-                        'is_processed': False, 'weight': None
+                        'is_processed': False, 'weight': None,
+                        'rank': ranking_map.get(vid_name, 'N/A') # إضافة الترتيب من الخريطة
                     }
+                    # END: MODIFIED SECTION
                     if video_folder:
                         full_video_path = os.path.join(video_folder, vid_name)
                         try:
@@ -800,14 +835,20 @@ def competition():
                 if not video_folder:
                      print("WARNING: selected_folder not found in session. Cannot get file sizes.") # DEBUG
 
+                # START: MODIFIED SECTION
+                ranking_map = create_ranking_map(data) # إنشاء خريطة الترتيب
+                # END: MODIFIED SECTION
                 enriched_competition_videos = []
                 for vid_name, rating, times_shown, tags, *_ in competition_videos_raw:
                     display_name_from_db = data.get(vid_name, {}).get('name', '')
+                    # START: MODIFIED SECTION
                     enriched_video_info = {
                         'name': vid_name, 'display_name': display_name_from_db,
                         'rating': rating, 'times_shown': times_shown, 'tags': tags,
-                        'is_processed': False, 'weight': None
+                        'is_processed': False, 'weight': None,
+                        'rank': ranking_map.get(vid_name, 'N/A') # إضافة الترتيب من الخريطة
                     }
+                    # END: MODIFIED SECTION
                     if video_folder:
                         full_video_path = os.path.join(video_folder, vid_name)
                         try:
@@ -895,14 +936,20 @@ def competition():
             
             processed_data_dict = load_processed_videos_data()
             video_folder = session.get('selected_folder')
+            # START: MODIFIED SECTION
+            ranking_map = create_ranking_map(data) # إنشاء خريطة الترتيب
+            # END: MODIFIED SECTION
             enriched_competition_videos = []
             for vid_name, rating, times_shown, tags, *_ in competition_videos_raw:
                 display_name_from_db = data.get(vid_name, {}).get('name', '')
+                # START: MODIFIED SECTION
                 enriched_video_info = {
                     'name': vid_name, 'display_name': display_name_from_db,
                     'rating': rating, 'times_shown': times_shown, 'tags': tags,
-                    'is_processed': False, 'weight': None
+                    'is_processed': False, 'weight': None,
+                    'rank': ranking_map.get(vid_name, 'N/A') # إضافة الترتيب من الخريطة
                 }
+                # END: MODIFIED SECTION
                 if video_folder:
                     full_video_path = os.path.join(video_folder, vid_name)
                     try:
@@ -947,7 +994,7 @@ def competition():
                            tournament_files=sorted_tournament_files,
                            last_selected_file=last_selected_file)
 # END: MODIFIED SECTION
-
+# START: MODIFIED SECTION
 @app.route('/select_winner', methods=['POST'])
 def select_winner():
     """
@@ -1189,6 +1236,9 @@ def select_winner():
              # Create a new list with enriched video data
              # new_competition_videos_raw is (name, rating, times_shown, tags from choose_videos_function)
              # We should get the latest data from data_for_next_round anyway.
+             # START: MODIFIED SECTION
+             ranking_map = create_ranking_map(data_for_next_round) # إنشاء خريطة الترتيب
+             # END: MODIFIED SECTION
              enriched_competition_videos = []
              for vid_name, _, _, _, *_ in new_competition_videos_raw: # Iterate through names from selected videos
                  # Use the data_for_next_round dictionary as the source of truth for latest values and tags
@@ -1197,6 +1247,7 @@ def select_winner():
                  # احصل على اسم العرض المخصص من البيانات الرئيسية (data_for_next_round)
                  display_name_from_db = video_data_entry.get('name', '')
 
+                 # START: MODIFIED SECTION
                  enriched_video_info = {
                      'name': vid_name, # احتفظ باسم الملف الأصلي هنا
                      'display_name': display_name_from_db, # أضف الاسم المخصص هنا
@@ -1204,8 +1255,10 @@ def select_winner():
                      'times_shown': video_data_entry.get('times_shown', 0), # Get latest times_shown
                      'tags': video_data_entry.get('tags', ''),           # Get latest tags
                      'is_processed': False, # Default
-                     'weight': None         # Default
+                     'weight': None,         # Default
+                     'rank': ranking_map.get(vid_name, 'N/A') # إضافة الترتيب
                  }
+                 # END: MODIFIED SECTION
 
                  if video_folder:
                      full_video_path = os.path.join(video_folder, vid_name)
@@ -1817,6 +1870,9 @@ def select_winner():
              # Create a new list with enriched video data
              # new_competition_videos_raw is (name, rating, times_shown, tags from choose_videos_function)
              # We should get the latest data from data_for_next_round anyway.
+             # START: MODIFIED SECTION
+             ranking_map = create_ranking_map(data_for_next_round) # إنشاء خريطة الترتيب
+             # END: MODIFIED SECTION
              enriched_competition_videos = []
              for vid_name, _, _, _, *_ in new_competition_videos_raw: # Iterate through names from selected videos
                  # Use the data_for_next_round dictionary as the source of truth for latest values and tags
@@ -1825,6 +1881,7 @@ def select_winner():
                  # احصل على اسم العرض المخصص من البيانات الرئيسية (data_for_next_round)
                  display_name_from_db = video_data_entry.get('name', '')
 
+                 # START: MODIFIED SECTION
                  enriched_video_info = {
                      'name': vid_name, # احتفظ باسم الملف الأصلي هنا
                      'display_name': display_name_from_db, # أضف الاسم المخصص هنا
@@ -1832,8 +1889,10 @@ def select_winner():
                      'times_shown': video_data_entry.get('times_shown', 0), # Get latest times_shown
                      'tags': video_data_entry.get('tags', ''),           # Get latest tags
                      'is_processed': False, # Default
-                     'weight': None         # Default
+                     'weight': None,         # Default
+                     'rank': ranking_map.get(vid_name, 'N/A') # إضافة الترتيب
                  }
+                 # END: MODIFIED SECTION
 
                  if video_folder:
                      full_video_path = os.path.join(video_folder, vid_name)
@@ -1901,8 +1960,7 @@ def select_winner():
         session.pop('last_winner', None)
         print("Cleared session state due to critical error in select_winner POST route.") # DEBUG
         return redirect(url_for('competition'))
-
-
+# END: MODIFIED SECTION
 @app.route('/rename_all_videos', methods=['POST'])
 def rename_all_videos():
     return rename_all_videos_function()
@@ -2369,4 +2427,5 @@ if __name__ == "__main__":
         if rule.endpoint != 'static':
              print(f"- {rule.endpoint}: {rule}")
     print("Starting Flask app...") # DEBUG
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# START: MODIFIED SECTION
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير فيديوهات تيك توك</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 20px;
+        }
+        h1 {
+            color: #5d5d5d;
+            text-align: center;
+        }
+        .user-section {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            padding: 15px;
+        }
+        .user-summary {
+            font-size: 1.5em;
+            font-weight: bold;
+            cursor: pointer;
+            display: block;
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .video-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            text-align: center;
+            background-color: #fafafa;
+            transition: transform 0.2s;
+        }
+        .video-card:hover {
+            transform: scale(1.03);
+        }
+        .video-card.new-item {
+            border: 3px solid #4CAF50; /* Green border for new items */
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+        .video-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .video-card a {
+            display: block;
+            padding: 10px;
+            text-decoration: none;
+            color: #007bff;
+            background-color: #e9ecef;
+            font-size: 0.9em;
+        }
+        .new-badge {
+            background-color: #4CAF50;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>تقرير فيديوهات تيك توك</h1>
+    <!-- المحتوى سيتم إضافته هنا -->
+    {user_sections}
+</body>
+</html>

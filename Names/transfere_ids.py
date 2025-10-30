@@ -12,26 +12,20 @@ json_file_path = r"C:\Users\Stark\Download\myhome\video_rating_app\utilities\elo
 
 
 # الخطوة 1: قراءة ملف الأسماء وتخزين البيانات في قاموس (dictionary) لسهولة البحث
-# القاموس هو هيكل بيانات يخزن البيانات على شكل "مفتاح: قيمة" (key: value)
-# هنا، المفتاح سيكون هو الـ ID والقيمة ستكون هو الـ name
 id_to_name_map = {}
 
 try:
     with open(ids_file_path, 'r', encoding='utf-8') as f:
         for line in f:
-            # نتأكد أن السطر ليس فارغاً ويحتوي على الفاصل
             if ' : ' in line:
-                # نقوم بتقسيم السطر إلى جزئين عند أول " : "
                 video_id, name = line.split(' : ', 1)
-                
-                # .strip() تزيل أي مسافات فارغة غير مرغوبة في البداية أو النهاية
                 id_to_name_map[video_id.strip()] = name.strip()
 
     print(f"تم تحميل {len(id_to_name_map)} معرف (ID) واسم من ملف الأسماء.")
 
 except FileNotFoundError:
     print(f"خطأ: لم يتم العثور على ملف الأسماء في المسار: {ids_file_path}")
-    exit() # إيقاف السكربت إذا لم يتم العثور على الملف
+    exit()
 
 
 # الخطوة 2: قراءة ملف JSON وتحديث حقل "name"
@@ -49,46 +43,44 @@ except json.JSONDecodeError:
 
 # عداد لتتبع عدد السجلات التي تم تحديثها
 updated_count = 0
+# قائمة لتخزين أسماء الملفات التي لم يتم العثور على ID لها (اختياري، للتحقق)
+unmatched_files = []
 
-print("جاري تحديث ملف JSON...")
+print("جاري تحديث ملف JSON بالمنطق الجديد...")
 
 # START: MODIFIED SECTION
 # المرور على كل عنصر في ملف JSON
-# .items() تسمح لنا بالوصول إلى المفتاح (filename) والقيمة (details) في نفس الوقت
 for filename, details in video_data.items():
-    try:
-        # استخراج الـ ID من اسم الملف
-        # المثال: "1000_7551808062286253319.mp4"
-        # 1. نقسمه عند '_' ليصبح ['1000', '7551808062286253319.mp4']
-        # 2. نأخذ الجزء الثاني [1] وهو '7551808062286253319.mp4'
-        # 3. نقسمه عند '.' ليصبح ['7551808062286253319', 'mp4']
-        # 4. نأخذ الجزء الأول [0] وهو الـ ID الذي نبحث عنه
-        current_video_id = filename.split('_')[1].split('.')[0]
+    
+    match_found = False # متغير لتتبع إذا وجدنا تطابقاً لهذا الملف
 
-        # الآن نبحث عن هذا الـ ID في القاموس الذي أنشأناه
-        if current_video_id in id_to_name_map:
-            # إذا وجدنا الـ ID، نأخذ الاسم المقابل له
-            name_to_add = id_to_name_map[current_video_id]
-            
-            # نقوم بتحديث حقل "name" في بيانات الفيديو الحالية
-            details['name'] = name_to_add
-            
-            # زيادة العداد
-            updated_count += 1
+    # الآن، لكل ملف، سنمر على كل ID معروف لدينا في القاموس
+    for video_id, name in id_to_name_map.items():
+        
+        # الشرط الذكي: هل الـ ID (كنص) موجود داخل اسم الملف (كنص)؟
+        # مثال: هل "7518842441148009735" موجودة في "somePrefix_7518842441148009735.mp4"؟ -> نعم
+        if video_id in filename:
+            # إذا وجدنا تطابقاً
+            details['name'] = name   # نحدث الاسم
+            updated_count += 1       # نزيد العداد
+            match_found = True       # نعيّن المتغير إلى True
+            break # نوقف البحث عن IDs أخرى لهذا الملف وننتقل للملف التالي لأنه تم العثور على المطلوب
 
-    except IndexError:
-        # هذا سيحدث إذا كان اسم الملف في JSON لا يتبع النمط المتوقع "رقم_id.mp4"
-        print(f"تنبيه: تم تجاهل اسم الملف '{filename}' لأنه لا يطابق النمط المتوقع.")
-        continue # استمر للملف التالي
+    # إذا انتهت الحلقة الداخلية ولم يتم العثور على أي تطابق
+    if not match_found:
+        unmatched_files.append(filename)
 
 # END: MODIFIED SECTION
 
 # الخطوة 3: حفظ التغييرات مرة أخرى في ملف JSON
-# نفتح نفس الملف ولكن هذه المرة في وضع الكتابة 'w' لمسح المحتوى القديم وكتابة الجديد
 with open(json_file_path, 'w', encoding='utf-8') as f:
-    # json.dump تقوم بكتابة القاموس المحدث في الملف
-    # indent=4 تجعل الملف منظم وسهل القراءة للإنسان
-    # ensure_ascii=False مهمة جداً لضمان كتابة الأحرف العربية (إذا وجدت) بشكل صحيح
     json.dump(video_data, f, indent=4, ensure_ascii=False)
 
 print(f"\nاكتملت العملية. تم تحديث {updated_count} سجل في ملف JSON.")
+
+# طباعة تقرير عن الملفات التي لم يتم العثور على تطابق لها
+if unmatched_files:
+    print(f"\nتنبيه: لم يتم العثور على ID مطابق لـ {len(unmatched_files)} ملف. إليك بعض الأمثلة:")
+    # نطبع أول 5 أمثلة فقط لتجنب إغراق الشاشة
+    for f in unmatched_files[:5]:
+        print(f" - {f}")
