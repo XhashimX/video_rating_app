@@ -1,10 +1,10 @@
+<!-- START: MODIFIED SECTION -->
 {% extends "base.html" %}
 
 {% block title %}متصفح الصور - الصفحة الرئيسية{% endblock %}
 
 {% block content %}
 
-<!-- --- قسم رأس الصفحة الجديد --- -->
 <div class="page-header">
     <h1>متصفح الصور</h1>
     <div class="nav-buttons">
@@ -13,22 +13,22 @@
     </div>
 </div>
 
-
 <div class="section">
     <div class="section-header">
-        <h2 id="download-section-title">مجلد التحميل (صور AI فقط)</h2>
+        <h2 id="download-section-title">صور AI (من كل المجلدات)</h2>
         {% if download_images %}
-        <div>
-            <button id="classify-by-model-btn" class="copy-button" style="font-size: 0.9em; padding: 8px 12px;">تصنيف حسب الموديل</button>
-            <button id="show-all-btn" class="copy-button" style="display:none; font-size: 0.9em; padding: 8px 12px;">عرض كل الصور</button>
+        <!-- حاوية جديدة للأزرار لتحسين التحكم -->
+        <div id="classification-controls">
+            <button id="classify-by-model-btn" class="action-button">تصنيف حسب الموديل</button>
+            <button id="show-all-btn" class="action-button" style="display:none;">عرض كل الصور</button>
+            <button id="back-to-models-btn" class="action-button" style="display:none;">العودة لقائمة الموديلات</button>
         </div>
         {% endif %}
     </div>
 
     {% if download_images %}
-        <div class="images-grid" id="download-images-grid">
+        <div class="images-grid" id="images-grid-container">
             {% for image in download_images %}
-            <!-- --- تم تعديل بطاقة الصورة هنا --- -->
             <div class="image-card" 
                  data-image-path="{{ image.relative_path }}"
                  data-image-name="{{ image.name | e }}"
@@ -50,12 +50,12 @@
             <!-- سيتم ملء هذا القسم عبر JavaScript -->
         </div>
     {% else %}
-        <div class="no-images">لا توجد صور AI في مجلد التحميل. قم بتشغيل `scan.py` أولاً.</div>
+        <div class="no-images">لا توجد صور AI في المجلدات. قم بتشغيل `scan.py` أولاً.</div>
     {% endif %}
 </div>
 
 <div class="section">
-    <h2>المجلدات الأخرى (صور PNG)</h2>
+    <h2>تصفح المجلدات يدوياً</h2>
     {% if tiktok_folders %}
         <div class="folders-grid">
             {% for folder in tiktok_folders %}
@@ -69,3 +69,4 @@
     {% endif %}
 </div>
 {% endblock %}
+<!-- END: MODIFIED SECTION -->

@@ -5,6 +5,7 @@
 
 import os
 import re
+import time
 import sys
 from typing import Set, Tuple, List
 
@@ -118,7 +119,18 @@ def main():
             print(f"Failed to delete: {error_count} files (see errors above).")
     else:
         print("\nOperation aborted. No files were deleted.")
-
+        # Save the list of matched thumbnails to a text file
+        output_file = "matched_thumbnails.txt"
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(f"# قائمة الصور المطابقة للفيديوهات المحلية ({len(thumbnails_to_remove)} ملف)\n")
+                f.write(f"# تاريخ الإنشاء: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write("="*60 + "\n")
+                for path in thumbnails_to_remove:
+                    f.write(os.path.basename(path) + "\n")
+            print(f"\n📝 تم حفظ أسماء الصور المطابقة في الملف '{output_file}'.")
+        except Exception as e:
+            print(f"\n❌ خطأ أثناء كتابة الملف النصي: {e}")
 if __name__ == "__main__":
     main()
 

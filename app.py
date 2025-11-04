@@ -5,6 +5,7 @@ import socket  # START: MODIFIED SECTION
 from flask_session import Session
 from flask import jsonify
 from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import send_from_directory
 from utilities.config import SECRET_KEY, BACKUP_FOLDER
 from utilities.video_analyzer import update_names_analysis, analyze_names_data, get_video_display_name
 from utilities.data_manager import load_data, save_data
@@ -26,7 +27,8 @@ from utilities.elo_calculator import update_ratings_multiple
 
 # 1. تعريف المسار الأساسي للمشروع (BASE_DIR)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
+# بعد تعريف BASE_DIR، أضف هذا السطر
+UPSCALED_MEDIA_DIR = os.path.join(BASE_DIR, "upscaled_media")
 app = Flask(__name__, template_folder='templates',
             static_folder='static')  # Added static folder
 app.secret_key = SECRET_KEY
@@ -2403,8 +2405,50 @@ def filter_unplayed(filename):
         return json.dumps({'data': unplayed_matches})
 # END: MODIFIED SECTION
 
+# START: MODIFIED SECTION
+# أضف الدوال التالية في أي مكان مناسب في ملف app.py
 
+@app.route('/serve_upscaled_media/<path:filename>')
+def serve_upscaled_media(filename):
+    """
+    مسار مخصص لخدمة الملفات من مجلد الوسائط عالية الجودة.
+    """
+    return send_from_directory(UPSCALED_MEDIA_DIR, filename)
+
+@app.context_processor
+def utility_processor():
+    """
+    يجعل الدالة المساعدة متاحة لكل قوالب Jinja2.
+    """
+    def get_display_url(filename):
+        """
+        الدالة المساعدة الذكية.
+        تتحقق من وجود نسخة عالية الجودة، وتُرجع المسار الصحيح.
+        """
+        if not filename:
+            return "#" # إرجاع رابط غير صالح إذا كان اسم الملف فارغًا
+
+        # بناء المسار للتحقق من وجود الملف عالي الجودة
+        upscaled_path = os.path.join(UPSCALED_MEDIA_DIR, filename)
+
+        if os.path.exists(upscaled_path):
+            # إذا كان الملف موجودًا، أرجع المسار الخاص بالنسخة عالية الجودة
+            return url_for('serve_upscaled_media', filename=filename)
+        else:
+            # إذا لم يكن موجودًا، أرجع المسار الأصلي كحل احتياطي
+            return url_for('serve_video', filename=filename)
+            
+    return dict(get_display_url=get_display_url)
+
+# END: MODIFIED SECTION
 def main():
+    # إنشاء المجلدات الضرورية عند بدء التشغيل
+    os.makedirs(BACKUP_FOLDER, exist_ok=True)
+    os.makedirs(STATUS_FOLDER, exist_ok=True)
+    os.makedirs(UPSCALED_MEDIA_DIR, exist_ok=True) # <-- السطر الجديد هنا
+    print(f"Backup folder ensured at {BACKUP_FOLDER}")
+    print(f"Status folder ensured at {STATUS_FOLDER}")
+    print(f"Upscaled media folder ensured at {UPSCALED_MEDIA_DIR}")
     if not os.path.exists(BACKUP_FOLDER):
         try:
             os.makedirs(BACKUP_FOLDER)

@@ -2,10 +2,11 @@
 import os
 import requests
 from flask import Flask, request, jsonify
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 import hashlib
 import re
 import glob
+import time
 
 
 # --- 1. الإعدادات ---
@@ -136,8 +137,8 @@ def sanitize_filename(filename):
 
 def generate_filename(url):
     """
-    توليد اسم ملف بدون استخدام sig parameter
-    فقط استخدام الاسم الأساسي من URL
+    هذه الدالة لم يتم لمسها أو تعديلها.
+    ستبقى تعمل فقط مع روابط Civitai كما كانت.
     """
     try:
         parsed_url = urlparse(url)
@@ -177,10 +178,28 @@ def process_image_link():
             print("[ 🟡 ] الطبقة 1: الرابط مكرر (بدون النظر للـ sig). تم التجاهل.")
             return jsonify({"status": "skipped", "message": "الرابط تمت معالجته مسبقًا."}), 200
 
+        # # START: MODIFIED SECTION
+        # --- منطق شرطي جديد لتحديد طريقة توليد اسم الملف ---
+        base_filename, extension = None, None
+        parsed_url = urlparse(image_url)
 
-        # توليد اسم الملف الأساسي (بدون hash من sig)
-        base_filename, extension = generate_filename(image_url)
-        print(f"[ ℹ️ ] الاسم الأساسي للملف: {base_filename}")
+        # التحقق إذا كان الرابط من نوع ComfyUI/Pinggy
+        if 'view' in parsed_url.path and 'filename=' in parsed_url.query:
+            print("[ ℹ️ ] تم اكتشاف رابط من نوع ComfyUI/Pinggy.")
+            query_params = parse_qs(parsed_url.query)
+            filename_from_query = query_params.get('filename', [None])[0]
+            if filename_from_query:
+                # استخراج اسم الملف الأساسي والامتداد من معامل الرابط
+                base_filename, extension = os.path.splitext(filename_from_query)
+        
+        # إذا لم يكن من النوع الجديد، استخدم المنطق الأصلي تمامًا
+        if base_filename is None:
+            print("[ ℹ️ ] لم يتم التعرف على الرابط كـ ComfyUI، سيتم استخدام المنطق الأصلي (Civitai).")
+            # استدعاء الدالة الأصلية التي لم يتم المساس بها
+            base_filename, extension = generate_filename(image_url)
+        # # END: MODIFIED SECTION
+        
+        print(f"[ ℹ️ ] الاسم الأساسي النهائي للملف: {base_filename}")
         
         
         # --- طبقة الدفاع الثانية: التحقق من وجود ملف بنفس الاسم الأساسي ---
@@ -199,7 +218,6 @@ def process_image_link():
 
 
         # إنشاء اسم ملف فريد (نضيف timestamp صغير للحالات النادرة)
-        import time
         timestamp_suffix = str(int(time.time() * 1000))[-6:]  # آخر 6 أرقام من timestamp
         final_filename = f"{base_filename}_{timestamp_suffix}{extension}"
         filepath = os.path.join(DOWNLOAD_FOLDER, final_filename)

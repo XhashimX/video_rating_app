@@ -1,0 +1,97 @@
+<!-- START: MODIFIED SECTION -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Civitai Image Generator</title>
+    <!-- ربط ملف التنسيق CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>مولّد الصور Civitai</h1>
+            <p>أنشئ صورًا فريدة باستخدام الذكاء الاصطناعي</p>
+        </header>
+
+        <main>
+            <div class="form-container">
+                <form id="generation-form">
+                    <!-- حقل الموديل -->
+                    <div class="form-group">
+                        <label for="model-input">الموديل (Model URN) <span>*</span></label>
+                        <input type="text" id="model-input" name="model" required placeholder="urn:air:sd1:checkpoint:civitai:4201@130072">
+                    </div>
+
+                    <!-- حقل الـ Prompt -->
+                    <div class="form-group">
+                        <label for="prompt-input">الوصف (Prompt) <span>*</span></label>
+                        <textarea id="prompt-input" name="prompt" rows="5" required placeholder="RAW photo, face portrait of a woman..."></textarea>
+                    </div>
+
+                    <!-- حقل الـ Negative Prompt -->
+                    <div class="form-group">
+                        <label for="negative-prompt-input">الوصف السلبي (Negative Prompt)</label>
+                        <textarea id="negative-prompt-input" name="negativePrompt" rows="3" placeholder="(deformed iris, deformed pupils..."></textarea>
+                    </div>
+
+                    <!-- قسم الإعدادات المتقدمة -->
+                    <details class="advanced-options">
+                        <summary>الإعدادات المتقدمة</summary>
+                        <div class="options-grid">
+                            <div class="form-group slider-group">
+                                <label for="steps-input">الخطوات (Steps): <span id="steps-value">20</span></label>
+                                <input type="range" id="steps-input" name="steps" min="10" max="100" value="20">
+                            </div>
+                            <div class="form-group slider-group">
+                                <label for="cfg-scale-input">مقياس CFG: <span id="cfg-scale-value">7</span></label>
+                                <input type="range" id="cfg-scale-input" name="cfgScale" min="1" max="20" step="0.5" value="7">
+                            </div>
+                            <div class="form-group">
+                                <label for="width-input">العرض (Width)</label>
+                                <input type="number" id="width-input" name="width" value="512" step="64">
+                            </div>
+                            <div class="form-group">
+                                <label for="height-input">الارتفاع (Height)</label>
+                                <input type="number" id="height-input" name="height" value="512" step="64">
+                            </div>
+                            <div class="form-group">
+                                <label for="sampler-input">السامبلر (Sampler)</label>
+                                <select id="sampler-input" name="scheduler">
+                                    <option value="EulerA">Euler A</option>
+                                    <option value="Euler">Euler</option>
+                                    <option value="DPM2M">DPM++ 2M</option>
+                                    <option value="DPMSDEKarras">DPM++ SDE Karras</option>
+                                    <option value="DDIM">DDIM</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="seed-input">البذرة (Seed)</label>
+                                <input type="number" id="seed-input" name="seed" placeholder="-1 للعشوائية">
+                            </div>
+                        </div>
+                    </details>
+                    
+                    <button type="submit" id="generate-btn">
+                        <span id="btn-text">توليد الصورة</span>
+                        <div class="spinner" id="btn-spinner" style="display: none;"></div>
+                    </button>
+                </form>
+            </div>
+
+            <div class="result-container">
+                <h2>النتيجة</h2>
+                <div id="status-message" class="status">جاهز لاستقبال طلبك...</div>
+                <div id="image-container">
+                    <img id="result-image" src="" alt="Generated Image">
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ربط ملف JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
+<!-- END: MODIFIED SECTION -->

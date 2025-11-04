@@ -1,3 +1,4 @@
+<!-- START: MODIFIED SECTION -->
 {% extends "base.html" %}
 
 {% block title %}{{ folder_name }} - متصفح الصور{% endblock %}
@@ -7,23 +8,30 @@
 
 <h1>مجلد: {{ folder_name }}</h1>
 
-<!-- --- الإضافة الجديدة هنا: أزرار التحكم بالفرز --- -->
+<!-- تعديل: أزرار التحكم الآن ديناميكية -->
 <div class="folder-controls" style="margin-bottom: 20px; text-align: center;">
-    <button id="sort-alpha-btn" class="action-button" style="font-size: 0.9em;">فرز حسب الاسم (أ-ي)</button>
-    <button id="sort-date-btn" class="action-button" style="font-size: 0.9em; display:none;">فرز حسب التاريخ (الأحدث)</button>
-</div>
-<!-- --- نهاية الإضافة --- -->
+    <button id="sort-alpha-btn" class="action-button">فرز حسب الاسم (أ-ي)</button>
+    <button id="sort-date-btn" class="action-button" style="display:none;">فرز حسب التاريخ (الأحدث)</button>
 
+    <!-- إضافة أزرار التصنيف إذا كانت الميزة مفعلة لهذا المجلد -->
+    {% if show_classification %}
+    <div id="classification-controls" style="display: inline-block; margin-right: 15px;">
+        <button id="classify-by-model-btn" class="action-button">تصنيف حسب الموديل</button>
+        <button id="show-all-btn" class="action-button" style="display:none;">عرض كل الصور</button>
+        <button id="back-to-models-btn" class="action-button" style="display:none;">العودة لقائمة الموديلات</button>
+    </div>
+    {% endif %}
+</div>
 
 <div class="section">
     {% if images %}
-        <div class="images-grid">
+        <div class="images-grid" id="images-grid-container">
             {% for image in images %}
-            <!-- --- تم تعديل بطاقة الصورة هنا --- -->
+            <!-- تعديل: إضافة data-model-name بشكل دائم -->
             <div class="image-card" 
                  data-image-path="{{ image.relative_path }}"
                  data-image-name="{{ image.name | e }}"
-                 data-model-name="N/A"> <!-- لا يوجد موديل للصور العادية -->
+                 data-model-name="{{ image.model_name | default('غير معروف') | e }}">
 
                 <span class="favorite-star {% if image.is_favorite %}favorited{% endif %}" onclick="toggleFavorite(this, event)">★</span>
 
@@ -37,57 +45,106 @@
             </div>
             {% endfor %}
         </div>
+        <!-- إضافة حاوية الموديلات -->
+        <div class="folders-grid" id="models-grid-container" style="display:none;"></div>
     {% else %}
-        <div class="no-images">لا توجد صور PNG في هذا المجلد</div>
+        <div class="no-images">لا توجد صور في هذا المجلد بالامتدادات المسموح بها.</div>
     {% endif %}
 </div>
 
-<!-- --- الإضافة الجديدة هنا: سكريبت الفرز --- -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- منطق الفرز الأبجدي/حسب التاريخ ---
     const sortAlphaBtn = document.getElementById('sort-alpha-btn');
     const sortDateBtn = document.getElementById('sort-date-btn');
-    const imagesGrid = document.querySelector('.images-grid');
-
-    // إذا لم تكن هناك صور، لا تفعل شيئًا
-    if (!imagesGrid) return;
-
-    // 1. احفظ الترتيب الأصلي (حسب التاريخ) عند تحميل الصفحة
-    const originalImageCards = Array.from(imagesGrid.querySelectorAll('.image-card'));
-
-    // 2. عند الضغط على زر "فرز حسب الاسم"
-    sortAlphaBtn.addEventListener('click', () => {
-        // احصل على جميع بطاقات الصور وحولها لمصفوفة لفرزها
-        const imageCards = Array.from(imagesGrid.querySelectorAll('.image-card'));
-
-        // قم بفرز المصفوفة أبجديًا بناءً على اسم الملف المخزن في data-image-name
-        imageCards.sort((a, b) => {
-            const nameA = a.dataset.imageName.toLowerCase();
-            const nameB = b.dataset.imageName.toLowerCase();
-            return nameA.localeCompare(nameB);
+    const imagesGrid = document.getElementById('images-grid-container');
+    if (imagesGrid) {
+        const originalImageCards = Array.from(imagesGrid.querySelectorAll('.image-card'));
+        sortAlphaBtn.addEventListener('click', () => {
+            const imageCards = Array.from(imagesGrid.querySelectorAll('.image-card'));
+            imageCards.sort((a, b) => a.dataset.imageName.localeCompare(b.dataset.imageName));
+            imagesGrid.innerHTML = '';
+            imageCards.forEach(card => imagesGrid.appendChild(card));
+            sortAlphaBtn.style.display = 'none';
+            sortDateBtn.style.display = 'inline-block';
         });
+        sortDateBtn.addEventListener('click', () => {
+            imagesGrid.innerHTML = '';
+            originalImageCards.forEach(card => imagesGrid.appendChild(card));
+            sortDateBtn.style.display = 'none';
+            sortAlphaBtn.style.display = 'inline-block';
+        });
+    }
 
-        // أعد إدراج البطاقات المرتبة في الحاوية
-        imagesGrid.innerHTML = ''; // أفرغ الحاوية أولاً
-        imageCards.forEach(card => imagesGrid.appendChild(card));
+    // --- منطق التصنيف حسب الموديل (إذا كانت الأزرار موجودة) ---
+    const classifyBtn = document.getElementById('classify-by-model-btn');
+    if (classifyBtn) {
+        const showAllBtn = document.getElementById('show-all-btn');
+        const backToModelsBtn = document.getElementById('back-to-models-btn');
+        const modelsGridContainer = document.getElementById('models-grid-container');
+        const sectionTitle = document.querySelector('h1'); // استهداف العنوان الرئيسي
+        const allImageCards = imagesGrid ? Array.from(imagesGrid.querySelectorAll('.image-card')) : [];
+        const originalTitle = sectionTitle.textContent;
 
-        // قم بتبديل الأزرار
-        sortAlphaBtn.style.display = 'none';
-        sortDateBtn.style.display = 'inline-block';
-    });
+        function showAllImagesView() {
+            sectionTitle.textContent = originalTitle;
+            modelsGridContainer.style.display = 'none';
+            if (imagesGrid) imagesGrid.style.display = 'grid';
+            allImageCards.forEach(card => { card.style.display = 'block'; });
+            showAllBtn.style.display = 'none';
+            backToModelsBtn.style.display = 'none';
+            classifyBtn.style.display = 'inline-block';
+            sortAlphaBtn.style.display = 'inline-block'; // إظهار زر الفرز
+        }
 
-    // 3. عند الضغط على زر "فرز حسب التاريخ"
-    sortDateBtn.addEventListener('click', () => {
-        // أعد إدراج البطاقات بالترتيب الأصلي الذي حفظناه
-        imagesGrid.innerHTML = '';
-        originalImageCards.forEach(card => imagesGrid.appendChild(card));
+        function showModelsView() {
+            const models = new Map();
+            allImageCards.forEach(card => {
+                const modelName = card.dataset.modelName || 'غير معروف';
+                models.set(modelName, (models.get(modelName) || 0) + 1);
+            });
+            const sortedModels = new Map([...models.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+            
+            sectionTitle.textContent = 'التصنيف حسب الموديل';
+            if (imagesGrid) imagesGrid.style.display = 'none';
+            modelsGridContainer.innerHTML = '';
+            
+            sortedModels.forEach((count, modelName) => {
+                const modelCard = document.createElement('div');
+                modelCard.className = 'folder-card';
+                modelCard.innerHTML = `<a>🎨 ${modelName} (${count})</a>`;
+                modelCard.onclick = () => showImagesForModel(modelName);
+                modelsGridContainer.appendChild(modelCard);
+            });
+            modelsGridContainer.style.display = 'grid';
+            
+            classifyBtn.style.display = 'none';
+            showAllBtn.style.display = 'inline-block';
+            backToModelsBtn.style.display = 'none';
+            sortAlphaBtn.style.display = 'none'; // إخفاء زر الفرز
+            sortDateBtn.style.display = 'none';
+        }
+        
+        function showImagesForModel(modelName) {
+            sectionTitle.textContent = `الموديل: ${modelName}`;
+            modelsGridContainer.style.display = 'none';
+            if (imagesGrid) imagesGrid.style.display = 'grid';
+            
+            allImageCards.forEach(card => {
+                card.style.display = (card.dataset.modelName === modelName) ? 'block' : 'none';
+            });
+            
+            showAllBtn.style.display = 'inline-block';
+            backToModelsBtn.style.display = 'inline-block';
+            classifyBtn.style.display = 'none';
+            sortAlphaBtn.style.display = 'inline-block'; // إظهار زر الفرز
+        }
 
-        // قم بتبديل الأزرار
-        sortDateBtn.style.display = 'none';
-        sortAlphaBtn.style.display = 'inline-block';
-    });
+        classifyBtn.addEventListener('click', showModelsView);
+        showAllBtn.addEventListener('click', showAllImagesView);
+        backToModelsBtn.addEventListener('click', showModelsView); // زر العودة لقائمة الموديلات
+    }
 });
 </script>
-<!-- --- نهاية الإضافة --- -->
-
 {% endblock %}
+<!-- END: MODIFIED SECTION -->

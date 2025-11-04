@@ -179,13 +179,11 @@ def get_anime4k_options():
     options['device_id'] = int(questionary.text("Enter device ID (default 0):", default="0").ask())
     return options
 
-# START: MODIFIED SECTION - تم تعديل هذه الدالة بالكامل
 def upscale_images_anime4k_ui():
     """واجهة رفع جودة الصور باستخدام Anime4K."""
     print("\n--- Upscaling Images with Anime4K ---")
     options = get_anime4k_options()
     
-    # إضافة سؤال جديد عن عامل التكبير
     try:
         options['scale_factor'] = float(questionary.text("Enter scale factor (e.g., 2.0, 3.5):", default="2.0").ask())
     except (ValueError, TypeError):
@@ -215,10 +213,7 @@ def upscale_images_anime4k_ui():
         if image_bgr is not None:
             print(f"[{i}/{total_files}] Processing: {filename} with scale factor {options['scale_factor']}x")
             image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-            
-            # استخدام عامل التكبير المحدد هنا
             result_rgb = processor(image_rgb, factor=options['scale_factor'])
-            
             result_bgr = cv2.cvtColor(result_rgb, cv2.COLOR_RGB2BGR)
             cv2.imwrite(output_path, result_bgr)
         else:
@@ -228,8 +223,8 @@ def upscale_images_anime4k_ui():
     print("\n... All images processed successfully! ...")
     print(f"Total images processed: {total_files}")
     print(f"Time taken: {end_time - start_time:.2f} seconds")
-# END: MODIFIED SECTION
 
+# START: MODIFIED SECTION - تم تعديل هذه الدالة بالكامل
 def upscale_videos_anime4k_ui():
     """واجهة رفع جودة الفيديو باستخدام Anime4K."""
     print("\n--- Upscaling Videos with Anime4K ---")
@@ -243,6 +238,15 @@ def upscale_videos_anime4k_ui():
     print(f"Found {len(videos)} video(s) to process.")
     options = get_anime4k_options()
 
+    # --- بداية الإضافة الجديدة ---
+    # إضافة سؤال جديد عن عامل التكبير، تماماً مثل الصور
+    try:
+        options['scale_factor'] = float(questionary.text("Enter scale factor (e.g., 2.0, 4.0):", default="2.0").ask())
+    except (ValueError, TypeError):
+        print("Invalid scale factor. Using default 2.0.")
+        options['scale_factor'] = 2.0
+    # --- نهاية الإضافة الجديدة ---
+
     try:
         processor = pyanime4k.Processor(processor_name=options['processor_name'], device_id=options['device_id'], model_name=options['model_name'])
         print("... Processor initialized successfully! ...")
@@ -251,7 +255,7 @@ def upscale_videos_anime4k_ui():
         return
 
     for video_name in videos:
-        print(f"\n--- Processing Video: {video_name} ---")
+        print(f"\n--- Processing Video: {video_name} (at {options['scale_factor']}x scale) ---")
         video_path = os.path.join(INPUT_DIR, video_name)
         temp_folder_name = f"temp_{os.path.splitext(video_name)[0]}"
         frames_input_dir = os.path.join(BASE_DIR, temp_folder_name, "input_frames")
@@ -276,7 +280,12 @@ def upscale_videos_anime4k_ui():
             image_bgr = cv2.imread(input_frame_path)
             if image_bgr is None: continue
             image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-            result_rgb = processor(image_rgb) # Note: Video frames are upscaled by 2x by default
+            
+            # --- بداية التعديل ---
+            # استخدام عامل التكبير المحدد هنا بدلاً من القيمة الافتراضية
+            result_rgb = processor(image_rgb, factor=options['scale_factor'])
+            # --- نهاية التعديل ---
+            
             result_bgr = cv2.cvtColor(result_rgb, cv2.COLOR_RGB2BGR)
             cv2.imwrite(output_frame_path, result_bgr)
         print("\n  Frame upscaling complete.")
@@ -305,6 +314,7 @@ def upscale_videos_anime4k_ui():
             print("Cleanup successful.")
         except Exception as e:
             print(f"Warning: Could not clean up all temporary files. {e}")
+# END: MODIFIED SECTION
 
 def anime4k_ui():
     """القائمة الرئيسية الخاصة بـ Anime4K."""

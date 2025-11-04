@@ -612,7 +612,7 @@
               <video muted playsinline>
                 {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
                 <source
-                  src="{{ url_for('serve_video', filename=video.name) }}"
+                  src="{{ get_display_url(video.name) }}"
                   type="video/mp4"
                 />
                 متصفحك لا يدعم تشغيل الفيديو.
@@ -624,7 +624,7 @@
             %}
             {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
             <img
-              src="{{ url_for('serve_video', filename=video.name) }}"
+              src="{{ get_display_url(video.name) }}"
               alt="Thumbnail"
             />
             {% endif %}
@@ -821,7 +821,7 @@
                 <video playsinline>
                   {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
                   <source
-                    src="{{ url_for('serve_video', filename=video.name) }}"
+                    src="{{ get_display_url(video.name) }}"
                     type="video/mp4"
                   />
                   متصفحك لا يدعم تشغيل الفيديو.
@@ -834,7 +834,7 @@
             %}
             {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
             <img
-              src="{{ url_for('serve_video', filename=video.name) }}"
+              src="{{ get_display_url(video.name) }}"
               class="file-preview"
               data-index="{{ loop.index0 }}"
             />

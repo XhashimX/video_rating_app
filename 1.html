@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>عالم الروابط المتعددة فلز-كربون</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Noto Sans Arabic', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+            position: relative;
+            overflow: hidden;
+        }
+        .bg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #f8fafc;
+            z-index: -1;
+        }
+        .bg-accent {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 320px;
+            height: 720px;
+            background-color: #1a365d;
+            z-index: -1;
+        }
+        .header {
+            padding: 60px 80px 30px;
+        }
+        .main-title {
+            color: #1a365d;
+            font-size: 48px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+        .subtitle {
+            color: #4a5568;
+            font-size: 24px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        .content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 80px;
+        }
+        .icon-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .molecular-icon {
+            width: 320px;
+            height: 320px;
+            border: 8px solid #1a365d;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .atom {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+        .atom-1 {
+            background-color: #1a365d;
+            top: 50px;
+            left: 135px;
+        }
+        .atom-2 {
+            background-color: #4a5568;
+            bottom: 50px;
+            left: 135px;
+        }
+        .bond {
+            position: absolute;
+            width: 12px;
+            height: 150px;
+            background-color: #1a365d;
+            top: 85px;
+            left: 154px;
+        }
+        .footer {
+            padding: 40px 80px 60px;
+        }
+        .info-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .info-label {
+            color: #1a365d;
+            font-weight: 600;
+            width: 120px;
+            text-align: left;
+        }
+        .info-value {
+            color: #4a5568;
+            flex: 1;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 4px 0;
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+<div class="bg-overlay"></div>
+<div class="bg-accent"></div>
+<div class="header">
+<p class="main-title">عالم الروابط المتعددة فلز-كربون: من الكاربينات إلى الكارباينات</p>
+<p class="subtitle">البنية، الفعالية، والتطبيقات التحفيزية لمعقدات الكاربين والكارباين</p>
+</div>
+<div class="content">
+<div class="icon-container">
+<div class="molecular-icon">
+<div class="bond"></div>
+<div class="atom atom-1"></div>
+<div class="atom atom-2"></div>
+</div>
+</div>
+</div>
+<div class="footer">
+<div class="info-row">
+<p class="info-label">الاسم:</p>
+<p class="info-value" contenteditable="true">[اسم الباحث]</p>
+</div>
+<div class="info-row">
+<p class="info-label">المشرف:</p>
+<p class="info-value" contenteditable="true">[اسم المشرف/الدكتور]</p>
+</div>
+<div class="info-row">
+<p class="info-label">الجامعة/القسم:</p>
+<p class="info-value" contenteditable="true">[اسم الجامعة/القسم]</p>
+</div>
+<div class="info-row">
+<p class="info-label">التاريخ:</p>
+<p class="info-value" contenteditable="true">[التاريخ]</p>
+</div>
+</div>
+</div>
+</body>
+</html>
