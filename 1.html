@@ -6,160 +6,76 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>عالم الروابط المتعددة فلز-كربون</title>
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
 <style>
-        body {
-            font-family: 'Noto Sans Arabic', sans-serif;
-            margin: 0;
-            padding: 0;
+        * {
+            font-family: 'Inter', sans-serif;
         }
         .slide-container {
             width: 1280px;
             min-height: 720px;
-            display: flex;
-            flex-direction: column;
-            background-color: #ffffff;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
             position: relative;
             overflow: hidden;
         }
-        .bg-overlay {
+        .science-pattern {
             position: absolute;
             top: 0;
-            left: 0;
             right: 0;
+            width: 300px;
+            height: 300px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='2' fill='%233b82f6' opacity='0.1'/%3E%3Ccircle cx='20' cy='20' r='1.5' fill='%2310b981' opacity='0.1'/%3E%3Ccircle cx='80' cy='20' r='1.5' fill='%233b82f6' opacity='0.1'/%3E%3Ccircle cx='20' cy='80' r='1.5' fill='%2310b981' opacity='0.1'/%3E%3Ccircle cx='80' cy='80' r='1.5' fill='%233b82f6' opacity='0.1'/%3E%3C/svg%3E") no-repeat;
+            opacity: 0.3;
+        }
+        .molecular-bg {
+            position: absolute;
             bottom: 0;
-            background-color: #f8fafc;
-            z-index: -1;
-        }
-        .bg-accent {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 320px;
-            height: 720px;
-            background-color: #1a365d;
-            z-index: -1;
-        }
-        .header {
-            padding: 60px 80px 30px;
-        }
-        .main-title {
-            color: #1a365d;
-            font-size: 48px;
-            font-weight: 700;
-            line-height: 1.2;
-            margin-bottom: 16px;
-        }
-        .subtitle {
-            color: #4a5568;
-            font-size: 24px;
-            font-weight: 500;
-            line-height: 1.4;
-        }
-        .content {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 80px;
-        }
-        .icon-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .molecular-icon {
-            width: 320px;
-            height: 320px;
-            border: 8px solid #1a365d;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
-        .atom {
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-        }
-        .atom-1 {
-            background-color: #1a365d;
-            top: 50px;
-            left: 135px;
-        }
-        .atom-2 {
-            background-color: #4a5568;
-            bottom: 50px;
-            left: 135px;
-        }
-        .bond {
-            position: absolute;
-            width: 12px;
-            height: 150px;
-            background-color: #1a365d;
-            top: 85px;
-            left: 154px;
-        }
-        .footer {
-            padding: 40px 80px 60px;
-        }
-        .info-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-        .info-label {
-            color: #1a365d;
-            font-weight: 600;
-            width: 120px;
-            text-align: left;
-        }
-        .info-value {
-            color: #4a5568;
-            flex: 1;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 4px 0;
-            font-weight: 400;
+            left: 0;
+            width: 200px;
+            height: 200px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 20 L80 50 L50 80 L20 50 Z' fill='none' stroke='%2310b981' stroke-width='0.5' opacity='0.2'/%3E%3Ccircle cx='50' cy='20' r='3' fill='%233b82f6' opacity='0.3'/%3E%3Ccircle cx='80' cy='50' r='3' fill='%2310b981' opacity='0.3'/%3E%3Ccircle cx='50' cy='80' r='3' fill='%233b82f6' opacity='0.3'/%3E%3Ccircle cx='20' cy='50' r='3' fill='%2310b981' opacity='0.3'/%3E%3C/svg%3E") no-repeat;
         }
     </style>
 </head>
 <body>
-<div class="slide-container">
-<div class="bg-overlay"></div>
-<div class="bg-accent"></div>
-<div class="header">
-<p class="main-title">عالم الروابط المتعددة فلز-كربون: من الكاربينات إلى الكارباينات</p>
-<p class="subtitle">البنية، الفعالية، والتطبيقات التحفيزية لمعقدات الكاربين والكارباين</p>
+<div class="slide-container flex flex-col justify-center items-center relative">
+<div class="science-pattern"></div>
+<div class="molecular-bg"></div>
+<div class="absolute top-8 left-8 flex items-center space-x-3">
+<img alt="chemistry" class="w-8 h-8 text-blue-600" src="https://www.genspark.ai/image_placeholder.png"/>
+<span class="text-gray-500 text-sm font-medium">كيمياء عضوية متقدمة</span>
 </div>
-<div class="content">
-<div class="icon-container">
-<div class="molecular-icon">
-<div class="bond"></div>
-<div class="atom atom-1"></div>
-<div class="atom atom-2"></div>
+<div class="text-center z-10 px-12">
+<h1 class="text-5xl font-bold text-gray-900 mb-4 leading-tight">
+<span class="text-blue-600">عالم الروابط المتعددة</span>
+<br/>
+<span class="text-gray-800">فلز-كربون</span>
+</h1>
+<h2 class="text-2xl text-gray-700 mb-8 font-light">
+                من الكاربينات إلى الكارباينات
+            </h2>
+<h3 class="text-xl text-gray-600 mb-12 font-normal">
+                البنية، الفعالية، والتطبيقات التحفيزية لمعقدات الكاربين والكارباين
+            </h3>
+<div class="flex items-center justify-center space-x-8 text-gray-700">
+<div class="flex items-center">
+<i class="fas fa-user-graduate mr-2 text-blue-600"></i>
+<span class="text-sm">المقدم: [اسمك]</span>
+</div>
+<div class="flex items-center">
+<i class="fas fa-chalkboard-teacher mr-2 text-green-600"></i>
+<span class="text-sm">المشرف: [اسم المشرف]</span>
+</div>
+<div class="flex items-center">
+<i class="fas fa-university mr-2 text-blue-600"></i>
+<span class="text-sm">[اسم الجامعة/القسم]</span>
 </div>
 </div>
 </div>
-<div class="footer">
-<div class="info-row">
-<p class="info-label">الاسم:</p>
-<p class="info-value" contenteditable="true">[اسم الباحث]</p>
-</div>
-<div class="info-row">
-<p class="info-label">المشرف:</p>
-<p class="info-value" contenteditable="true">[اسم المشرف/الدكتور]</p>
-</div>
-<div class="info-row">
-<p class="info-label">الجامعة/القسم:</p>
-<p class="info-value" contenteditable="true">[اسم الجامعة/القسم]</p>
-</div>
-<div class="info-row">
-<p class="info-label">التاريخ:</p>
-<p class="info-value" contenteditable="true">[التاريخ]</p>
-</div>
+<div class="absolute bottom-8 right-8 flex items-center space-x-2 text-gray-500 text-sm">
+<i class="fas fa-calendar-alt"></i>
+<span>2025</span>
 </div>
 </div>
 </body>

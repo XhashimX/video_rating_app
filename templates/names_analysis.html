@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar">
   <head>
     <meta charset="utf-8" />
@@ -77,6 +77,16 @@
         background-color: #20c997; /* أخضر مميز للنشط */
         border-color: #198754;
       }
+      /* ستايل جديد لأزرار الفلترة */
+      .filter-buttons button {
+        background-color: #0d6efd; /* أزرق */
+        border-color: #0a58ca;
+      }
+      .filter-buttons button.active {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+        box-shadow: 0 0 0 0.25rem rgba(49, 132, 253, 0.5);
+      }
     </style>
   </head>
   <body>
@@ -86,45 +96,100 @@
       <div class="mb-4 text-center">
         <h3 class="mb-3">الترتيب حسب:</h3>
         <div class="sort-buttons d-flex justify-content-center flex-wrap">
-          <button class="btn btn-secondary" data-sort-by="total_rating" data-sort-order="desc">
+          <button
+            class="btn btn-secondary"
+            data-sort-by="total_rating"
+            data-sort-order="desc"
+          >
             التقييم الكلي <i class="fas fa-sort-numeric-down-alt"></i>
           </button>
-          <button class="btn btn-secondary" data-sort-by="video_count" data-sort-order="desc">
+          <button
+            class="btn btn-secondary"
+            data-sort-by="video_count"
+            data-sort-order="desc"
+          >
             عدد الفيديوهات <i class="fas fa-sort-numeric-down-alt"></i>
           </button>
-          <button class="btn btn-secondary" data-sort-by="average_rating" data-sort-order="desc">
+          <button
+            class="btn btn-secondary"
+            data-sort-by="average_rating"
+            data-sort-order="desc"
+          >
             متوسط التقييم <i class="fas fa-sort-numeric-down-alt"></i>
           </button>
-          <button class="btn btn-secondary" data-sort-by="total_wins" data-sort-order="desc">
+          <button
+            class="btn btn-secondary"
+            data-sort-by="total_wins"
+            data-sort-order="desc"
+          >
             عدد الفوز <i class="fas fa-sort-numeric-down-alt"></i>
           </button>
-          <button class="btn btn-secondary" data-sort-by="total_losses" data-sort-order="desc">
+          <button
+            class="btn btn-secondary"
+            data-sort-by="total_losses"
+            data-sort-order="desc"
+          >
             عدد الخسارة <i class="fas fa-sort-numeric-up-alt"></i>
           </button>
-          <button class="btn btn-secondary" data-sort-by="total_competitions" data-sort-order="desc">
+          <button
+            class="btn btn-secondary"
+            data-sort-by="total_competitions"
+            data-sort-order="desc"
+          >
             إجمالي المسابقات <i class="fas fa-sort-numeric-down-alt"></i>
           </button>
-          <button class="btn btn-secondary" data-sort-by="win_rate" data-sort-order="desc">
+          <button
+            class="btn btn-secondary"
+            data-sort-by="win_rate"
+            data-sort-order="desc"
+          >
             معدل الفوز <i class="fas fa-sort-numeric-down-alt"></i>
           </button>
-          <button class="btn btn-secondary" data-sort-by="name" data-sort-order="asc">
+          <button
+            class="btn btn-secondary"
+            data-sort-by="name"
+            data-sort-order="asc"
+          >
             الاسم <i class="fas fa-sort-alpha-down"></i>
           </button>
         </div>
       </div>
 
+      <!-- START: ADDED SECTION - قسم أزرار الفلترة الجديد -->
+      <div class="mb-4 text-center">
+        <h3 class="mb-3">فلترة العرض:</h3>
+        <div class="filter-buttons btn-group" role="group">
+          <button type="button" class="btn btn-info active" data-filter="all">
+            عرض الكل
+          </button>
+          <button type="button" class="btn btn-info" data-filter="pics_only">
+            الصور فقط (_pic)
+          </button>
+          <button type="button" class="btn btn-info" data-filter="hide_pics">
+            إخفاء الصور
+          </button>
+        </div>
+      </div>
+      <!-- END: ADDED SECTION -->
+
       <div id="names-container">
-        {% if analysis_results %}
-        {# Initial rendering will be sorted by total_rating (default) as per JS#}
-        {% for name, stats in analysis_results.items() %}
-        <div class="card" data-name="{{ name }}"
-             data-total_rating="{{ '%.2f' | format(stats.total_rating) }}"
-             data-video_count="{{ stats.video_count }}"
-             data-average_rating="{{ '%.2f' | format(stats.average_rating) }}"
-             data-total_wins="{{ stats.total_wins }}"
-             data-total_losses="{{ stats.total_losses }}"
-             data-total_competitions="{{ stats.total_competitions }}"
-             data-win_rate="{{ '%.2f' | format(stats.win_rate) }}">
+        {% if analysis_results %} {# Initial rendering will be sorted by
+        total_rating (default) as per JS#} {% for name, stats in
+        analysis_results.items() %}
+        <!-- START: MODIFIED SECTION - تمت إضافة data-type هنا -->
+        <div
+          class="card"
+          data-type="{{ 'pic' if name.endswith('_pic') else 'other' }}"
+          data-name="{{ name }}"
+          data-total_rating="{{ '%.2f' | format(stats.total_rating) }}"
+          data-video_count="{{ stats.video_count }}"
+          data-average_rating="{{ '%.2f' | format(stats.average_rating) }}"
+          data-total_wins="{{ stats.total_wins }}"
+          data-total_losses="{{ stats.total_losses }}"
+          data-total_competitions="{{ stats.total_competitions }}"
+          data-win_rate="{{ '%.2f' | format(stats.win_rate) }}"
+        >
+          <!-- END: MODIFIED SECTION -->
           <div class="card-header">{{ name }}</div>
           <div class="card-body">
             <p>
@@ -159,13 +224,13 @@
             <h5 class="mt-4" style="color: #0dcaf0">تفاصيل المنافسين:</h5>
             {% if stats.competitors_detail %}
             <ul class="list-group">
-              {% for comp_name, comp_stats in stats.competitors_detail.items() %}
+              {% for comp_name, comp_stats in stats.competitors_detail.items()
+              %}
               <li class="list-group-item">
                 <strong style="color: #ff851b">{{ comp_name }}</strong>: فاز {{
                 comp_stats.wins }} مرة، خسر {{ comp_stats.losses }} مرة، إجمالي
-                {{ comp_stats.total }} منافسة.
-                (معدل فوز ضده: {{ "%.2f%%" | format(comp_stats.win_rate_vs * 100)
-                }})
+                {{ comp_stats.total }} منافسة. (معدل فوز ضده: {{ "%.2f%%" |
+                format(comp_stats.win_rate_vs * 100) }})
               </li>
               {% endfor %}
             </ul>
@@ -177,9 +242,7 @@
             {% if stats.most_fought_against %}
             <ul class="list-group">
               {% for comp_name, count in stats.most_fought_against %}
-              <li class="list-group-item">
-                {{ comp_name }} ({{ count }} مرة)
-              </li>
+              <li class="list-group-item">{{ comp_name }} ({{ count }} مرة)</li>
               {% endfor %}
             </ul>
             {% else %}
@@ -190,9 +253,7 @@
             {% if stats.most_defeated %}
             <ul class="list-group">
               {% for comp_name, count in stats.most_defeated %}
-              <li class="list-group-item">
-                {{ comp_name }} ({{ count }} مرة)
-              </li>
+              <li class="list-group-item">{{ comp_name }} ({{ count }} مرة)</li>
               {% endfor %}
             </ul>
             {% else %}
@@ -203,9 +264,7 @@
             {% if stats.most_lost_to %}
             <ul class="list-group">
               {% for comp_name, count in stats.most_lost_to %}
-              <li class="list-group-item">
-                {{ comp_name }} ({{ count }} مرة)
-              </li>
+              <li class="list-group-item">{{ comp_name }} ({{ count }} مرة)</li>
               {% endfor %}
             </ul>
             {% else %}
@@ -228,83 +287,133 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-          const namesContainer = document.getElementById('names-container');
-          const sortButtons = document.querySelectorAll('.sort-buttons button');
-          let currentSortBy = 'total_rating'; // الترتيب الافتراضي
-          let currentSortOrder = 'desc'; // الترتيب الافتراضي تنازلي
+      document.addEventListener("DOMContentLoaded", function () {
+        const namesContainer = document.getElementById("names-container");
+        const sortButtons = document.querySelectorAll(".sort-buttons button");
+        let currentSortBy = "total_rating"; // الترتيب الافتراضي
+        let currentSortOrder = "desc"; // الترتيب الافتراضي تنازلي
 
-          // دالة فرز العناصر
-          function sortNames() {
-              const cards = Array.from(namesContainer.querySelectorAll('.card'));
+        // دالة فرز العناصر
+        function sortNames() {
+          const cards = Array.from(namesContainer.querySelectorAll(".card"));
 
-              cards.sort((a, b) => {
-                  let valA, valB;
+          cards.sort((a, b) => {
+            let valA, valB;
 
-                  if (currentSortBy === 'name') {
-                      valA = a.dataset.name;
-                      valB = b.dataset.name;
-                      // الفرز الأبجدي لا يحتاج تحويلاً رقمياً
-                      if (currentSortOrder === 'asc') {
-                          return valA.localeCompare(valB);
-                      } else {
-                          return valB.localeCompare(valA);
-                      }
-                  } else {
-                      // للقيم الرقمية، نحولها إلى أرقام
-                      valA = parseFloat(a.dataset[currentSortBy]);
-                      valB = parseFloat(b.dataset[currentSortBy]);
+            if (currentSortBy === "name") {
+              valA = a.dataset.name;
+              valB = b.dataset.name;
+              // الفرز الأبجدي لا يحتاج تحويلاً رقمياً
+              if (currentSortOrder === "asc") {
+                return valA.localeCompare(valB);
+              } else {
+                return valB.localeCompare(valA);
+              }
+            } else {
+              // للقيم الرقمية، نحولها إلى أرقام
+              valA = parseFloat(a.dataset[currentSortBy]);
+              valB = parseFloat(b.dataset[currentSortBy]);
 
-                      if (currentSortOrder === 'asc') {
-                          return valA - valB;
-                      } else {
-                          return valB - valA;
-                      }
-                  }
-              });
-
-              // إعادة ترتيب العناصر في DOM
-              cards.forEach(card => namesContainer.appendChild(card));
-          }
-
-          // إضافة مستمعي الأحداث لأزرار الفرز
-          sortButtons.forEach(button => {
-              button.addEventListener('click', function() {
-                  // تحديث الزر النشط
-                  sortButtons.forEach(btn => btn.classList.remove('active'));
-                  this.classList.add('active');
-
-                  currentSortBy = this.dataset.sortBy;
-                  currentSortOrder = this.dataset.sortOrder; // سيتم تحديده من data-sort-order مباشرة
-
-                  // تحديث أيقونة الفرز
-                  sortButtons.forEach(btn => {
-                      const icon = btn.querySelector('i');
-                      if (icon) {
-                          icon.classList.remove('fa-sort-numeric-down-alt', 'fa-sort-numeric-up-alt', 'fa-sort-alpha-down', 'fa-sort-alpha-up');
-                      }
-                  });
-
-                  const activeIcon = this.querySelector('i');
-                  if (activeIcon) {
-                      if (currentSortBy === 'name') {
-                           activeIcon.classList.add(currentSortOrder === 'asc' ? 'fa-sort-alpha-down' : 'fa-sort-alpha-up');
-                      } else {
-                          activeIcon.classList.add(currentSortOrder === 'desc' ? 'fa-sort-numeric-down-alt' : 'fa-sort-numeric-up-alt');
-                      }
-                  }
-
-                  sortNames();
-              });
+              if (currentSortOrder === "asc") {
+                return valA - valB;
+              } else {
+                return valB - valA;
+              }
+            }
           });
 
-          // تفعيل الترتيب الافتراضي عند تحميل الصفحة
-          const defaultSortButton = document.querySelector(`button[data-sort-by="${currentSortBy}"][data-sort-order="${currentSortOrder}"]`);
-          if (defaultSortButton) {
-              defaultSortButton.click(); // يحاكي النقر لتطبيق الفرز الأولي وتفعيل الزر
-          }
+          // إعادة ترتيب العناصر في DOM
+          cards.forEach((card) => namesContainer.appendChild(card));
+        }
+
+        // إضافة مستمعي الأحداث لأزرار الفرز
+        sortButtons.forEach((button) => {
+          button.addEventListener("click", function () {
+            // تحديث الزر النشط
+            sortButtons.forEach((btn) => btn.classList.remove("active"));
+            this.classList.add("active");
+
+            currentSortBy = this.dataset.sortBy;
+            currentSortOrder = this.dataset.sortOrder; // سيتم تحديده من data-sort-order مباشرة
+
+            // تحديث أيقونة الفرز
+            sortButtons.forEach((btn) => {
+              const icon = btn.querySelector("i");
+              if (icon) {
+                icon.classList.remove(
+                  "fa-sort-numeric-down-alt",
+                  "fa-sort-numeric-up-alt",
+                  "fa-sort-alpha-down",
+                  "fa-sort-alpha-up"
+                );
+              }
+            });
+
+            const activeIcon = this.querySelector("i");
+            if (activeIcon) {
+              if (currentSortBy === "name") {
+                activeIcon.classList.add(
+                  currentSortOrder === "asc"
+                    ? "fa-sort-alpha-down"
+                    : "fa-sort-alpha-up"
+                );
+              } else {
+                activeIcon.classList.add(
+                  currentSortOrder === "desc"
+                    ? "fa-sort-numeric-down-alt"
+                    : "fa-sort-numeric-up-alt"
+                );
+              }
+            }
+
+            sortNames();
+          });
+        });
+
+        // START: ADDED SECTION - كود JavaScript الجديد للفلترة
+        const filterButtons = document.querySelectorAll(
+          ".filter-buttons button"
+        );
+        const allCards = document.querySelectorAll("#names-container .card");
+
+        filterButtons.forEach((button) => {
+          button.addEventListener("click", function () {
+            // تحديث الزر النشط
+            filterButtons.forEach((btn) => btn.classList.remove("active"));
+            this.classList.add("active");
+
+            const filter = this.dataset.filter;
+
+            allCards.forEach((card) => {
+              const type = card.dataset.type;
+
+              if (filter === "all") {
+                card.style.display = "block"; // إظهار الكل
+              } else if (filter === "pics_only") {
+                // إظهار فقط إذا كان النوع 'pic'
+                card.style.display = type === "pic" ? "block" : "none";
+              } else if (filter === "hide_pics") {
+                // إخفاء فقط إذا كان النوع 'pic'
+                card.style.display = type === "pic" ? "none" : "block";
+              }
+            });
+          });
+        });
+        // END: ADDED SECTION
+
+        // تفعيل الترتيب الافتراضي عند تحميل الصفحة
+        const defaultSortButton = document.querySelector(
+          `button[data-sort-by="${currentSortBy}"][data-sort-order="${currentSortOrder}"]`
+        );
+        if (defaultSortButton) {
+          defaultSortButton.click(); // يحاكي النقر لتطبيق الفرز الأولي وتفعيل الزر
+        }
       });
     </script>
-    <script src="https://kit.fontawesome.com/your-font-awesome-kit-code.js" crossorigin="anonymous"></script> {# استبدل بالرمز الخاص بك #}
+    <script
+      src="https://kit.fontawesome.com/your-font-awesome-kit-code.js"
+      crossorigin="anonymous"
+    ></script>
+    {# استبدل بالرمز الخاص بك #}
   </body>
 </html>

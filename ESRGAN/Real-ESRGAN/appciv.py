@@ -1,32 +1,29 @@
-# START: MODIFIED SECTION
 import os
 import requests
 from flask import Flask, request, jsonify
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import hashlib
 import re
 import glob
 import time
+from io import BytesIO  # للتحميل في الذاكرة
 
 
 # --- 1. الإعدادات ---
 DOWNLOAD_FOLDER = r"C:\Users\Stark\Downloads\Civitai_Images"
 PROCESSED_LINKS_DB = "processed_links.txt"
+MIN_FILE_SIZE = 50 * 1024  # 50 كيلوبايت بالبايت
 
 
-# --- الجزء الجديد: إضافة مسارات ملفات التتبع الخاصة بسكريبت المعالجة ---
 ORCHESTRATOR_TRACKING_FILES = [
     os.path.join(DOWNLOAD_FOLDER, "processed_anime4k.txt"),
     os.path.join(DOWNLOAD_FOLDER, "processed_esrgan.txt")
 ]
-# ------------------------------------------------------------------
-
 
 app = Flask(__name__)
 
 
 # --- 2. وظائف مساعدة ---
-
 
 def setup():
     try:
@@ -45,7 +42,6 @@ def is_link_processed(url):
     """
     التحقق من الرابط الأصلي (بدون sig parameter)
     """
-    # إزالة sig parameter قبل المقارنة
     url_without_sig = remove_signature_from_url(url)
     
     with open(PROCESSED_LINKS_DB, "r", encoding='utf-8') as f:
@@ -67,14 +63,9 @@ def remove_signature_from_url(url):
     إزالة sig parameter من URL للمقارنة الصحيحة
     """
     try:
-        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
         parsed = urlparse(url)
         query_params = parse_qs(parsed.query)
-        
-        # إزالة sig parameter
         query_params.pop('sig', None)
-        
-        # إعادة بناء URL بدون sig
         new_query = urlencode(query_params, doseq=True)
         new_url = urlunparse((
             parsed.scheme,
@@ -91,7 +82,7 @@ def remove_signature_from_url(url):
 
 def is_already_processed_by_orchestrator(base_filename):
     """
-    التحقق مما إذا كان اسم الملف (أو أي ملف بنفس الاسم الأساسي) موجودًا في ملفات التتبع
+    التحقق مما إذا كان اسم الملف موجودًا في ملفات التتبع
     """
     for tracker_file in ORCHESTRATOR_TRACKING_FILES:
         try:
@@ -100,7 +91,6 @@ def is_already_processed_by_orchestrator(base_filename):
             
             with open(tracker_file, 'r', encoding='utf-8') as f:
                 processed_files = f.read().splitlines()
-                # البحث عن أي ملف يبدأ بنفس الاسم الأساسي
                 for processed_file in processed_files:
                     if processed_file.startswith(base_filename):
                         return True
@@ -114,11 +104,8 @@ def is_already_processed_by_orchestrator(base_filename):
 def file_exists_with_base_name(base_filename, folder):
     """
     التحقق من وجود ملف بنفس الاسم الأساسي (مع أي لاحقة)
-    مثال: إذا كان base_filename = "4ZBSV21CQG0JHX8BP4JN46G9Q0"
-    سيجد: 4ZBSV21CQG0JHX8BP4JN46G9Q0_*.jpeg
     """
     try:
-        # البحث عن أي ملف يبدأ بنفس الاسم الأساسي
         pattern = os.path.join(folder, f"{base_filename}_*")
         matching_files = glob.glob(pattern)
         
@@ -137,29 +124,93 @@ def sanitize_filename(filename):
 
 def generate_filename(url):
     """
-    هذه الدالة لم يتم لمسها أو تعديلها.
-    ستبقى تعمل فقط مع روابط Civitai كما كانت.
+    توليد اسم الملف من الرابط
     """
     try:
         parsed_url = urlparse(url)
         base_name_part = parsed_url.path.split('/')[-1]
-        
-        # إزالة الامتداد مؤقتاً
         name, ext = os.path.splitext(base_name_part)
         safe_name = sanitize_filename(name)
-        
-        # إرجاع الاسم الأساسي فقط (بدون hash من sig)
         return safe_name, ext
-        
     except Exception:
-        # في حالة الفشل، استخدام hash للـ URL بالكامل (بدون sig)
         url_without_sig = remove_signature_from_url(url)
         hash_name = hashlib.md5(url_without_sig.encode()).hexdigest()
         return hash_name, ".jpg"
 
 
-# --- 3. نقطة النهاية (API Endpoint) مع الحماية المحسّنة ---
+# --- الطبقة الرابعة الجديدة: التحقق من حجم الملف ---
+def check_file_size_via_head(url, headers):
+    """
+    التحقق من حجم الملف باستخدام HEAD request فقط
+    يرجع: (is_valid, file_size_bytes)
+    """
+    try:
+        print(f"[ 📏 ] الطبقة 4: التحقق من حجم الملف عبر HEAD request...")
+        head_response = requests.head(url, headers=headers, timeout=10, allow_redirects=True)
+        
+        content_length = head_response.headers.get('Content-Length')
+        
+        if content_length:
+            file_size = int(content_length)
+            file_size_kb = file_size / 1024
+            print(f"   📊 حجم الملف: {file_size_kb:.2f} KB")
+            
+            if file_size < MIN_FILE_SIZE:
+                print(f"   🚫 الملف صغير جداً (< 50 KB). سيتم تخطيه دون حفظ الرابط.")
+                return False, file_size
+            else:
+                print(f"   ✅ حجم الملف مقبول (>= 50 KB).")
+                return True, file_size
+        else:
+            print(f"   ⚠️ لم يتوفر Content-Length في HEAD response.")
+            return None, None  # سنحتاج للتحميل في الذاكرة
+            
+    except Exception as e:
+        print(f"   ⚠️ فشل HEAD request: {e}.")
+        return None, None
 
+
+def download_to_memory_and_check(url, headers):
+    """
+    تحميل الملف إلى الذاكرة (BytesIO) والتحقق من حجمه قبل الكتابة
+    يرجع: (is_valid, bytes_data, file_size)
+    """
+    try:
+        print(f"[ 💾 ] تحميل الملف إلى الذاكرة للتحقق من الحجم...")
+        
+        # التحميل باستخدام stream للكفاءة
+        response = requests.get(url, headers=headers, stream=True, timeout=30)
+        response.raise_for_status()
+        
+        # إنشاء BytesIO في الذاكرة
+        memory_file = BytesIO()
+        
+        # تحميل البيانات على شكل chunks
+        for chunk in response.iter_content(chunk_size=8192):
+            memory_file.write(chunk)
+        
+        # الحصول على حجم البيانات
+        file_size = memory_file.tell()
+        file_size_kb = file_size / 1024
+        print(f"   📊 حجم الملف المحمل في الذاكرة: {file_size_kb:.2f} KB")
+        
+        # التحقق من الحجم
+        if file_size < MIN_FILE_SIZE:
+            print(f"   🚫 الملف صغير جداً (< 50 KB). سيتم تجاهله دون حفظ.")
+            memory_file.close()
+            return False, None, file_size
+        else:
+            print(f"   ✅ حجم الملف مقبول. جاهز للحفظ في المجلد.")
+            # إعادة المؤشر إلى البداية لقراءة البيانات لاحقاً
+            memory_file.seek(0)
+            return True, memory_file.getvalue(), file_size
+            
+    except Exception as e:
+        print(f"   ❌ خطأ أثناء التحميل في الذاكرة: {e}")
+        raise
+
+
+# --- 3. نقطة النهاية (API Endpoint) ---
 
 @app.route('/process-image', methods=['POST'])
 def process_image_link():
@@ -168,83 +219,102 @@ def process_image_link():
         if not data or 'url' not in data:
             return jsonify({"status": "error", "message": "الرجاء إرسال 'url' في الطلب."}), 400
 
-
         image_url = data['url']
         print(f"\n[ 📥 ] تم استقبال رابط جديد: {image_url[:80]}...")
 
-
-        # --- طبقة الدفاع الأولى: التحقق من الرابط (بدون sig) ---
+        # --- طبقة الدفاع الأولى: التحقق من الرابط ---
         if is_link_processed(image_url):
-            print("[ 🟡 ] الطبقة 1: الرابط مكرر (بدون النظر للـ sig). تم التجاهل.")
+            print("[ 🟡 ] الطبقة 1: الرابط مكرر. تم التجاهل.")
             return jsonify({"status": "skipped", "message": "الرابط تمت معالجته مسبقًا."}), 200
 
-        # # START: MODIFIED SECTION
-        # --- منطق شرطي جديد لتحديد طريقة توليد اسم الملف ---
+        # --- توليد اسم الملف ---
         base_filename, extension = None, None
         parsed_url = urlparse(image_url)
 
-        # التحقق إذا كان الرابط من نوع ComfyUI/Pinggy
         if 'view' in parsed_url.path and 'filename=' in parsed_url.query:
             print("[ ℹ️ ] تم اكتشاف رابط من نوع ComfyUI/Pinggy.")
             query_params = parse_qs(parsed_url.query)
             filename_from_query = query_params.get('filename', [None])[0]
             if filename_from_query:
-                # استخراج اسم الملف الأساسي والامتداد من معامل الرابط
                 base_filename, extension = os.path.splitext(filename_from_query)
         
-        # إذا لم يكن من النوع الجديد، استخدم المنطق الأصلي تمامًا
         if base_filename is None:
-            print("[ ℹ️ ] لم يتم التعرف على الرابط كـ ComfyUI، سيتم استخدام المنطق الأصلي (Civitai).")
-            # استدعاء الدالة الأصلية التي لم يتم المساس بها
+            print("[ ℹ️ ] استخدام المنطق الأصلي (Civitai).")
             base_filename, extension = generate_filename(image_url)
-        # # END: MODIFIED SECTION
         
-        print(f"[ ℹ️ ] الاسم الأساسي النهائي للملف: {base_filename}")
-        
-        
-        # --- طبقة الدفاع الثانية: التحقق من وجود ملف بنفس الاسم الأساسي ---
+        print(f"[ ℹ️ ] الاسم الأساسي للملف: {base_filename}")
+
+        # --- طبقة الدفاع الثانية: التحقق من وجود ملف بنفس الاسم ---
         exists, existing_file = file_exists_with_base_name(base_filename, DOWNLOAD_FOLDER)
         if exists:
-            print(f"[ 🟡 ] الطبقة 2: وجدنا ملف بنفس الاسم الأساسي '{os.path.basename(existing_file)}'. تم التجاهل.")
+            print(f"[ 🟡 ] الطبقة 2: وجدنا ملف مطابق. تم التجاهل.")
             add_link_to_db(image_url)
-            return jsonify({"status": "skipped", "message": f"الملف موجود بالفعل: {os.path.basename(existing_file)}"}), 200
-
+            return jsonify({"status": "skipped", "message": f"الملف موجود: {os.path.basename(existing_file)}"}), 200
 
         # --- طبقة الدفاع الثالثة: التحقق من سجلات المعالجة ---
         if is_already_processed_by_orchestrator(base_filename):
-            print(f"[ 🟡 ] الطبقة 3: الملف '{base_filename}*' تم تسجيله كـ'معالج' مسبقًا. تم التجاهل.")
+            print(f"[ 🟡 ] الطبقة 3: الملف معالج مسبقاً. تم التجاهل.")
             add_link_to_db(image_url)
-            return jsonify({"status": "skipped", "message": f"الملف '{base_filename}' تمت معالجته مسبقًا."}), 200
+            return jsonify({"status": "skipped", "message": f"الملف '{base_filename}' معالج مسبقاً."}), 200
 
+        # --- طبقة الدفاع الرابعة: التحقق من حجم الملف ---
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        
+        # المحاولة 1: HEAD request أولاً
+        is_size_valid, file_size = check_file_size_via_head(image_url, headers)
+        
+        if is_size_valid is False:
+            # الملف صغير جداً - نتخطاه دون حفظ الرابط
+            return jsonify({
+                "status": "skipped_size", 
+                "message": f"الملف صغير جداً ({file_size/1024:.2f} KB < 50 KB). تم التخطي دون حفظ الرابط."
+            }), 200
+        
+        # المحاولة 2: إذا لم نستطع التحقق عبر HEAD، نحمل في الذاكرة
+        image_bytes = None
+        if is_size_valid is None:
+            print(f"[ 🔄 ] HEAD request لم يوفر معلومات كافية. سيتم التحميل في الذاكرة...")
+            is_size_valid, image_bytes, file_size = download_to_memory_and_check(image_url, headers)
+            
+            if not is_size_valid:
+                # الملف صغير جداً - تم رفضه دون حفظ الرابط
+                return jsonify({
+                    "status": "skipped_size", 
+                    "message": f"الملف صغير جداً ({file_size/1024:.2f} KB < 50 KB). تم التخطي دون حفظ الرابط."
+                }), 200
 
-        # إنشاء اسم ملف فريد (نضيف timestamp صغير للحالات النادرة)
-        timestamp_suffix = str(int(time.time() * 1000))[-6:]  # آخر 6 أرقام من timestamp
+        # --- الآن نحن واثقون أن الملف مقبول: احفظه في المجلد ---
+        timestamp_suffix = str(int(time.time() * 1000))[-6:]
         final_filename = f"{base_filename}_{timestamp_suffix}{extension}"
         filepath = os.path.join(DOWNLOAD_FOLDER, final_filename)
         
-        # التحقق النهائي من عدم وجود الملف
+        # التحقق الأخير من عدم وجود الملف
         if os.path.exists(filepath):
-            print(f"[ 🟡 ] الملف '{final_filename}' موجود بالفعل. تم التجاهل.")
+            print(f"[ 🟡 ] الملف '{final_filename}' موجود. تم التجاهل.")
             add_link_to_db(image_url)
-            return jsonify({"status": "skipped", "message": f"الملف '{final_filename}' موجود بالفعل."}), 200
+            return jsonify({"status": "skipped", "message": f"الملف '{final_filename}' موجود."}), 200
 
-
-        # إذا تجاوزنا كل الدفاعات، نبدأ التحميل
-        print(f"[ ⏳ ] جارٍ تحميل الصورة...")
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(image_url, headers=headers, stream=True, timeout=30)
-        response.raise_for_status() 
-        
         print(f"[ 💾 ] جارٍ حفظ الملف في: {filepath}")
-        with open(filepath, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
         
-        print(f"[ ✅ ] تم تحميل وحفظ الصورة بنجاح: {final_filename}")
+        # إذا كان لدينا البيانات في الذاكرة، احفظها مباشرة
+        if image_bytes:
+            with open(filepath, 'wb') as f:
+                f.write(image_bytes)
+            print(f"[ ✅ ] تم حفظ الملف من الذاكرة: {final_filename}")
+        else:
+            # إذا تحققنا عبر HEAD، حمّل الملف الآن
+            print(f"[ ⏳ ] جارٍ تحميل الصورة...")
+            response = requests.get(image_url, headers=headers, stream=True, timeout=30)
+            response.raise_for_status()
+            
+            with open(filepath, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            print(f"[ ✅ ] تم تحميل وحفظ الصورة: {final_filename}")
+        
         add_link_to_db(image_url)
         
         return jsonify({"status": "success", "message": "تم تحميل الصورة بنجاح.", "filename": final_filename}), 201
-
 
     except Exception as e:
         print(f"💥💥💥 حدث خطأ فادح داخل الخادم! 💥💥💥")
@@ -257,4 +327,3 @@ def process_image_link():
 if __name__ == '__main__':
     setup()
     app.run(host='0.0.0.0', port=5003, debug=False)
-# END: MODIFIED SECTION

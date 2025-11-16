@@ -35,6 +35,14 @@ class TikTokTracker:
         # عداد للفيديوهات المعالجة
         self.processed_videos_count = 0
         self.total_new_videos = 0
+
+# START: MODIFIED SECTION
+        # --- إعدادات قاطع الدائرة (Circuit Breaker) ---
+        self.consecutive_timeouts = 0
+        self.timeout_lock = threading.Lock() # Lock لضمان تحديث العداد بأمان
+        self.TIMEOUT_THRESHOLD = 10  # عدد مرات الفشل المتتالية لتفعيل القاطع
+        self.COOLDOWN_PERIOD = 60    # مدة التوقف بالثواني
+# END: MODIFIED SECTION
     
     def safe_print(self, message: str):
         """طباعة آمنة من عدة threads"""
@@ -99,12 +107,15 @@ class TikTokTracker:
             return match.group(1)
         return url.split('/')[-1]
     
+# START: MODIFIED SECTION
     def download_thumbnail_single(self, video_url: str, username: str, video_num: int = 0) -> str:
-        """تحميل صورة مصغرة واحدة للفيديو"""
+        """تحميل صورة مصغرة واحدة مع نظام إعادة محاولة وقاطع دائرة ذكي."""
+        MAX_RETRIES = 3
+        BACKOFF_FACTOR = 2
+
         video_id = self.extract_video_id(video_url)
         base_filename = f"{username}_{video_id}"
         
-        # التحقق من وجود الصورة بالفعل
         for ext in ['.jpg', '.jpeg', '.webp', '.png', '.image']:
             existing_path = os.path.join(self.thumbnails_dir, base_filename + ext)
             if os.path.exists(existing_path):
@@ -112,41 +123,59 @@ class TikTokTracker:
                 return existing_path
         
         self.safe_print(f"      📷 Downloading thumbnail for video {video_num}: {video_id}")
-        start_time = time.time()
         
-        try:
-            output_template = os.path.join(self.thumbnails_dir, base_filename)
-            cmd = [
-                "yt-dlp",
-                "--write-thumbnail", "--skip-download", "--convert-thumbnails", "jpg",
-                "-o", output_template,
-                "--quiet",  # تقليل المخرجات
-                video_url
-            ]
-            subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True, timeout=30)
-            
-            elapsed = time.time() - start_time
-            
-            final_path = output_template + '.jpg'
-            if os.path.exists(final_path):
-                self.safe_print(f"      ✅ Thumbnail downloaded for video {video_num}: {video_id} ({elapsed:.2f}s)")
-                return final_path
+        for attempt in range(MAX_RETRIES):
+            try:
+                output_template = os.path.join(self.thumbnails_dir, base_filename)
+                cmd = ["yt-dlp", "--write-thumbnail", "--skip-download", "--convert-thumbnails", "jpg", "-o", output_template, "--quiet", video_url]
+                subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True, timeout=30)
+                
+                # --- عند النجاح، أعد ضبط عداد الفشل ---
+                with self.timeout_lock:
+                    self.consecutive_timeouts = 0
 
-            for ext in ['.jpeg', '.webp', '.png', '.image']:
-                fallback_path = output_template + ext
-                if os.path.exists(fallback_path):
-                    self.safe_print(f"      ✅ Thumbnail downloaded for video {video_num}: {video_id} ({elapsed:.2f}s)")
-                    return fallback_path
-            
-            self.safe_print(f"      ⚠️ Could not find thumbnail for video {video_num}: {video_id}")
-            return None
+                final_path = output_template + '.jpg'
+                if os.path.exists(final_path):
+                    return final_path
+                for ext in ['.jpeg', '.webp', '.png', '.image']:
+                    fallback_path = output_template + ext
+                    if os.path.exists(fallback_path):
+                        return fallback_path
+                
+                return None
 
-        except subprocess.TimeoutExpired:
-            self.safe_print(f"      ⚠️ Timeout downloading thumbnail for video {video_num}: {video_id}")
-            return None
-        except Exception as e:
-            self.safe_print(f"      ⚠️ Failed to download thumbnail for video {video_num}: {video_id} - {str(e)[:50]}")
-            return None
+            except subprocess.TimeoutExpired:
+                if attempt < MAX_RETRIES - 1:
+                    delay = BACKOFF_FACTOR ** attempt
+                    self.safe_print(f"      ⚠️ Timeout for video {video_num}. Retrying in {delay}s...")
+                    time.sleep(delay)
+                else:
+                    self.safe_print(f"      ❌ Final Timeout for video {video_num}. Registering failure.")
+                    # --- هنا يتم تفعيل منطق قاطع الدائرة ---
+                    with self.timeout_lock:
+                        self.consecutive_timeouts += 1
+                        if self.consecutive_timeouts >= self.TIMEOUT_THRESHOLD:
+                            self.safe_print("\n" + "="*70)
+                            self.safe_print(f"🚨 CIRCUIT BREAKER TRIPPED! Too many consecutive timeouts ({self.consecutive_timeouts}).")
+                            self.safe_print("   - Simulating restart to reset connection state...")
+                            
+                            # الخطوة 1: محاكاة إعادة التشغيل بحذف cache الخاص بـ yt-dlp
+                            self.safe_print(f"   - Clearing yt-dlp cache to start fresh sessions...")
+                            subprocess.run(["yt-dlp", "--rm-cache-dir"], capture_output=True)
+
+                            # الخطوة 2: الدخول في فترة تبريد طويلة
+                            self.safe_print(f"   - Entering {self.COOLDOWN_PERIOD}s cooldown period. All downloads paused.")
+                            time.sleep(self.COOLDOWN_PERIOD)
+                            
+                            self.consecutive_timeouts = 0 # إعادة ضبط العداد بعد التبريد
+                            self.safe_print("   - Cooldown finished. Resuming operations.")
+                            self.safe_print("="*70 + "\n")
+                    return None
+            except Exception as e:
+                self.safe_print(f"      ❌ Failed to download thumbnail for video {video_num}: {video_id} - {str(e)[:50]}")
+                return None
+        return None
+# END: MODIFIED SECTION
     
     def download_thumbnails_batch(self, videos_data: List[Tuple[str, str, int]], username: str):
         """تحميل مجموعة من الصور بشكل متوازي"""

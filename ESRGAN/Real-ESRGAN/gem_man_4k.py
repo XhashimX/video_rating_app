@@ -69,6 +69,48 @@ def run_command(command):
         print(f"❌ An unexpected error occurred: {e}")
         return -1
 
+# # START: MODIFIED SECTION
+# --- دالة مساعدة جديدة لاختيار وبناء أمر تجميع الفيديو ---
+def get_video_assembly_command(original_video_path, upscaled_frames_path_pattern, output_video_path):
+    """
+    تسأل المستخدم عن طريقة التجميع وتبني أمر ffmpeg المناسب.
+    """
+    assembly_choice = questionary.select(
+        "Select video assembly method:",
+        choices=[
+            "Method 1: Professional (High Quality, Auto Framerate)",
+            "Method 2: Manual (You specify the framerate)",
+            "Cancel Assembly"
+        ],
+        default="Method 1: Professional (High Quality, Auto Framerate)"
+    ).ask()
+
+    if assembly_choice == "Method 1: Professional (High Quality, Auto Framerate)":
+        print("Building command with Professional settings...")
+        return [
+            'ffmpeg', '-y', '-i', original_video_path, '-framerate', '30',
+            '-i', upscaled_frames_path_pattern,
+            '-map', '1:v:0', '-map', '0:a:0?',
+            '-vf', "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
+            '-c:v', 'libx264', '-crf', '18', '-preset', 'medium',
+            '-c:a', 'copy', '-shortest', output_video_path
+        ]
+    elif assembly_choice == "Method 2: Manual (You specify the framerate)":
+        print("Building command with Manual settings...")
+        framerate = questionary.text("Enter desired framerate (e.g., 23.98, 30, 60):", default="23.98").ask()
+        return [
+            'ffmpeg', '-y', '-framerate', framerate,
+            '-i', upscaled_frames_path_pattern,
+            '-i', original_video_path,
+            '-map', '0:v:0', '-map', '1:a:0?',
+            '-pix_fmt', 'yuv420p',
+            '-c:v', 'libx264',
+            '-c:a', 'copy', '-shortest', output_video_path
+        ]
+    else: # "Cancel Assembly" or None
+        return None
+# # END: MODIFIED SECTION
+
 # --- دوال Real-ESRGAN ---
 
 def get_upscale_options():
@@ -147,14 +189,20 @@ def upscale_videos_ui():
         final_video_name = video_name
         final_video_path = os.path.join(OUTPUT_DIR, final_video_name)
         
-        assemble_command = [
-            'ffmpeg', '-y', '-i', video_path, '-framerate', '30',
-            '-i', os.path.join(frames_output_dir, f'frame_%06d_{suffix}.png'),
-            '-map', '1:v:0', '-map', '0:a:0?',
-            '-vf', "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
-            '-c:v', 'libx264', '-crf', '18', '-preset', 'medium',
-            '-c:a', 'copy', '-shortest', final_video_path
-        ]
+        # # START: MODIFIED SECTION
+        # استدعاء الدالة المساعدة للحصول على أمر التجميع
+        assemble_command = get_video_assembly_command(
+            original_video_path=video_path,
+            upscaled_frames_path_pattern=os.path.join(frames_output_dir, f'frame_%06d_{suffix}.png'),
+            output_video_path=final_video_path
+        )
+        
+        # التحقق مما إذا كان المستخدم قد ألغى العملية
+        if not assemble_command:
+            print("Video assembly cancelled by user. Skipping.")
+            shutil.rmtree(os.path.join(BASE_DIR, temp_folder_name))
+            continue
+        # # END: MODIFIED SECTION
         
         if run_command(assemble_command) != 0:
             print(f"Failed to assemble video for {video_name}. Skipping.")
@@ -224,7 +272,6 @@ def upscale_images_anime4k_ui():
     print(f"Total images processed: {total_files}")
     print(f"Time taken: {end_time - start_time:.2f} seconds")
 
-# START: MODIFIED SECTION - تم تعديل هذه الدالة بالكامل
 def upscale_videos_anime4k_ui():
     """واجهة رفع جودة الفيديو باستخدام Anime4K."""
     print("\n--- Upscaling Videos with Anime4K ---")
@@ -238,14 +285,11 @@ def upscale_videos_anime4k_ui():
     print(f"Found {len(videos)} video(s) to process.")
     options = get_anime4k_options()
 
-    # --- بداية الإضافة الجديدة ---
-    # إضافة سؤال جديد عن عامل التكبير، تماماً مثل الصور
     try:
         options['scale_factor'] = float(questionary.text("Enter scale factor (e.g., 2.0, 4.0):", default="2.0").ask())
     except (ValueError, TypeError):
         print("Invalid scale factor. Using default 2.0.")
         options['scale_factor'] = 2.0
-    # --- نهاية الإضافة الجديدة ---
 
     try:
         processor = pyanime4k.Processor(processor_name=options['processor_name'], device_id=options['device_id'], model_name=options['model_name'])
@@ -280,12 +324,7 @@ def upscale_videos_anime4k_ui():
             image_bgr = cv2.imread(input_frame_path)
             if image_bgr is None: continue
             image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-            
-            # --- بداية التعديل ---
-            # استخدام عامل التكبير المحدد هنا بدلاً من القيمة الافتراضية
             result_rgb = processor(image_rgb, factor=options['scale_factor'])
-            # --- نهاية التعديل ---
-            
             result_bgr = cv2.cvtColor(result_rgb, cv2.COLOR_RGB2BGR)
             cv2.imwrite(output_frame_path, result_bgr)
         print("\n  Frame upscaling complete.")
@@ -294,14 +333,20 @@ def upscale_videos_anime4k_ui():
         final_video_name = video_name
         final_video_path = os.path.join(OUTPUT_DIR, final_video_name)
         
-        assemble_command = [
-            'ffmpeg', '-y', '-i', video_path, '-framerate', '30',
-            '-i', os.path.join(frames_output_dir, 'frame_%06d.png'),
-            '-map', '1:v:0', '-map', '0:a:0?',
-            '-vf', "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
-            '-c:v', 'libx264', '-crf', '18', '-preset', 'medium',
-            '-c:a', 'copy', '-shortest', final_video_path
-        ]
+        # # START: MODIFIED SECTION
+        # استدعاء الدالة المساعدة للحصول على أمر التجميع
+        assemble_command = get_video_assembly_command(
+            original_video_path=video_path,
+            upscaled_frames_path_pattern=os.path.join(frames_output_dir, 'frame_%06d.png'),
+            output_video_path=final_video_path
+        )
+        
+        # التحقق مما إذا كان المستخدم قد ألغى العملية
+        if not assemble_command:
+            print("Video assembly cancelled by user. Skipping.")
+            shutil.rmtree(os.path.join(BASE_DIR, temp_folder_name))
+            continue
+        # # END: MODIFIED SECTION
         
         if run_command(assemble_command) != 0:
             print(f"Failed to assemble video for {video_name}. Skipping.")
@@ -314,7 +359,6 @@ def upscale_videos_anime4k_ui():
             print("Cleanup successful.")
         except Exception as e:
             print(f"Warning: Could not clean up all temporary files. {e}")
-# END: MODIFIED SECTION
 
 def anime4k_ui():
     """القائمة الرئيسية الخاصة بـ Anime4K."""

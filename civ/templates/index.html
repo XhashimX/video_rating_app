@@ -1,72 +1,76 @@
 <!-- START: MODIFIED SECTION -->
-{% extends "base.html" %}
+{% extends "base.html" %} {% block title %}{{ folder_name }} - متصفح الصور{%
+endblock %} {% block content %}
+<a href="/" class="back-button">← العودة للصفحة الرئيسية</a>
 
-{% block title %}متصفح الصور - الصفحة الرئيسية{% endblock %}
+<h1>مجلد: {{ folder_name }}</h1>
 
-{% block content %}
+<div class="folder-controls">
+  <button id="sort-alpha-btn" class="action-button">فرز حسب الاسم (أ-ي)</button>
+  <button id="sort-date-btn" class="action-button" style="display: none">
+    فرز حسب التاريخ (الأحدث)
+  </button>
 
-<div class="page-header">
-    <h1>متصفح الصور</h1>
-    <div class="nav-buttons">
-        <a href="/">الرئيسية</a>
-        <a href="/favorites">⭐ الصور المميزة</a>
-    </div>
+  {% if show_classification %}
+  <div
+    id="classification-controls"
+    style="display: inline-block; margin-left: 15px"
+  >
+    <button id="classify-by-model-btn" class="action-button">
+      تصنيف حسب الموديل
+    </button>
+    <button id="show-all-btn" class="action-button" style="display: none">
+      عرض كل الصور
+    </button>
+    <button id="back-to-models-btn" class="action-button" style="display: none">
+      العودة لقائمة الموديلات
+    </button>
+  </div>
+  {% endif %}
 </div>
 
 <div class="section">
-    <div class="section-header">
-        <h2 id="download-section-title">صور AI (من كل المجلدات)</h2>
-        {% if download_images %}
-        <!-- حاوية جديدة للأزرار لتحسين التحكم -->
-        <div id="classification-controls">
-            <button id="classify-by-model-btn" class="action-button">تصنيف حسب الموديل</button>
-            <button id="show-all-btn" class="action-button" style="display:none;">عرض كل الصور</button>
-            <button id="back-to-models-btn" class="action-button" style="display:none;">العودة لقائمة الموديلات</button>
+  {% if images %}
+  <div class="images-grid" id="images-grid-container">
+    {% for image in images %}
+    <div
+      class="image-card"
+      data-image-path="{{ image.relative_path }}"
+      data-image-name="{{ image.name | e }}"
+      data-model-name="{{ image.model_name | default('غير معروف') | e }}"
+    >
+      <span
+        class="favorite-star {% if image.is_favorite %}favorited{% endif %}"
+        onclick="toggleFavorite(this, event)"
+        >★</span
+      >
+
+      <div class="image-content" onclick="toggleExifData(this)">
+        <img
+          src="/image/{{ image.relative_path }}"
+          alt="{{ image.name }}"
+          loading="lazy"
+        />
+        <div class="image-info">
+          <div class="image-name">{{ image.name }}</div>
+          <div class="exif-data"></div>
         </div>
-        {% endif %}
+      </div>
     </div>
-
-    {% if download_images %}
-        <div class="images-grid" id="images-grid-container">
-            {% for image in download_images %}
-            <div class="image-card" 
-                 data-image-path="{{ image.relative_path }}"
-                 data-image-name="{{ image.name | e }}"
-                 data-model-name="{{ image.model_name | default('غير معروف') | e }}">
-                
-                <span class="favorite-star {% if image.is_favorite %}favorited{% endif %}" onclick="toggleFavorite(this, event)">★</span>
-
-                <div class="image-content" onclick="toggleExifData(this)">
-                    <img src="/image/{{ image.relative_path }}" alt="{{ image.name }}" loading="lazy">
-                    <div class="image-info">
-                        <div class="image-name">{{ image.name }}</div>
-                        <div class="exif-data"></div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        <div class="folders-grid" id="models-grid-container" style="display:none;">
-            <!-- سيتم ملء هذا القسم عبر JavaScript -->
-        </div>
-    {% else %}
-        <div class="no-images">لا توجد صور AI في المجلدات. قم بتشغيل `scan.py` أولاً.</div>
-    {% endif %}
+    {% endfor %}
+  </div>
+  <div
+    class="folders-grid"
+    id="models-grid-container"
+    style="display: none"
+  ></div>
+  {% else %}
+  <div class="no-images">
+    لا توجد صور في هذا المجلد بالامتدادات المسموح بها.
+  </div>
+  {% endif %}
 </div>
 
-<div class="section">
-    <h2>تصفح المجلدات يدوياً</h2>
-    {% if tiktok_folders %}
-        <div class="folders-grid">
-            {% for folder in tiktok_folders %}
-            <div class="folder-card">
-                <a href="/folder/{{ folder.name }}">📁 {{ folder.name }}</a>
-            </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="no-images">لا توجد مجلدات</div>
-    {% endif %}
-</div>
+<!-- تم حذف قسم <script> بالكامل من هنا لأنه موجود الآن في base.html -->
 {% endblock %}
 <!-- END: MODIFIED SECTION -->
