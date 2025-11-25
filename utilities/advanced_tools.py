@@ -376,73 +376,105 @@ def _parse_string_list(input_str):
 
 # --- الدالة الثالثة: المقارنة والتصحيح (النسخة المصححة) ---
 
+# START: MODIFIED FUNCTION in utilities/advanced_tools.py
+
 def function_compare_and_correct(target_file_path, master_db_paths, output_option, base_output_path):
     """
-    تقارن ملف بطولة مع قواعد البيانات الرئيسية باستخدام حجم الملف كمعرف فريد،
-    وتقوم بتحديث اسم الفيديو وتقييمه.
+    تقارن ملف بطولة مع قواعد البيانات الرئيسية.
+    (نسخة تشخيصية: تطبع سبب الفشل في العثور على الفيديوهات)
     """
+    print(f"\n--- بدء عملية التصحيح (وضع التشخيص) ---")
+    print(f"الملف المستهدف: {os.path.basename(target_file_path)}")
+
     try:
         # 1. تحميل ملف البطولة الهدف
         target_data = _load_json_file(target_file_path)
         if not target_data or not isinstance(target_data, list):
             return {'success': False, 'message': 'ملف البطولة الهدف فارغ أو بتنسيق غير صحيح.'}
 
-        # 2. بناء قاموس بحث سريع من قواعد البيانات الرئيسية باستخدام file_size كمفتاح
+        # 2. بناء قاموس بحث سريع من قواعد البيانات الرئيسية
         master_lookup = {}
+        loaded_dbs_count = 0
+        
         for db_path in master_db_paths:
+            print(f"جاري تحميل: {os.path.basename(db_path)}...")
             db_data = _load_json_file(db_path)
             if db_data and isinstance(db_data, dict):
+                loaded_dbs_count += 1
                 for vid_name, details in db_data.items():
-                    if 'file_size' in details:
-                        # القيمة تحتوي على كل ما نحتاجه: الاسم المحدث والتقييم المحدث
-                        master_lookup[details['file_size']] = {
-                            'name': vid_name,
-                            'rating': details.get('rating', 1000)
-                        }
+                    if 'file_size' in details and details['file_size'] is not None:
+                        try:
+                            f_size = int(details['file_size'])
+                            master_lookup[f_size] = {
+                                'name': vid_name,
+                                'rating': details.get('rating', 1000)
+                            }
+                        except ValueError:
+                            pass
+        
+        print(f"تم تحميل {loaded_dbs_count} قاعدة بيانات. إجمالي الأحجام الفريدة: {len(master_lookup)}")
         
         if not master_lookup:
-            return {'success': False, 'message': 'فشل تحميل أي من قواعد البيانات الرئيسية أو أنها لا تحتوي على بيانات حجم الملف.'}
+            return {'success': False, 'message': 'فشل تحميل البيانات الرئيسية.'}
         
         # 3. إعداد العدادات
         name_updates = 0
         rating_updates = 0
         unfound_count = 0
+        processed_videos_count = 0
         
-        # 4. المرور على كل مسابقة وتصحيحها (العمل على نسخة من البيانات)
-        corrected_competitions = json.loads(json.dumps(target_data)) # إنشاء نسخة عميقة
+        # 4. المرور على كل مسابقة وتصحيحها
+        corrected_competitions = json.loads(json.dumps(target_data))
 
+        print("\n--- تفاصيل المطابقة ---")
         for competition in corrected_competitions:
-            # التحقق من وجود القوائم اللازمة
             if not all(k in competition for k in ['file_size', 'videos', 'rating']):
-                continue # تخطي المسابقات ذات التنسيق الخاطئ
+                continue 
             
-            # التكرار باستخدام الفهرس لتتمكن من تعديل القوائم
             for i in range(len(competition['file_size'])):
-                current_size = competition['file_size'][i]
+                try:
+                    current_size = int(competition['file_size'][i])
+                except (ValueError, TypeError):
+                    continue
+
+                processed_videos_count += 1
                 
                 if current_size in master_lookup:
-                    # الحالة 1: تم العثور على الحجم - قم بالتحديث
                     master_entry = master_lookup[current_size]
                     
-                    # تحديث الاسم إذا كان مختلفاً
+                    # مقارنة وتحديث الاسم
                     if competition['videos'][i] != master_entry['name']:
                         competition['videos'][i] = master_entry['name']
                         name_updates += 1
                         
-                    # تحديث التقييم إذا كان مختلفاً
-                    if abs(competition['rating'][i] - master_entry['rating']) > 0.01:
+                    # مقارنة وتحديث التقييم
+                    if abs(float(competition['rating'][i]) - float(master_entry['rating'])) > 0.01:
                         competition['rating'][i] = master_entry['rating']
                         rating_updates += 1
                 else:
-                    # الحالة 2: لم يتم العثور على الحجم - تسجيله كغير موجود
                     unfound_count += 1
+                    vid_name = competition['videos'][i]
+                    # طباعة تشخيصية
+                    print(f"[MISSING] الحجم {current_size} للفيديو '{vid_name}' غير موجود.")
+                    
+                    # محاولة البحث عن الاسم للتشخيص
+                    found_by_name = False
+                    for size, data in master_lookup.items():
+                        if data['name'] == vid_name:
+                             print(f"   -> تنبيه: وجدنا الاسم '{vid_name}' لكن بحجم مختلف: {size} (الفرق: {size - current_size})")
+                             found_by_name = True
+                             break
+                    if not found_by_name:
+                        print("   -> الاسم أيضاً غير موجود في أي قاعدة بيانات.")
 
-        # 5. حفظ الملف الناتج
+        print(f"\nانتهى الفحص. معالجة: {processed_videos_count}, غير موجود: {unfound_count}")
+
+        # 5. الحفظ
         output_filename = ""
         if output_option == 'overwrite':
             output_filepath = target_file_path
             output_filename = os.path.basename(target_file_path)
-        else: # new_file
+        else:
             timestamp = datetime.now().strftime("%H%M%S")
             base_name = os.path.splitext(os.path.basename(target_file_path))[0]
             output_filename = f"{base_name}_corrected_{timestamp}.json"
@@ -452,20 +484,22 @@ def function_compare_and_correct(target_file_path, master_db_paths, output_optio
 
         if success:
             final_message = (
-                f"اكتمل التصحيح بنجاح للملف <strong>{output_filename}</strong>.<br>"
-                f"- تم تحديث <strong>{name_updates}</strong> اسم فيديو.<br>"
-                f"- تم تحديث <strong>{rating_updates}</strong> تقييم.<br>"
-                f"- تم العثور على <strong>{unfound_count}</strong> فيديو غير موجود في قاعدة البيانات الرئيسية (تم تجاهله)."
+                f"اكتملت العملية (راجع الـ Terminal للتفاصيل).<br>"
+                f"- الملف الناتج: <strong>{output_filename}</strong><br>"
+                f"- تحديثات الأسماء: {name_updates}<br>"
+                f"- تحديثات التقييم: {rating_updates}"
             )
             return {'success': True, 'message': final_message}
         else:
-            return {'success': False, 'message': f"فشل حفظ الملف: {message}"}
+            return {'success': False, 'message': f"فشل الحفظ: {message}"}
 
     except Exception as e:
-        print(f"Error in function_compare_and_correct: {e}")
+        print(f"Error: {e}")
         import traceback
         traceback.print_exc()
-        return {'success': False, 'message': f"حدث خطأ غير متوقع: {e}"}
+        return {'success': False, 'message': f"Error: {e}"}
+
+# END: MODIFIED FUNCTION
         
 # --- الدالة الرابعة: معالجة الأوزان وإنشاء البطولات (النسخة المعدلة) ---
 
