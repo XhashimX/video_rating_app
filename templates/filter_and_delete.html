@@ -1,202 +1,380 @@
 <!-- START: NEW FILE templates/filter_and_delete.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>فلترة وحذف الفيديوهات</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
     <style>
-        body {
-            background-color: #121212;
-            color: #e0e0e0;
-            font-family: 'Cairo', sans-serif;
-        }
-        .container {
-            max-width: 1200px;
-        }
-        .video-card {
-            background-color: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-        }
-        .video-card.selected {
-            border-color: #dc3545;
-            box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
-            transform: scale(1.02);
-        }
-        .video-card h5 {
-            color: #20c997;
-        }
-        .video-card video {
-            width: 100%;
-            height: auto;
-            border-radius: 5px;
-            background-color: #000;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 10px;
-            font-size: 0.9em;
-            text-align: center;
-        }
-        .stat-item {
-            background-color: #2a2a2a;
-            padding: 8px;
-            border-radius: 5px;
-        }
-        .stat-label {
-            color: #aaa;
-            display: block;
-        }
-        .stat-value {
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-        .form-check-input {
-            width: 1.5em;
-            height: 1.5em;
-        }
-        .action-bar {
-            position: sticky;
-            bottom: 0;
-            background-color: rgba(30, 30, 30, 0.95);
-            padding: 15px;
-            border-top: 1px solid #444;
-            box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
-            z-index: 100;
-        }
+      body {
+        background-color: #121212;
+        color: #e0e0e0;
+        font-family: "Cairo", sans-serif;
+      }
+      .container {
+        max-width: 1200px;
+      }
+      .video-card {
+        background-color: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        transition: all 0.2s ease; /* جعل الحركة أسرع قليلاً */
+        position: relative; /* ضروري لتموضع رقم الاختصار */
+      }
+      .video-card.selected {
+        border-color: #dc3545;
+        box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+        transform: scale(1.02);
+      }
+      .video-card h5 {
+        color: #20c997;
+      }
+      .video-card video {
+        width: 100%;
+        height: auto;
+        border-radius: 5px;
+        background-color: #000;
+      }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        font-size: 0.9em;
+        text-align: center;
+      }
+      .stat-item {
+        background-color: #2a2a2a;
+        padding: 8px;
+        border-radius: 5px;
+      }
+      .stat-label {
+        color: #aaa;
+        display: block;
+      }
+      .stat-value {
+        font-weight: bold;
+        font-size: 1.1em;
+      }
+      .form-check-input {
+        width: 1.5em;
+        height: 1.5em;
+      }
+      .action-bar {
+        position: sticky;
+        bottom: 0;
+        background-color: rgba(30, 30, 30, 0.95);
+        padding: 15px;
+        border-top: 1px solid #444;
+        box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.3);
+        z-index: 100;
+      }
+      /* تنسيق شارة الرقم الخاصة بالكيبورد */
+      .keyboard-hint {
+        position: absolute;
+        top: 10px;
+        right: 10px; /* تم التعديل ليكون على اليمين بما أننا RTL */
+        background-color: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        border: 1px solid #555;
+        z-index: 10;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container mt-4">
-        <h1 class="text-center mb-2">فلترة وحذف الفيديوهات</h1>
-        <p class="text-center text-muted mb-4">
-            هنا تظهر الفيديوهات المرشحة للحذف بناءً على تقييمها المنخفض أو وسم الخسارة 'L'.<br>
-            تبقى <strong class="text-warning">{{ total_candidates }}</strong> فيديوهات مرشحة في القائمة.
+      <h1 class="text-center mb-2">فلترة وحذف الفيديوهات</h1>
+      <p class="text-center text-muted mb-4">
+        هنا تظهر الفيديوهات المرشحة للحذف بناءً على تقييمها المنخفض أو وسم
+        الخسارة 'L'.<br />
+        تبقى
+        <strong class="text-warning">{{ total_candidates }}</strong> فيديوهات
+        مرشحة في القائمة.
+        <br />
+        <small class="text-info"
+          >اختصارات الكيبورد: (1-6) للاختيار، (D) للحذف، (S) للتخطي</small
+        >
+      </p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ category }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% endwith %} {% if not candidates_batch %}
+      <div class="alert alert-success text-center">
+        <h4><i class="fas fa-check-circle"></i> رائع!</h4>
+        <p>
+          لا توجد فيديوهات مرشحة للحذف في الوقت الحالي، أو لقد قمت بمراجعتها
+          كلها.
         </p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary mt-2"
+          >العودة للصفحة الرئيسية</a
+        >
+      </div>
+      {% else %}
+      <form
+        id="delete-form"
+        method="POST"
+        action="{{ url_for('filter_and_delete') }}"
+      >
+        <!-- حقول مخفية لتمرير الحالة بين الطلبات -->
+        <input type="hidden" name="page" value="{{ page }}" />
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        {% for candidate in candidates_batch %}
+        <input
+          type="hidden"
+          name="videos_in_batch"
+          value="{{ candidate.filename }}"
+        />
+        <input
+          type="hidden"
+          name="filesize_{{ candidate.filename }}"
+          value="{{ candidate.info.file_size }}"
+        />
+        {% endfor %}
 
-        {% if not candidates_batch %}
-            <div class="alert alert-success text-center">
-                <h4><i class="fas fa-check-circle"></i> رائع!</h4>
-                <p>لا توجد فيديوهات مرشحة للحذف في الوقت الحالي، أو لقد قمت بمراجعتها كلها.</p>
-                <a href="{{ url_for('index') }}" class="btn btn-primary mt-2">العودة للصفحة الرئيسية</a>
+        <div class="row">
+          {% for candidate in candidates_batch %}
+          <div class="col-lg-4 col-md-6">
+            <div class="video-card" id="card-{{ loop.index0 }}">
+              <!-- إضافة رقم للاختصار -->
+              <div class="keyboard-hint">{{ loop.index }}</div>
+
+              <div
+                class="d-flex justify-content-between align-items-center mb-2"
+              >
+                <h5 class="mb-0 text-truncate" style="max-width: 80%">
+                  {{ candidate.info.get('name') or candidate.filename }}
+                </h5>
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    name="videos_to_delete"
+                    value="{{ candidate.filename }}"
+                    id="check-{{ loop.index0 }}"
+                  />
+                </div>
+              </div>
+              <!-- تم إضافة خاصية autoplay للتأكد -->
+              <video
+                id="video-{{ loop.index0 }}"
+                controls
+                muted
+                playsinline
+                loop
+              >
+                <source
+                  src="{{ url_for('serve_video', filename=candidate.filename) }}#t=0.1"
+                  type="video/mp4"
+                />
+              </video>
+              <div class="stats-grid mt-3">
+                <div class="stat-item">
+                  <span class="stat-label">نقاط الحذف</span>
+                  <span class="stat-value text-danger"
+                    >{{ "%.0f"|format(candidate.score) }}</span
+                  >
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">التقييم</span>
+                  <span class="stat-value text-warning"
+                    >{{ "%.2f"|format(candidate.info.rating) }}</span
+                  >
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">مرات الظهور</span>
+                  <span class="stat-value text-info"
+                    >{{ candidate.info.times_shown }}</span
+                  >
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">الوسوم</span>
+                  <span class="stat-value text-primary"
+                    >{{ candidate.info.tags or 'لا يوجد' }}</span
+                  >
+                </div>
+              </div>
             </div>
-        {% else %}
-            <form id="delete-form" method="POST" action="{{ url_for('filter_and_delete') }}">
-                <!-- حقول مخفية لتمرير الحالة بين الطلبات -->
-                <input type="hidden" name="page" value="{{ page }}">
-                
-                {% for candidate in candidates_batch %}
-                    <input type="hidden" name="videos_in_batch" value="{{ candidate.filename }}">
-                    <input type="hidden" name="filesize_{{ candidate.filename }}" value="{{ candidate.info.file_size }}">
-                {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
 
-                <div class="row">
-                    {% for candidate in candidates_batch %}
-                        <div class="col-lg-4 col-md-6">
-                            <div class="video-card" id="card-{{ loop.index0 }}">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h5 class="mb-0 text-truncate" style="max-width: 80%;">
-                                        {{ candidate.info.get('name') or candidate.filename }}
-                                    </h5>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="videos_to_delete" value="{{ candidate.filename }}" id="check-{{ loop.index0 }}">
-                                    </div>
-                                </div>
-                                <video controls preload="metadata" muted playsinline>
-                                    <source src="{{ url_for('serve_video', filename=candidate.filename) }}#t=0.1" type="video/mp4">
-                                </video>
-                                <div class="stats-grid mt-3">
-                                    <div class="stat-item">
-                                        <span class="stat-label">نقاط الحذف</span>
-                                        <span class="stat-value text-danger">{{ "%.0f"|format(candidate.score) }}</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-label">التقييم</span>
-                                        <span class="stat-value text-warning">{{ "%.2f"|format(candidate.info.rating) }}</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-label">مرات الظهور</span>
-                                        <span class="stat-value text-info">{{ candidate.info.times_shown }}</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-label">الوسوم</span>
-                                        <span class="stat-value text-primary">{{ candidate.info.tags or 'لا يوجد' }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-
-                <div class="action-bar text-center">
-                    <button type="submit" name="action" value="delete" class="btn btn-lg btn-danger">
-                        <i class="fas fa-trash-alt"></i> حذف المحدد <span id="delete-count">(0)</span>
-                    </button>
-                    <button type="submit" name="action" value="skip" class="btn btn-lg btn-secondary">
-                        <i class="fas fa-forward"></i> تخطي الباقي والانتقال للتالي
-                    </button>
-                     <a href="{{ url_for('index') }}" class="btn btn-lg btn-primary">
-                        <i class="fas fa-home"></i> العودة للرئيسية
-                    </a>
-                </div>
-            </form>
-        {% endif %}
+        <div class="action-bar text-center">
+          <button
+            type="submit"
+            name="action"
+            value="delete"
+            id="btn-delete"
+            class="btn btn-lg btn-danger"
+          >
+            <i class="fas fa-trash-alt"></i> حذف المحدد (D)
+            <span id="delete-count">(0)</span>
+          </button>
+          <button
+            type="submit"
+            name="action"
+            value="skip"
+            id="btn-skip"
+            class="btn btn-lg btn-secondary"
+          >
+            <i class="fas fa-forward"></i> تخطي (S)
+          </button>
+          <a href="{{ url_for('index') }}" class="btn btn-lg btn-primary">
+            <i class="fas fa-home"></i> الرئيسية
+          </a>
+        </div>
+      </form>
+      {% endif %}
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const checkboxes = document.querySelectorAll('input[name="videos_to_delete"]');
-            const deleteCountSpan = document.getElementById('delete-count');
-
-            function updateDeleteCount() {
-                const count = document.querySelectorAll('input[name="videos_to_delete"]:checked').length;
-                if (deleteCountSpan) {
-                    deleteCountSpan.textContent = `(${count})`;
-                }
-            }
-
-            checkboxes.forEach((checkbox, index) => {
-                const card = document.getElementById(`card-${index}`);
-                // Toggle card style on checkbox change
-                checkbox.addEventListener('change', function() {
-                    card.classList.toggle('selected', this.checked);
-                    updateDeleteCount();
-                });
-                // Toggle checkbox on card click
-                card.addEventListener('click', function(e) {
-                    // Prevent toggling if the click was on the checkbox itself or the video controls
-                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'VIDEO') {
-                        checkbox.checked = !checkbox.checked;
-                        // Manually trigger the change event
-                        checkbox.dispatchEvent(new Event('change'));
-                    }
-                });
-            });
-
-            // Initial count update
-            updateDeleteCount();
+      document.addEventListener("DOMContentLoaded", function () {
+        // 1. منطق التشغيل التلقائي (Auto-play)
+        const videos = document.querySelectorAll("video");
+        videos.forEach((video) => {
+          // التأكد من أن الفيديو مكتوم الصوت ليسمح المتصفح بالتشغيل التلقائي
+          video.muted = true;
+          // محاولة التشغيل
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then((_) => {
+                // بدأ التشغيل بنجاح
+                console.log("Video started playing automatically.");
+              })
+              .catch((error) => {
+                // منع التشغيل التلقائي
+                console.log("Auto-play was prevented by browser:", error);
+              });
+          }
         });
+
+        // 2. منطق اختيار الفيديوهات وتحديث العداد
+        const checkboxes = document.querySelectorAll(
+          'input[name="videos_to_delete"]'
+        );
+        const deleteCountSpan = document.getElementById("delete-count");
+
+        function updateDeleteCount() {
+          const count = document.querySelectorAll(
+            'input[name="videos_to_delete"]:checked'
+          ).length;
+          if (deleteCountSpan) {
+            deleteCountSpan.textContent = `(${count})`;
+          }
+        }
+
+        checkboxes.forEach((checkbox, index) => {
+          const card = document.getElementById(`card-${index}`);
+
+          // تحديث الشكل عند تغيير صندوق الاختيار
+          checkbox.addEventListener("change", function () {
+            card.classList.toggle("selected", this.checked);
+            updateDeleteCount();
+          });
+
+          // السماح بالنقر على البطاقة لتفعيل الاختيار
+          card.addEventListener("click", function (e) {
+            // نمنع التفعيل المزدوج إذا ضغطنا على الفيديو أو صندوق الاختيار نفسه
+            if (e.target.tagName !== "INPUT" && e.target.tagName !== "VIDEO") {
+              // عكس حالة الاختيار
+              checkbox.checked = !checkbox.checked;
+              // إطلاق حدث التغيير يدوياً لتحديث الستايل
+              checkbox.dispatchEvent(new Event("change"));
+            }
+          });
+        });
+
+        // التحديث الأولي للعداد
+        updateDeleteCount();
+
+        // 3. منطق اختصارات الكيبورد (Keyboard Shortcuts)
+        document.addEventListener("keydown", function (event) {
+          // تجاهل الاختصارات إذا كان المستخدم يكتب داخل حقل إدخال (إن وجد)
+          if (
+            event.target.tagName === "INPUT" ||
+            event.target.tagName === "TEXTAREA"
+          )
+            return;
+
+          const key = event.key.toLowerCase(); // تحويل للحروف الصغيرة للتعامل مع S و s
+
+          // التعامل مع الأرقام من 1 إلى 6
+          if (["1", "2", "3", "4", "5", "6"].includes(key)) {
+            // تحويل الرقم إلى فهرس (index) يبدأ من 0
+            const index = parseInt(key) - 1;
+            const checkbox = document.getElementById(`check-${index}`);
+
+            if (checkbox) {
+              // محاكاة النقر على الصندوق (سيقوم بتفعيل حدث click و change المرتبطين به)
+              // نستخدم .click() بدلاً من تغيير .checked مباشرة لضمان تشغيل الـ Event Listeners
+              checkbox.click();
+
+              // إضافة تأثير بصري بسيط عند الضغط
+              const card = document.getElementById(`card-${index}`);
+              if (card) {
+                card.style.transform = "scale(0.98)";
+                setTimeout(() => {
+                  // العودة للوضع الطبيعي (أو وضع التحديد إذا تم اختياره)
+                  card.style.transform = checkbox.checked ? "scale(1.02)" : "";
+                }, 100);
+              }
+            }
+          }
+
+          // التعامل مع زر الحذف (D)
+          if (key === "d") {
+            const deleteBtn = document.getElementById("btn-delete");
+            if (deleteBtn) {
+              // إضافة تأثير بصري قبل الإرسال
+              deleteBtn.classList.add("active");
+              deleteBtn.click();
+            }
+          }
+
+          // التعامل مع زر التخطي (S)
+          if (key === "s") {
+            const skipBtn = document.getElementById("btn-skip");
+            if (skipBtn) {
+              skipBtn.classList.add("active");
+              skipBtn.click();
+            }
+          }
+        });
+      });
     </script>
-</body>
+  </body>
 </html>
 <!-- END: NEW FILE templates/filter_and_delete.html -->

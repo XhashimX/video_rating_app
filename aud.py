@@ -1,4 +1,3 @@
-# START: FULL SCRIPT
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -74,7 +73,72 @@ def show_menu(items, title):
         except KeyboardInterrupt:
             return None
 
-# START: MODIFIED SECTION (Improved UI to keep report visible)
+# START: MODIFIED SECTION (New Multi-Select Menu)
+def multiselect_menu(items, title):
+    """Allow selecting multiple files using Spacebar."""
+    if not items:
+        print("No files found!")
+        return []
+    
+    selected_indices = set()
+    current_pos = 0
+    
+    while True:
+        clear_screen()
+        print(f"=== {title} ===\n")
+        print("Instructions: [Space] to Select/Deselect | [Enter] to Confirm | [Esc/Ctrl+C] to Cancel\n")
+        
+        for i, item in enumerate(items):
+            cursor = "→" if i == current_pos else " "
+            checkbox = "[x]" if i in selected_indices else "[ ]"
+            print(f"{cursor} {checkbox} {item}")
+        
+        print(f"\nSelected: {len(selected_indices)} files")
+        
+        try:
+            if os.name == 'nt': # Windows
+                import msvcrt
+                key = msvcrt.getch()
+                if key == b'\xe0':
+                    key = msvcrt.getch()
+                    if key == b'H': # Up
+                        current_pos = (current_pos - 1) % len(items)
+                    elif key == b'P': # Down
+                        current_pos = (current_pos + 1) % len(items)
+                elif key == b' ': # Spacebar
+                    if current_pos in selected_indices:
+                        selected_indices.remove(current_pos)
+                    else:
+                        selected_indices.add(current_pos)
+                elif key == b'\r': # Enter
+                    return [items[i] for i in sorted(selected_indices)]
+                elif key == b'\x1b': # Esc
+                    return []
+            else: # Linux/Mac
+                import tty, termios
+                fd = sys.stdin.fileno()
+                old_settings = termios.tcgetattr(fd)
+                try:
+                    tty.setcbreak(fd)
+                    key = sys.stdin.read(1)
+                    if key == '\x1b':
+                        next_char = sys.stdin.read(1) if sys.stdin in select.select([sys.stdin], [], [], 0)[0] else None
+                        if next_char is None: # Just Esc
+                            return []
+                        key += next_char + sys.stdin.read(1)
+                        if key == '\x1b[A': current_pos = (current_pos - 1) % len(items)
+                        elif key == '\x1b[B': current_pos = (current_pos + 1) % len(items)
+                    elif key == ' ':
+                        if current_pos in selected_indices: selected_indices.remove(current_pos)
+                        else: selected_indices.add(current_pos)
+                    elif key == '\n' or key == '\r':
+                        return [items[i] for i in sorted(selected_indices)]
+                finally:
+                    termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        except KeyboardInterrupt:
+            return []
+# END: MODIFIED SECTION
+
 def yes_no_menu(question, extra_content=""):
     """Yes/No Menu that can display extra info (like reports) without clearing it."""
     options = ["Yes", "No"]
@@ -82,7 +146,6 @@ def yes_no_menu(question, extra_content=""):
     
     while True:
         clear_screen()
-        # If there is extra content (like silence report), print it first
         if extra_content:
             print(extra_content)
             print("-" * 40)
@@ -128,7 +191,6 @@ def yes_no_menu(question, extra_content=""):
                     termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         except KeyboardInterrupt:
             return False
-# END: MODIFIED SECTION
 
 def compress_audio(input_file):
     """Compress audio file"""
@@ -218,11 +280,10 @@ def merge_audio(first_file):
     except subprocess.CalledProcessError as e:
         print(f"Error merging files: {e}")
 
-# START: MODIFIED SECTION (Advanced Silence Removal Logic)
-def remove_silence(input_file):
-    """Detect and remove silence safely with buffering"""
+# START: MODIFIED SECTION (Added 'auto_confirm' for Batch Mode)
+def remove_silence(input_file, auto_confirm=False):
+    """Detect and remove silence safely. auto_confirm skips the menu."""
     print(f"\nAnalyzing '{input_file}'...")
-    # Increased duration to 3 seconds (d=3)
     print("Detecting silence > 3 seconds...")
     
     detect_cmd = [
@@ -245,7 +306,6 @@ def remove_silence(input_file):
         print("No silence longer than 3 seconds detected.")
         return
 
-    # Build the report string to display in the menu
     report_text = f"\n--- Silence Analysis for: {input_file} ---\n"
     for i, start in enumerate(silence_starts):
         s_time = float(start[0])
@@ -256,55 +316,94 @@ def remove_silence(input_file):
         else:
             report_text += f"Start: {s_time:.2f}s | End: (End of file)\n"
     
-    report_text += "\nNote: We will leave a 1-second buffer to avoid chopping speech."
+    report_text += "\nNote: We will leave a 1-second buffer."
 
-    # Pass report_text to the menu so it stays visible
-    if not yes_no_menu("Do you want to DELETE these silent sections?", extra_content=report_text):
-        print("Operation cancelled.")
-        return
+    # Only ask for confirmation if NOT in auto (batch) mode
+    if not auto_confirm:
+        if not yes_no_menu("Do you want to DELETE these silent sections?", extra_content=report_text):
+            print("Operation cancelled.")
+            return
+    else:
+        print(report_text)
+        print("\n[Batch Mode] Proceeding with deletion automatically...")
 
     file_path = Path(input_file)
     output_file = f"{file_path.stem}_nosilence{file_path.suffix}"
     
-    # stop_duration=1 ensures we leave 1 second of silence
     remove_cmd = [
         'ffmpeg', '-i', input_file,
         '-af', 'silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-40dB',
         output_file
     ]
     
-    print(f"\nRemoving silence (keeping 1s buffer)...")
+    print(f"\nRemoving silence...")
     try:
         subprocess.run(remove_cmd, check=True)
         print(f"Done! Saved as: {output_file}")
     except subprocess.CalledProcessError as e:
         print(f"Error removing silence: {e}")
+
+def batch_processor():
+    """Handle batch operations for multiple files."""
+    audio_files = get_audio_files()
+    if not audio_files:
+        print("No audio files found.")
+        input("Press Enter to continue...")
+        return
+
+    selected_files = multiselect_menu(audio_files, "Batch Processing - Select Files")
+    if not selected_files:
+        return
+
+    actions = ["Compress All (Small Size)", "Remove Silence All"]
+    choice = show_menu(actions, f"Selected {len(selected_files)} files. Choose Action:")
+
+    if not choice:
+        return
+
+    print(f"\nStarting batch processing for {len(selected_files)} files...")
+    
+    for i, file in enumerate(selected_files, 1):
+        print(f"\n>>> Processing File {i}/{len(selected_files)}: {file}")
+        
+        if choice == "Compress All (Small Size)":
+            compress_audio(file)
+        elif choice == "Remove Silence All":
+            # We pass auto_confirm=True so it doesn't ask Yes/No for every file
+            remove_silence(file, auto_confirm=True)
+    
+    print("\nBatch processing complete!")
+    input("Press Enter to return to menu...")
 # END: MODIFIED SECTION
 
 def main():
-    # START: MODIFIED SECTION (Main Loop for Flexibility)
     while True:
         clear_screen()
         print("=== Audio File Wizard ===\n")
         
         audio_files = get_audio_files()
         
-        if not audio_files:
-            print("No audio files found in the current folder!")
-            return
+        # START: MODIFIED SECTION (Added Batch Option to Main Menu)
+        menu_items = ["Batch Processing (Multiple Files)"] 
+        if audio_files:
+            menu_items.extend(audio_files)
+        menu_items.append("Exit Program")
         
-        # Add option to quit at file selection
-        menu_items = audio_files + ["Exit Program"]
-        selected = show_menu(menu_items, "Select an Audio File")
+        selected = show_menu(menu_items, "Select Mode or File")
         
-        if not selected or selected == "Exit Program":
+        if selected == "Exit Program" or selected is None:
             print("Goodbye!")
             break
         
+        if selected == "Batch Processing (Multiple Files)":
+            batch_processor()
+            continue
+        # END: MODIFIED SECTION
+        
+        # Single File Mode Logic
         selected_file = selected
         print(f"\nSelected: {selected_file}")
         
-        # Inner loop: Perform multiple actions on the selected file
         while True:
             actions = [
                 "Compress (Reduce Size)",
@@ -334,16 +433,14 @@ def main():
                 input("\nPress Enter to continue...")
             
             elif action_choice == "Select Different File":
-                break  # Breaks inner loop, goes back to file selection
+                break
             
             elif action_choice == "Exit Program" or action_choice is None:
                 print("Goodbye!")
-                return # Exits the whole program
-    # END: MODIFIED SECTION
+                return
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
         print("\nCancelled by user")
-# END: FULL SCRIPT

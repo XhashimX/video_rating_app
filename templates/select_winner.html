@@ -144,11 +144,10 @@
         height: auto;
         border-radius: 10px;
         cursor: pointer;
-        transition: transform 0.3s ease;
+        transition: transform 0.3s ease; 
       }
 
       video:hover {
-        transform: scale(1.05);
         box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
       }
 
@@ -156,14 +155,14 @@
         color: #20c997;
         font-weight: bold;
       }
-      /* تم تعديل هذه القاعدة لتطبيق اللون الأخضر فقط على العناوين غير المعالجة */
+      
       h5 {
-        color: #20c997; /* اللون الافتراضي الأخضر */
+        color: #20c997; 
         font-weight: bold;
       }
-      /* إضافة قاعدة CSS جديدة للعناوين المعالجة لتصبح حمراء */
+      
       h5.processed-title {
-          color: red !important; /* اللون الأحمر للفيديوهات المعالجة */
+          color: red !important; 
       }
 
 
@@ -181,50 +180,102 @@
       /* ألوان مختلفة بناءً على القيم */
       .rating-value-less-1000,
       .appearance-value-less-1000 {
-        color: #ff4444; /* أحمر */
+        color: #ff4444; 
       }
 
       .rating-value-1000,
       .appearance-value-1000 {
-        color: #ffaa00; /* برتقالي */
+        color: #ffaa00; 
       }
 
       .rating-value-1000-1300,
       .appearance-value-1000-1300 {
-        color: #ffcc00; /* أصفر */
+        color: #ffcc00; 
       }
 
       .rating-value-1300-1800,
       .appearance-value-1300-1800 {
-        color: #00cc00; /* أخضر */
+        color: #00cc00; 
       }
 
       .rating-value-1800-2500,
       .appearance-value-1800-2500 {
-        color: #0066cc; /* أزرق */
+        color: #0066cc; 
       }
 
       .rating-value-2500-3500,
       .appearance-value-2500-3500 {
-        color: #cc00cc; /* بنفسجي */
+        color: #cc00cc; 
       }
 
       .rating-value-over-3500,
       .appearance-value-over-3500 {
-        color: #990000; /* بني */
+        color: #990000; 
       }
-      /* إضافة ستايل لوزن الفيديو المعالج إذا أردت تمييزه */
+      
        .weight-value {
            font-weight: bold;
-           color: #ffcc00; /* لون أصفر مميز للوزن مثلاً */
-           margin-left: 5px; /* مسافة صغيرة بعد الوزن */
+           color: #ffcc00; 
+           margin-left: 5px; 
        }
-      /* START: MODIFIED SECTION - إضافة تنسيق CSS للترتيب */
+      
        .rank-value {
            font-weight: bold;
-           color: #0dcaf0; /* لون سماوي مميز للترتيب */
+           color: #0dcaf0; 
        }
-      /* END: MODIFIED SECTION */
+
+      /* تنسيق الترتيب القابل للنقر */
+      .rank-display {
+          cursor: pointer;
+          border-bottom: 1px dashed #777;
+          transition: color 0.2s;
+          font-size: 1.1em;
+          padding: 0 5px;
+      }
+      .rank-display:hover {
+          color: #20c997;
+          border-bottom-color: #20c997;
+      }
+
+      /* تنسيق حاوية الإدخال السريع (تظهر فقط عند الضغط) */
+      .quick-bet-form {
+          display: none; /* مخفي افتراضياً */
+          align-items: center;
+          gap: 5px;
+          background: #2a2a2a;
+          padding: 2px 5px;
+          border-radius: 5px;
+          border: 1px solid #444;
+      }
+
+      /* تحسين حقل الإدخال للموبايل */
+      .quick-bet-input {
+          width: 60px;
+          background: #111;
+          border: 1px solid #555;
+          color: #fff;
+          text-align: center;
+          border-radius: 3px;
+          font-weight: bold;
+          font-size: 14px;
+          padding: 2px;
+      }
+      .quick-bet-input:focus {
+          outline: none;
+          border-color: #20c997;
+      }
+
+      /* أزرار الحفظ والإلغاء الصغيرة */
+      .btn-mini {
+          padding: 0 6px;
+          height: 26px;
+          line-height: 24px;
+          font-size: 12px;
+          border-radius: 3px;
+          border: none;
+      }
+      .btn-mini-save { background: #198754; color: white; }
+      .btn-mini-cancel { background: #6c757d; color: white; }
 
       .winner-radio {
         display: flex;
@@ -303,15 +354,15 @@
         border-color: #6c757d;
         color: white;
       }
-      .btn-info { /* إضافة ستايل لزر "تطبيق الوسوم فقط" */
+      .btn-info { 
           background-color: #0dcaf0;
           border-color: #0dcaf0;
           color: white;
       }
-      .btn-warning { /* إضافة ستايل لزر "تخطي المسابقة" */
+      .btn-warning { 
           background-color: #ffc107;
           border-color: #ffc107;
-          color: #212529; /* لون نص داكن للتحذير */
+          color: #212529; 
       }
 
 
@@ -424,13 +475,10 @@
         pointer-events: none;
       }
 
-      /* START: MODIFIED SECTION - هذا هو التعديل السحري في CSS */
-      /* هذه القاعدة الجديدة تجبر زر "التالي" على البقاء ظاهرًا وقابلاً للنقر دائمًا */
       .controls-overlay.hidden .next-button-container {
         opacity: 1 !important;
         pointer-events: auto !important;
       }
-      /* END: MODIFIED SECTION */
 
 
       video {
@@ -441,6 +489,7 @@
       .video-container {
         position: relative;
         display: inline-block;
+        width: 100%; /* ضمان ملء العرض */
       }
       .fullscreen-button {
         position: absolute;
@@ -459,6 +508,25 @@
         opacity: 0.9;
       }
 
+      /* تنسيق زر التدوير */
+      .rotate-button {
+        position: absolute;
+        top: 10px;
+        right: 15px; /* وضع الزر في الزاوية اليمنى */
+        background: rgba(51, 51, 51, 0.7);
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        padding: 5px 8px;
+        font-size: 14px;
+        cursor: pointer;
+        z-index: 1000;
+        transition: background 0.3s;
+      }
+      .rotate-button:hover {
+        background: rgba(32, 201, 151, 0.7);
+      }
+
       .video-fullscreen-overlay {
         position: fixed;
         top: 0;
@@ -475,6 +543,7 @@
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
+        transition: transform 0.3s ease; /* إضافة حركة سلسة للتدوير في ملء الشاشة */
       }
       #close-fullscreen-video {
         position: absolute;
@@ -583,9 +652,9 @@
   </head>
   <body>
     <div class="container-fluid px-0">
-        <!-- START: إضافة/تعديل عناصر المؤقت والعداد والمتوسط (مثبت في أعلى الصفحة) -->
-        <div style="background-color: rgba(40, 40, 40, 0.85); padding: 10px; border-radius: 0 0 8px 8px; /* تعديل الحواف السفلية فقط */ color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-family: 'Cairo', sans-serif; margin-bottom: 15px; /* هامش سفلي لترك مسافة للمحتوى التالي */ display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 15px; /* مسافة بين العناصر */ flex-wrap: wrap;">
+        <!-- عناصر المؤقت والعداد والمتوسط -->
+        <div style="background-color: rgba(40, 40, 40, 0.85); padding: 10px; border-radius: 0 0 8px 8px; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-family: 'Cairo', sans-serif; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
                 <div style="font-size: 0.9em;">
                     <i class="fas fa-clock" style="margin-right: 5px;"></i>الوقت المنقضي: <strong id="timerDisplay" style="color: #20c997;">00:00:00</strong>
                 </div>
@@ -596,21 +665,18 @@
                     <i class="fas fa-tachometer-alt" style="margin-right: 5px;"></i>متوسط وقت المسابقة: <strong id="averageTimeDisplay" style="color: #17a2b8;">--:--:--</strong>
                 </div>
             </div>
-            <button id="resetTimerButton" class="btn btn-sm btn-danger" style="font-size: 0.8em; padding: 3px 8px; margin-left: auto; /* لدفع الزر إلى اليمين إذا كان هناك مساحة */">
+            <button id="resetTimerButton" class="btn btn-sm btn-danger" style="font-size: 0.8em; padding: 3px 8px; margin-left: auto;">
                 <i class="fas fa-redo-alt" style="margin-right: 3px;"></i>إعادة ضبط
             </button>
         </div>
-        <!-- END: إضافة/تعديل عناصر المؤقت والعداد والمتوسط (مثبت في أعلى الصفحة) -->
 
         <h1 class="text-center mb-4">اختر الفائزين بين الملفات التالية:</h1>
         <div class="thumbnails-container">
           {% for video in competition_videos %}
           <div class="thumbnail" data-target="video-card-{{ loop.index }}">
-            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
             {% if video.name.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')) %}
             <div class="video-container">
               <video muted playsinline>
-                {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
                 <source
                   src="{{ get_display_url(video.name) }}"
                   type="video/mp4"
@@ -619,10 +685,8 @@
               </video>
               <button class="fullscreen-button">ملء الشاشة</button>
             </div>
-            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
             {% elif video.name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))
             %}
-            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
             <img
               src="{{ get_display_url(video.name) }}"
               alt="Thumbnail"
@@ -658,43 +722,62 @@
           <input type="hidden" name="max_value1" value="{{ max_value1 if max_value1 is not none else '' }}" />
           <input type="hidden" name="min_value2" value="{{ min_value2 if min_value2 is not none else '' }}" />
           <input type="hidden" name="max_value2" value="{{ max_value2 if max_value2 is not none else '' }}" />
-          {# START: إضافة حقول مخفية للأوضاع الجديدة #}
           {% elif mode == 9 %}
           <input type="hidden" name="min_times_shown" value="{{ min_times_shown if min_times_shown is not none else '' }}" />
           <input type="hidden" name="max_times_shown" value="{{ max_times_shown if max_times_shown is not none else '' }}" />
           {% elif mode == 10 %}
-          <input type="hidden" name="tags_value_input" value="{{ tags if tags is not none else '' }}" /> {# تأكد أن اسم المتغير 'tags' هو ما مررته من app.py #}
-          {# END: إضافة حقول مخفية للأوضاع الجديدة #}
+          <input type="hidden" name="tags_value_input" value="{{ tags if tags is not none else '' }}" /> 
           {% endif %}
 
           {% for video in competition_videos %}
-          {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
           <input type="hidden" name="videos" value="{{ video.name }}" />
           <div class="video-card" id="video-card-{{ loop.index }}">
-            {# إضافة كلاس processed-title بشكل شرطي بناءً على video.is_processed #}
             <h5 class="text-center mb-2 {% if video.is_processed %}processed-title{% endif %}">
               الملف {{ loop.index }}:
-              {# عرض اسم الفيديو المخصص (display_name) إذا كان موجودًا وغير فارغ، وإلا فعرض اسم الملف #}
               {% if video.display_name and video.display_name | length > 0 %}
                 {{ video.display_name }}
               {% else %}
-                {# إذا لم يكن هناك display_name، اعرض اسم الملف بعد التعديل (إزالة الأرقام) #}
                 {{ video.name.split('_', 1)[1] if '_' in video.name else video.name }}
               {% endif %}
             </h5>
             <p class="text-center video-stats">
               التقييم:
-              {# الوصول إلى التقييم باستخدام video.rating بدلاً من video[1] #}
-              <span class="rating-value">{{ "%.2f" | format(video.rating) }}</span> {# تنسيق التقييم لرقمين عشريين #}
+              <span class="rating-value">{{ "%.2f" | format(video.rating) }}</span> 
               | الظهور:
-              {# الوصول إلى عدد مرات الظهور باستخدام video.times_shown بدلاً من video[2] #}
               <span class="appearance-value">{{ video.times_shown }}</span>
-              <!-- START: MODIFIED SECTION - إضافة عرض الترتيب هنا -->
-              | الترتيب: <span class="rank-value">{{ video.rank }}</span>
-              <!-- END: MODIFIED SECTION -->
-              {# عرض الوزن بشكل شرطي بناءً على video.is_processed و video.weight #}
+              
+              | الترتيب: 
+              <div style="display: inline-block; vertical-align: middle;">
+                  <!-- 1. رقم الترتيب الظاهر -->
+                  <span id="rank-display-{{ loop.index }}" 
+                        class="rank-value rank-display"
+                        onclick="showInlineBet('{{ loop.index }}')"
+                        title="اضغط للتعديل والمراهنة">
+                      {{ video.rank }}
+                  </span>
+
+                  <!-- 2. نموذج الإدخال المخفي (يظهر عند الضغط) -->
+                  <div id="bet-form-{{ loop.index }}" class="quick-bet-form">
+                      <input type="number" 
+                             id="bet-input-{{ loop.index }}" 
+                             class="quick-bet-input" 
+                             placeholder="الهدف"
+                             onkeydown="if(event.key==='Enter') submitInlineBet('{{ loop.index }}', '{{ video.name|quote }}')">
+                             
+                      <button type="button" class="btn-mini btn-mini-save" 
+                              onclick="submitInlineBet('{{ loop.index }}', '{{ video.name|quote }}')">
+                          <i class="fas fa-check"></i>
+                      </button>
+                      
+                      <button type="button" class="btn-mini btn-mini-cancel" 
+                              onclick="hideInlineBet('{{ loop.index }}')">
+                          <i class="fas fa-times"></i>
+                      </button>
+                  </div>
+              </div>
+
               {% if video.is_processed and video.weight is not none %}
-              | الوزن: <span class="weight-value">{{ "%.2f" | format(video.weight) }}</span> {# تنسيق الوزن لرقمين عشريين #}
+              | الوزن: <span class="weight-value">{{ "%.2f" | format(video.weight) }}</span> 
               {% endif %}
             </p>
 
@@ -708,7 +791,6 @@
 
             {% else %}
             <div class="winner-radio">
-              {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
               <input
                 type="radio"
                 name="winner"
@@ -725,10 +807,9 @@
                 Tags:
               </label>
               <div class="d-flex flex-wrap gap-1">
-                {# الحصول على الوسوم المبدئية من video.tags بدلاً من فيديو[3] #}
                 {% set current_tags = video.tags.split(',') if video.tags else [] %}
                 <div class="form-check">
-                  <input class="form-check-input tag-checkbox" type="checkbox" value="∅" id="tag-none-{{ loop.index }}" data-index="{{ loop.index }}"> {# إضافة قيمة '∅' #}
+                  <input class="form-check-input tag-checkbox" type="checkbox" value="∅" id="tag-none-{{ loop.index }}" data-index="{{ loop.index }}"> 
                   <label class="form-check-label tag-btn" for="tag-none-{{ loop.index }}">
                     ∅
                   </label>
@@ -782,14 +863,11 @@
                   </label>
                 </div>
               </div>
-              {# هنا أيضاً، نستخدم video.tags للحصول على القيمة المبدئية للحقل المخفي #}
               <input type="hidden" name="tag_{{ loop.index }}" value="{{ video.tags }}" />
             </div>
 
-            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
             {% if video.name.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')) %}
             <div class="video-wrapper">
-              <!-- START: MODIFIED SECTION - تم إرجاع زر "التالي" إلى هنا -->
               <div class="controls-overlay">
                 {% if ranking_type != 'winner_only' %}
                 <div class="rank-buttons">
@@ -816,10 +894,8 @@
                   </button>
                 </div>
               </div>
-              <!-- END: MODIFIED SECTION -->
               <div class="video-container">
                 <video playsinline>
-                  {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
                   <source
                     src="{{ get_display_url(video.name) }}"
                     type="video/mp4"
@@ -827,12 +903,16 @@
                   متصفحك لا يدعم تشغيل الفيديو.
                 </video>
                 <button class="fullscreen-button">ملء الشاشة</button>
+                
+                <!-- زر التدوير -->
+                <button type="button" class="rotate-button" title="تدوير جميع الفيديوهات">
+                    <i class="fas fa-redo"></i>
+                </button>
+                
               </div>
             </div>
-            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
             {% elif video.name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))
             %}
-            {# الوصول إلى اسم الملف باستخدام video.name بدلاً من video[0] #}
             <img
               src="{{ get_display_url(video.name) }}"
               class="file-preview"
@@ -901,18 +981,17 @@
           applyColor(value, rating);
         });
 
-        // تطبيق ألوان مختلفة على عدد مرات الظهور (يمكن استخدام نفس الدالة مع قيمة مختلفة)
+        // تطبيق ألوان مختلفة على عدد مرات الظهور
         const appearanceValues = document.querySelectorAll(".appearance-value");
         appearanceValues.forEach((value) => {
           const appearance = parseInt(value.textContent);
-          applyColor(value, appearance); // قد تحتاج لتعريف دالة ApplyColorForAppearance إذا أردت ألوان مختلفة تماماً لمرات الظهور
+          applyColor(value, appearance); 
         });
 
         function applyColor(element, value) {
-          // القيم المستخدمة هنا هي لتقييم Elo بشكل أساسي
           if (value < 1000) {
             element.classList.add("rating-value-less-1000");
-          } else if (value >= 1000 && value <= 1000) { // للتأكيد على قيمة 1000 بالضبط
+          } else if (value >= 1000 && value <= 1000) { 
             element.classList.add("rating-value-1000");
           } else if (value > 1000 && value <= 1300) {
             element.classList.add("rating-value-1000-1300");
@@ -922,11 +1001,9 @@
             element.classList.add("rating-value-1800-2500");
           } else if (value > 2500 && value <= 3500) {
             element.classList.add("rating-value-2500-3500");
-          } else if (value > 3500) { // استخدام else if للقيمة الأكبر من 3500
+          } else if (value > 3500) { 
             element.classList.add("rating-value-over-3500");
           }
-          // يمكنك إضافة منطق مشابه هنا لمرات الظهور إذا أردت ألواناً تعتمد على مرات الظهور بدلاً من التقييم
-          // أو فصل الدالتين applyColor و applyColorForAppearance
         }
 
 
@@ -943,6 +1020,14 @@
         const rankingType = document.querySelector(
           'input[name="ranking_type"]',
         ).value;
+        // --- إضافة جديدة: متغير لتتبع الفيديو الذي يقف عليه الماوس ---
+        let currentHoveredIndex = null;
+        document.querySelectorAll(".video-card").forEach((card) => {
+            const index = card.id.split('-')[2];
+            card.addEventListener('mouseenter', () => currentHoveredIndex = index);
+            card.addEventListener('click', () => currentHoveredIndex = index);
+        });
+        // -----------------------------------------------------------
 
         function createNavigationDots() {
           dotsContainer.innerHTML = "";
@@ -1046,12 +1131,8 @@
                 });
             }
 
-            // التحقق من الوسوم (نحتاج فقط التحقق إذا لم يتم الضغط على tag_only)
-             // هذه الجزئية ستبقى كما هي لأنها لا تعتمد على بنية البيانات الجديدة
              const tagInputs = document.querySelectorAll('input[name^="tag_"]');
              tagInputs.forEach(function (input) {
-                 // نتحقق فقط إذا كانت القيمة فارغة، وهذا يشير إلى عدم اختيار أي وسم أو عدم اختيار '∅'
-                 // إذا كانت القيمة فارغة، والزر '∅' غير محدد، فهذا يعني عدم اختيار أي وسم
                  const index = input.name.split('_')[1];
                  const noneCheckbox = document.getElementById(`tag-none-${index}`);
                  if (input.value === "" && !noneCheckbox.checked) {
@@ -1060,7 +1141,6 @@
              });
 
 
-            // عرض رسالة الخطأ إذا كان هناك تقييم ناقص أو وسم ناقص (فقط إذا لم نضغط على tag_only أو skip)
             if (
                 (hasEmptyRank && rankingType != "winner_only") ||
                 hasEmptyTag
@@ -1069,7 +1149,7 @@
                 errorMessage.scrollIntoView({ behavior: "smooth", block: "start" });
             } else {
                 errorMessage.style.display = "none";
-                form.submit(); // إرسال النموذج إذا كان كل شيء صحيحاً
+                form.submit(); 
             }
         });
 
@@ -1083,9 +1163,10 @@
           video.addEventListener("click", function (e) {
             if (
               e.target.closest(".rank-buttons") ||
-              e.target.closest(".fullscreen-button")
+              e.target.closest(".fullscreen-button") ||
+              e.target.closest(".rotate-button")
             )
-              return; // Prevent click on buttons
+              return; 
 
             if (video.paused) {
               overlay.classList.add("hidden");
@@ -1172,6 +1253,35 @@
             e.stopPropagation();
           });
         });
+        
+        // --- متغير عام لتخزين زاوية التدوير الحالية لجميع الفيديوهات ---
+        let globalRotation = 0;
+
+        // دالة لتدوير جميع الفيديوهات (بما في ذلك الفيديو النشط في وضع ملء الشاشة)
+        function rotateAllVideos() {
+            globalRotation = (globalRotation + 90) % 360;
+            
+            // 1. تدوير الفيديوهات في البطاقات
+            const cardVideos = document.querySelectorAll('.video-container video');
+            cardVideos.forEach(video => {
+                video.style.transform = `rotate(${globalRotation}deg)`;
+            });
+
+            // 2. تدوير فيديو ملء الشاشة (إذا كان موجوداً)
+            const fsVideo = document.getElementById('fullscreen-video');
+            if (fsVideo) {
+                fsVideo.style.transform = `rotate(${globalRotation}deg)`;
+            }
+        }
+
+        // ربط أزرار التدوير بالدالة العامة
+        document.querySelectorAll('.rotate-button').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                rotateAllVideos();
+            });
+        });
 
         const rankButtons = document.querySelectorAll(".rank-btn");
         const nextButtons = document.querySelectorAll(".next-button");
@@ -1179,7 +1289,6 @@
           '.winner-radio input[type="radio"]',
         );
 
-        // --- تعريف المتغيرات الخاصة بواجهة ملء الشاشة للفيديو ---
         const videoFullscreenOverlay = document.getElementById(
           "video-fullscreen-overlay",
         );
@@ -1193,7 +1302,6 @@
           currentXVideo = 0;
         const videoSources = [];
 
-        // --- جمع روابط الفيديوهات من عناصر الفيديو الموجودة في صفحة المنافسة ---
         const videoCards = document.querySelectorAll(".video-card");
         videoCards.forEach((card, index) => {
           const videoEl = card.querySelector("video");
@@ -1201,7 +1309,6 @@
             const sourceEl = videoEl.querySelector("source");
             if (sourceEl) {
               videoSources.push(sourceEl.src);
-              // ضع رقم الفهرس كـ data attribute في زر الملء الشاشة داخل البطاقة
               const fsButton = card.querySelector(".fullscreen-button");
               if (fsButton) {
                 fsButton.dataset.index = index;
@@ -1210,21 +1317,22 @@
           }
         });
 
-        // --- دالة لفتح وضعية ملء الشاشة المخصصة للفيديو ---
         function openFullscreenVideo(index) {
-          currentVideoIndex = index;
-          fullscreenVideo.src = videoSources[currentVideoIndex];
-          videoFullscreenOverlay.style.display = "flex";
-          fullscreenVideo.play(); // ابدأ تشغيل الفيديو تلقائيًا
+            currentVideoIndex = index; 
+            if (videoSources[currentVideoIndex]) {
+                fullscreenVideo.src = videoSources[currentVideoIndex];
+                // تطبيق التدوير الحالي فور فتح الفيديو
+                fullscreenVideo.style.transform = `rotate(${globalRotation}deg)`;
+                videoFullscreenOverlay.style.display = "flex";
+                fullscreenVideo.play(); 
+            }
         }
 
-        // --- دالة لإغلاق وضعية ملء الشاشة ---
         function closeFullscreen() {
           videoFullscreenOverlay.style.display = "none";
           fullscreenVideo.pause();
         }
 
-        // --- استبدل وظيفة زر "ملء الشاشة" في كل بطاقة بالفيديو ---
         const fsButtons = document.querySelectorAll(
           ".video-card .fullscreen-button",
         );
@@ -1238,7 +1346,6 @@
           });
         });
 
-        // --- إضافة أحداث السحب للتنقل بين الفيديوهات ---
         fullscreenVideo.addEventListener("touchstart", function (e) {
           startXVideo = e.touches[0].clientX;
         });
@@ -1249,23 +1356,21 @@
 
         fullscreenVideo.addEventListener("touchend", function (e) {
           const diffX = currentXVideo - startXVideo;
-          // If the touch is mainly horizontal, navigate
           if (Math.abs(diffX) > 50) {
             if (diffX < 0) {
-              // سحب لليسار: الفيديو التالي
               currentVideoIndex = (currentVideoIndex + 1) % videoSources.length;
             } else {
-              // سحب لليمين: الفيديو السابق
               currentVideoIndex =
                 (currentVideoIndex - 1 + videoSources.length) %
                 videoSources.length;
             }
             fullscreenVideo.src = videoSources[currentVideoIndex];
-            fullscreenVideo.play(); // تأكد من تشغيل الفيديو الجديد
+            fullscreenVideo.play(); 
+            // تأكيد تطبيق التدوير عند تغيير الفيديو في ملء الشاشة
+            fullscreenVideo.style.transform = `rotate(${globalRotation}deg)`;
           }
         });
 
-        // --- إغلاق واجهة الفيديو عند الضغط على زر الإغلاق ---
         closeFullscreenVideo.addEventListener("click", closeFullscreen);
 
         rankButtons.forEach(function (button) {
@@ -1303,7 +1408,6 @@
           });
         });
         
-        // START: MODIFIED SECTION - الكود الخاص بالتشغيل التلقائي لا يزال هنا ويعمل
         nextButtons.forEach(function (button) {
           button.addEventListener("click", function () {
             const nextIndex = this.dataset.next;
@@ -1324,7 +1428,6 @@
             }
           });
         });
-        // END: MODIFIED SECTION
 
         winnerRadios.forEach(function (radio) {
           radio.addEventListener("change", function () {
@@ -1332,29 +1435,22 @@
           });
         });
 
-// START: MODIFIED SECTION - استبدل كتلة tagLabels.forEach بالكامل بهذه النسخة
         const tagLabels = document.querySelectorAll('.form-check-label.tag-btn');
         tagLabels.forEach(label => {
           label.addEventListener('click', function (event) {
-            // منع السلوك الافتراضي للزر إذا كان موجودًا لمنع Submit المفاجئ
             event.preventDefault();
-            event.stopPropagation(); // منع انتشار الحدث لأعلى
+            event.stopPropagation(); 
 
-            const checkbox = this.previousElementSibling; // الحصول على مربع الاختيار المرتبط
-             // تبديل حالة مربع الاختيار فقط إذا لم يكن '∅' وتم النقر عليه
+            const checkbox = this.previousElementSibling; 
             if (checkbox.value === '∅') {
-                 // إذا كان هو '∅'، عند النقر عليه: يصبح checked، والوسوم الأخرى unchecked
                  checkbox.checked = true;
-                 // ابحث عن جميع مربعات الوسوم الأخرى لنفس الفيديو
                  const videoIndex = checkbox.dataset.index;
                  document.querySelectorAll(`.tag-checkbox[data-index="${videoIndex}"]:not(#${checkbox.id})`).forEach(otherCheckbox => {
                      otherCheckbox.checked = false;
                      otherCheckbox.nextElementSibling.classList.remove('active');
                  });
             } else {
-                 // إذا كان أي وسم آخر غير '∅'
-                 checkbox.checked = !checkbox.checked; // تبديل حالته
-                 // تأكد أن وسم '∅' غير محدد إذا قمت بتحديد أي وسم آخر
+                 checkbox.checked = !checkbox.checked; 
                  if (checkbox.checked) {
                      const videoIndex = checkbox.dataset.index;
                      const noneCheckbox = document.getElementById(`tag-none-${videoIndex}`);
@@ -1365,58 +1461,45 @@
                  }
             }
 
-            this.classList.toggle('active', checkbox.checked); // تبديل الكلاس النشط على الوسم
+            this.classList.toggle('active', checkbox.checked); 
 
             const index = checkbox.dataset.index;
             const hiddenInput = document.querySelector(`input[name="tag_${index}"]`);
 
-            // تجميع جميع الوسوم المحددة لهذا الفيديو (باستثناء '∅' إذا تم تحديد وسم آخر)
             const selectedTags = [];
              document.querySelectorAll(`.tag-checkbox[data-index="${index}"]:checked`).forEach(checked => {
                  if (checked.value === '∅') {
-                     // إذا كان '∅' محددًا، لا نضيف أي شيء آخر (لأنه يعني مسح الكل)
-                     // ونضيف '∅' نفسه إذا أردنا تمثيله في الحقل المخفي، أو نترك الحقل فارغاً
-                     // الخيار الأبسط هو ترك الحقل فارغاً إذا كان '∅' هو الوحيد المحدد
                  } else {
                       selectedTags.push(checked.value);
                  }
             });
 
-            // إذا لم يتم تحديد أي وسم، ولكن '∅' محدد، نترك القيمة فارغة لتمثيل المسح
              const noneChecked = document.getElementById(`tag-none-${index}`).checked;
              if (selectedTags.length === 0 && noneChecked) {
-                  hiddenInput.value = ''; // يمثل مسح الوسوم
+                  hiddenInput.value = ''; 
              } else {
-                 hiddenInput.value = selectedTags.join(','); // يمثل الوسوم المحددة
+                 hiddenInput.value = selectedTags.join(','); 
              }
 
-             console.log(`Updated tag_${index} hidden input to: "${hiddenInput.value}"`); // DEBUG
+             console.log(`Updated tag_${index} hidden input to: "${hiddenInput.value}"`); 
              
-             // --- بداية الإضافة المطلوبة ---
-             // ابحث عن بطاقة الفيديو الأب التي تحتوي على هذا الوسم
              const parentCard = this.closest('.video-card');
              if (parentCard) {
-                 // ابحث عن زر "التالي" داخل هذه البطاقة
                  const nextButton = parentCard.querySelector('.next-button');
-                 // إذا تم العثور على الزر، قم بالنقر عليه
                  if (nextButton) {
                      nextButton.click();
                  }
              }
-             // --- نهاية الإضافة المطلوبة ---
           });
         });
-// END: MODIFIED SECTION
-        // تهيئة حالة أزرار الوسوم عند تحميل الصفحة بناءً على القيمة الحالية للحقل المخفي
+        
          document.querySelectorAll('input[name^="tag_"]').forEach(hiddenInput => {
-             const index = hiddenInput.name.split('_')[1]; // استخلاص الفهرس من اسم الحقل المخفي
-             const currentTags = hiddenInput.value.split(',').map(tag => tag.trim()).filter(tag => tag !== ''); // الحصول على الوسوم الحالية كقائمة
+             const index = hiddenInput.name.split('_')[1]; 
+             const currentTags = hiddenInput.value.split(',').map(tag => tag.trim()).filter(tag => tag !== ''); 
 
-             // تحديد حالة أزرار الوسوم بناءً على القائمة الحالية
              document.querySelectorAll(`.tag-checkbox[data-index="${index}"]`).forEach(checkbox => {
                  const label = checkbox.nextElementSibling;
                  if (checkbox.value === '∅') {
-                      // إذا كان '∅' هو الوحيد المحدد (الحقل المخفي فارغ)، نحدد زر '∅'
                       if (currentTags.length === 0 && hiddenInput.value === '') {
                           checkbox.checked = true;
                           label.classList.add('active');
@@ -1425,7 +1508,6 @@
                            label.classList.remove('active');
                       }
                  } else {
-                     // لجميع الوسوم الأخرى، نتحقق مما إذا كانت موجودة في قائمة الوسوم الحالية
                      if (currentTags.includes(checkbox.value)) {
                          checkbox.checked = true;
                          label.classList.add('active');
@@ -1437,17 +1519,16 @@
             });
          });
 
-        // START: تعديل منطق المؤقت والعداد والمتوسط
         const timerDisplay = document.getElementById('timerDisplay');
         const competitionCounterDisplay = document.getElementById('competitionCounterDisplay');
-        const averageTimeDisplay = document.getElementById('averageTimeDisplay'); // إضافة لمتوسط الوقت
+        const averageTimeDisplay = document.getElementById('averageTimeDisplay'); 
         const resetTimerButton = document.getElementById('resetTimerButton');
 
         let timerInterval;
         let competitionJustReset = false;
 
         function formatTime(milliseconds) {
-            if (isNaN(milliseconds) || milliseconds < 0) { // تحقق إضافي
+            if (isNaN(milliseconds) || milliseconds < 0) { 
                 return "--:--:--";
             }
             let totalSeconds = Math.floor(milliseconds / 1000);
@@ -1459,7 +1540,6 @@
             return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
 
-        // START: دالة لحساب وعرض متوسط الوقت
         function updateAverageTime() {
             const startTime = parseInt(localStorage.getItem('timerStartTime'));
             const competitionCount = parseInt(localStorage.getItem('competitionCount')) || 0;
@@ -1473,7 +1553,6 @@
                 averageTimeDisplay.textContent = "--:--:--";
             }
         }
-        // END: دالة لحساب وعرض متوسط الوقت
 
         function startTimer() {
             if (timerInterval) {
@@ -1483,7 +1562,7 @@
             const startTime = parseInt(localStorage.getItem('timerStartTime'));
             if (!startTime) {
                 timerDisplay.textContent = "00:00:00";
-                updateAverageTime(); // تحديث المتوسط حتى لو المؤقت متوقف
+                updateAverageTime(); 
                 return;
             }
 
@@ -1491,17 +1570,16 @@
                 const currentTime = new Date().getTime();
                 const elapsedTime = currentTime - startTime;
                 timerDisplay.textContent = formatTime(elapsedTime);
-                updateAverageTime(); // تحديث متوسط الوقت مع كل تحديث للمؤقت
+                updateAverageTime(); 
             }, 1000);
         }
 
         function updateCompetitionCount() {
             let count = parseInt(localStorage.getItem('competitionCount')) || 0;
             competitionCounterDisplay.textContent = count;
-            updateAverageTime(); // تحديث متوسط الوقت عند تحديث عدد المسابقات
+            updateAverageTime(); 
         }
 
-        // عند تحميل الصفحة
         let startTime = localStorage.getItem('timerStartTime');
         let competitionCount = parseInt(localStorage.getItem('competitionCount')) || 0;
 
@@ -1515,19 +1593,16 @@
                 competitionCount++;
                 localStorage.setItem('competitionCount', competitionCount);
             }
-            // لا حاجة لـ startTimer() هنا، سيتم استدعاؤها أدناه
-            // updateCompetitionCount(); // سيتم استدعاؤها أدناه
         } else {
             const newStartTime = new Date().getTime();
             localStorage.setItem('timerStartTime', newStartTime);
-            startTime = newStartTime; // تحديث المتغير المحلي
+            startTime = newStartTime; 
             competitionCount = 1;
             localStorage.setItem('competitionCount', competitionCount);
-            // updateCompetitionCount(); // سيتم استدعاؤها أدناه
         }
 
-        updateCompetitionCount(); // تحديث العداد والمتوسط
-        startTimer(); // بدء أو استئناف المؤقت (والذي سيحدث المتوسط أيضًا)
+        updateCompetitionCount(); 
+        startTimer(); 
 
 
         resetTimerButton.addEventListener('click', function() {
@@ -1538,7 +1613,7 @@
             localStorage.removeItem('competitionCount');
             timerDisplay.textContent = "00:00:00";
             competitionCounterDisplay.textContent = "0";
-            averageTimeDisplay.textContent = "--:--:--"; // إعادة ضبط المتوسط
+            averageTimeDisplay.textContent = "--:--:--"; 
 
             localStorage.setItem('justResetFlag', 'true');
 
@@ -1546,8 +1621,8 @@
             localStorage.setItem('timerStartTime', newStartTime);
             localStorage.setItem('competitionCount', 1);
 
-            updateCompetitionCount(); // تحديث العداد والمتوسط
-            startTimer(); // بدء المؤقت (والذي سيحدث المتوسط أيضًا)
+            updateCompetitionCount(); 
+            startTimer(); 
         });
 
         window.addEventListener('beforeunload', function() {
@@ -1555,10 +1630,225 @@
                 clearInterval(timerInterval);
             }
         });
-        // END: تعديل منطق المؤقت والعداد والمتوسط
+// # START: MODIFIED SECTION (Keyboard Shortcuts)
+        // --- Keyboard Shortcuts Logic (Updated for Tags Safety) ---
+        document.addEventListener('keydown', function(event) {
+            // تجاهل الاختصارات إذا كان التركيز داخل حقل إدخال أو حقل الرهان
+            if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+            const key = event.key.toLowerCase();
+            const isAlt = event.altKey;
+
+            // 1. زر العودة للمسابقة (Z)
+            if (key === 'z') {
+                const backBtn = document.querySelector('.btn-info');
+                if (backBtn) {
+                    event.preventDefault();
+                    backBtn.click();
+                }
+            }
+
+            // 2. اختيار الفائز (Alt + الرقم 1-9)
+            if (isAlt && !isNaN(key) && key >= '1' && key <= '9') {
+                if (rankingType === "winner_only") {
+                    event.preventDefault();
+                    const index = key;
+                    const labelBtn = document.querySelector(`label[for="winner-${index}"]`);
+                    
+                    if (labelBtn) {
+                        labelBtn.click();
+                    } else {
+                        const radioBtn = document.getElementById(`winner-${index}`);
+                        if (radioBtn) {
+                            radioBtn.checked = true;
+                            form.submit();
+                        }
+                    }
+                }
+            }
+
+            // 3. تشغيل الفيديو (الرقم 1-9 بدون Alt)
+            if (!isAlt && !isNaN(key) && key >= '1' && key <= '9') {
+                const index = key;
+                const targetCard = document.getElementById(`video-card-${index}`);
+                if (targetCard) {
+                    const video = targetCard.querySelector('video');
+                    if (video) {
+                        event.preventDefault();
+                        targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        document.querySelectorAll('video').forEach(v => {
+                             if (v !== video) v.pause();
+                        });
+                        video.play();
+                    }
+                }
+            }
+
+            // 4. تدوير الجميع (r)
+            if (key === 'r') {
+                event.preventDefault();
+                rotateAllVideos();
+            }
+
+            // 5. التاجات (Tags) - تعمل على الفيديو الذي تحت الماوس (Hover)
+            // # START: MODIFIED FUNCTION FOR TAGS
+            const toggleTag = (type) => {
+                if (!currentHoveredIndex) return; // التأكد من أن الماوس فوق فيديو معين
+                
+                const checkboxId = `tag-${type}-${currentHoveredIndex}`;
+                const checkbox = document.getElementById(checkboxId); // جلب عنصر الـ Checkbox
+                const label = document.querySelector(`label[for="${checkboxId}"]`);
+
+                // التعديل: التحقق مما إذا كان التاج *غير* مفعل (!checkbox.checked)
+                // إذا كان (checkbox.checked) يساوي true، فهذا يعني أنه موجود بالفعل، لذا لا نفعل شيئاً
+                if (checkbox && label && !checkbox.checked) {
+                    label.click();
+                }
+            };
+            // # END: MODIFIED FUNCTION FOR TAGS
+
+            if (key === 'd') toggleTag('l');
+            if (key === 'w') toggleTag('w');
+            if (key === 'f') toggleTag('face');
+            if (key === 'b') toggleTag('body');
+
+            // 6. زر التالي (n)
+            if (key === 'n') {
+                if (currentHoveredIndex) {
+                    const card = document.getElementById(`video-card-${currentHoveredIndex}`);
+                    const nextBtn = card ? card.querySelector('.next-button') : null;
+                    if (nextBtn) {
+                        event.preventDefault();
+                        nextBtn.click();
+                    }
+                }
+            }
+
+            // 7. ملء الشاشة (c)
+            if (key === 'c') {
+                if (currentHoveredIndex) {
+                    event.preventDefault();
+                    openFullscreenVideo(parseInt(currentHoveredIndex) - 1);
+                }
+            }
+
+            // 8. تشغيل/إيقاف (s)
+            if (key === 's') {
+                let targetVideo = Array.from(document.querySelectorAll('video')).find(v => !v.paused);
+                if (!targetVideo && currentHoveredIndex) {
+                    const card = document.getElementById(`video-card-${currentHoveredIndex}`);
+                    targetVideo = card ? card.querySelector('video') : null;
+                }
+                if (targetVideo) {
+                    event.preventDefault();
+                    if (targetVideo.paused) targetVideo.play();
+                    else targetVideo.pause();
+                }
+            }
+
+           // 9. وضع رهان (p)
+            if (key === 'p') {
+                if (currentHoveredIndex) {
+                    event.preventDefault();
+                    showInlineBet(currentHoveredIndex);
+                }
+            }
+        });
+        // # END: MODIFIED SECTION
+        // END: MODIFIED SHORTCUTS LOGIC
       });
     </script>
+    
+    <!-- Inline Betting Script -->
+    <script>
+        // إظهار حقل الإدخال وإخفاء الرقم
+        function showInlineBet(index) {
+            document.getElementById('rank-display-' + index).style.display = 'none';
+            const form = document.getElementById('bet-form-' + index);
+            form.style.display = 'inline-flex';
+            
+            // التركيز على الحقل وتحديد النص لتسهيل الكتابة
+            const input = document.getElementById('bet-input-' + index);
+            input.focus();
+            input.value = ''; // تفريغ الحقل
+        }
 
-    <!-- نهاية إضافة JavaScript لتطبيق الألوان -->
+        // إخفاء حقل الإدخال وإعادة الرقم
+        function hideInlineBet(index) {
+            document.getElementById('bet-form-' + index).style.display = 'none';
+            document.getElementById('rank-display-' + index).style.display = 'inline';
+        }
+
+        // إرسال الرهان
+        function submitInlineBet(index, videoName) {
+            // فك تشفير الاسم في حال وجود رموز خاصة
+            const decodedName = decodeURIComponent(videoName);
+            const targetRank = document.getElementById('bet-input-' + index).value;
+
+            if (!targetRank) {
+                hideInlineBet(index); // إذا كان فارغاً، فقط أغلق
+                return;
+            }
+
+            // إرسال البيانات (AJAX)
+            fetch('/api/place_bet', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    video_name: decodedName,
+                    target_rank: targetRank
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // نجاح: غيّر لون الرقم للأخضر مؤقتاً كإشارة بصرية
+                    const displaySpan = document.getElementById('rank-display-' + index);
+                    const originalColor = displaySpan.style.color;
+                    
+                    displaySpan.style.color = '#00ff00'; // أخضر فاقع
+                    displaySpan.innerText = targetRank + " 🎯"; // إضافة رمز صغير
+                    
+                    setTimeout(() => {
+                        displaySpan.style.color = originalColor; // عودة للون الأصلي
+                    }, 1500);
+                    
+                    hideInlineBet(index);
+                } else {
+                    alert("خطأ: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                alert("فشل الاتصال بالخادم");
+            });
+        }
+    </script>
+    
   </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,53 +1,111 @@
 import json
+import random
 import os
-import math
 
-# === تعديل المسارات والأسماء هنا إذا لزم ===
-input_file = r"C:\Users\Stark\Download\myhome\video_rating_app\utilities\topcut_elo_videos_A1000 elo tik_284.json"
-base_dir = os.path.dirname(input_file)
-base_name = "topcut_elo_videos_A1000 elo til_"   # اسم الملفات المطلوبة (لاحظ "til" كما طلبت)
-start_index = 8061
-chunk_size = 4   # كل ملف يحتوي 4 مسابقات
+# 1. قائمة الأحجام (المدخلات)
+file_sizes = [
+    8664673, 4190834, 10470407, 10996296, 3012172, 33725162, 13387867, 12184686, 14418093, 12831975, 
+    1991012, 2527831, 1119168, 1129481, 5453898, 1926522, 22065287, 9469319, 13049719, 5229350, 
+    12407605, 812843, 13406897, 7420333, 6738847, 1314991, 14462922, 10505440, 9653049, 1152525, 
+    1590563, 1757498, 5079339, 23859953, 9174005, 1402185, 7518249, 9492777, 240742853, 3298244, 
+    5484129, 744473, 11657547, 12844604, 5026409, 7292997, 2710213, 833930, 3256643, 5754850, 
+    5445737, 1161164, 13838560, 12372483, 21451858, 3303019, 13078416, 3773561, 38097567, 13385078, 
+    4159743, 9355764, 23411321, 5090532, 1359596, 9894709, 11169216, 11709292, 0, 0, 
+    5040072, 1422294, 5287778, 13198106, 2157651, 13796567, 13575196, 10371248, 0, 0, 13926504, 
+    10389685, 3793389, 2085299, 1738383, 10607319, 12141660, 5648511, 10260693, 7709349, 3087806, 
+    1477234, 12441306, 2874559, 11028296, 14062101, 13378672, 318607614, 12942532, 4688101, 6738847, 
+    11384207, 13887076, 14062101, 13659795, 1477234, 12845246, 13140949, 1131999, 823629, 6162623, 
+    23775829, 9274654, 5326123, 6731525, 2453386, 7420333, 1897899, 13223426, 13479394, 1716949, 
+    7292997, 6924198, 8414735, 9030640, 703966, 10648563, 12059556, 9914730, 10389685, 10061505, 
+    13761445, 11343317, 1239281, 968320, 2527831, 4633620, 4306624, 13406897, 12522361, 6117903, 
+    11371684, 11779865, 6686178, 6889469, 3773561, 986401, 13316084, 9144077, 13344332, 6041038, 
+    1061441, 3258490, 3298244, 80150818, 4078965, 1043678, 7069362, 788985, 14515867, 8987575, 
+    12998276, 1060937, 11476848, 13184252, 26278757, 13146524, 1097639, 1359596, 2860020, 128580650, 
+    5599510, 8162628, 11695263, 2094670, 9201391, 11073626, 5306170, 4460325, 13269829, 5287778, 
+    1249887, 13160221, 39730853, 1674124, 7270196, 3903694, 5206034, 10287351, 11657547, 1837616, 
+    3666276, 1104171, 16861702, 5305569, 6392297, 1194631, 1364188, 52797899, 5477037, 2863058, 
+    13647586, 14282283, 711173, 1314991, 13843481, 7782941, 13248327, 1752813, 6856803, 13462510, 
+    1280313, 9355764, 13896505, 12934697, 11518627, 10215720, 58561852, 891301, 353277, 8085483, 
+    554339, 4480298, 11839833
+]
 
-# اقرأ الملف الأصلي
-with open(input_file, "r", encoding="utf-8") as f:
-    data = json.load(f)
+# 2. الخلط العشوائي
+random.shuffle(file_sizes)
 
-total = len(data)
-num_files = math.ceil(total / chunk_size)
+# 3. إعدادات التوزيع
+VIDEOS_PER_FILE = 32
+VIDEOS_PER_MATCH = 2
 
-archive_entries = []
+# تحديد أرقام البطولات (IDs) كما طلبت
+# الأول 7777، ثم 7716، 7724، 7732 (بزيادة 8)
+file_ids = [7777] 
+start_sequence = 7716
+# نقوم بتوليد باقي الأرقام تحسباً لوجود ملفات كثيرة
+for i in range(10): # توليد 10 أرقام إضافية كافية للكمية
+    file_ids.append(start_sequence + (i * 8))
 
-for i in range(num_files):
-    start = i * chunk_size
-    end = start + chunk_size
-    chunk = data[start:end]
-    if not chunk:
-        continue
+# دالة لتوليد اسم فيديو وهمي
+def generate_fake_video_name():
+    prefix = random.randint(100, 2000)
+    suffix = random.randint(7000000000000000000, 7999999999999999999)
+    return f"{prefix}_{suffix}.mp4"
 
-    filename = f"{base_name}{start_index + i}.json"
-    output_path = os.path.join(base_dir, filename)
+# دالة لتوليد تقييم وهمي
+def generate_fake_rating():
+    return random.uniform(800.0, 1500.0)
 
-    # اكتب القطعة إلى الملف الجديد
-    with open(output_path, "w", encoding="utf-8") as out:
-        json.dump(chunk, out, ensure_ascii=False, indent=4)
+# تقسيم القائمة إلى مجموعات (Chunks) بحجم 32
+chunks = [file_sizes[i:i + VIDEOS_PER_FILE] for i in range(0, len(file_sizes), VIDEOS_PER_FILE)]
 
-    archive_entries.append(f'"{base_name}{start_index + i}": {{\n        "initial_participants": 32\n    }}')
+print(f"Total videos: {len(file_sizes)}")
+print(f"Created {len(chunks)} tournaments (files).")
 
-print(f"✅ تم تقسيم الملف إلى {num_files} ملف(ملفات).")
-print("الملفات المُنشأة:")
-for i in range(num_files):
-    print(f" - {base_name}{start_index + i}.json")
+# 4. بناء الملفات وتعبئة البيانات
+for index, chunk in enumerate(chunks):
+    tournament_data = []
+    
+    # تقسيم كل مجموعة (32 فيديو) إلى أزواج (16 مواجهة)
+    # كل مواجهة تحتوي فيديوهين اثنين
+    
+    # إذا كانت المجموعة ناقصة (أقل من 32)، سيتم التعامل مع المتاح
+    for i in range(0, len(chunk), 2):
+        # نأكد وجود عنصرين، أو نضع 0 إذا انتهت القائمة (نادرة الحدوث هنا)
+        size1 = chunk[i]
+        size2 = chunk[i+1] if i+1 < len(chunk) else 0
+        
+        match_entry = {
+            "videos": [
+                generate_fake_video_name(),
+                generate_fake_video_name()
+            ],
+            "rating": [
+                generate_fake_rating(),
+                generate_fake_rating()
+            ],
+            "file_size": [
+                size1,
+                size2
+            ],
+            "mode": 1,
+            "num_videos": 2,
+            "ranking_type": "winner_only",
+            "competition_type": "balanced_random"
+        }
+        tournament_data.append(match_entry)
+    
+    # تحديد اسم الملف بناء على الـ ID
+    if index < len(file_ids):
+        current_id = file_ids[index]
+    else:
+        # في حال زادت الملفات عن المتوقع، نكمل التسلسل +8
+        current_id = file_ids[-1] + ((index - len(file_ids) + 1) * 8)
+        
+    filename = f"topcut_elo_videos_A1000 elo tik_{current_id}.json"
+    
+    # حفظ الملف
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(tournament_data, f, indent=4)
+        
+    print(f"Generated file: {filename} (Contains {len(chunk)} videos)")
 
-# أنشئ نص الأرشيف بالصّيغة المطلوبة (يبدأ بعد قوس إغلاق سابق لذلك نبدؤه بـ "},")
-archive_text = "},\n" + ",\n".join([f"    {entry}" for entry in archive_entries]) + "\n}"
-# طباعة الأرشيف على الشاشة
-print("\n\n=== نص الأرشيف (انسخه وألصقه حيث تريد) ===\n")
-print(archive_text)
-
-# احفظ الأرشيف في ملف نصي داخل نفس المجلد (اختياري ومفيد)
-archive_file = os.path.join(base_dir, "archive_topcut_elo_{}_{}.txt".format(start_index, start_index+num_files-1))
-with open(archive_file, "w", encoding="utf-8") as af:
-    af.write(archive_text)
-
-print(f"\n✅ كما حفظت نص الأرشيف في: {archive_file}")
+print("\nDone! All files generated successfully.")

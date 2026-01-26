@@ -1,4 +1,4 @@
-<!-- START: MODIFIED SECTION -->
+<!-- START OF FILE index.html -->
 <!doctype html>
 <html lang="ar">
   <head>
@@ -55,6 +55,17 @@
           border-color 0.3s ease;
         text-decoration: none;
         font-size: 0.9rem;
+      }
+
+      /* تنسيق لتمييز حرف الاختصار داخل الزر */
+      .shortcut-key {
+          font-weight: bold;
+          background-color: rgba(0,0,0,0.2);
+          padding: 0 5px;
+          border-radius: 3px;
+          margin-left: 5px;
+          font-family: monospace;
+          font-size: 1.1em;
       }
 
       .btn-primary {
@@ -158,62 +169,144 @@
       <div class="selected-folder-info">
         <h5>المجلد المختار: <strong>{{ selected_folder }}</strong></h5>
         <div class="button-group">
-          <a href="{{ url_for('browse') }}" class="btn btn-primary"
-            ><i class="fas fa-folder-open"></i> تصفح المجلدات</a
+          <!-- تمت إضافة ID و حرف الاختصار -->
+          <a href="{{ url_for('browse') }}" id="btn-browse" class="btn btn-primary"
+            ><i class="fas fa-folder-open"></i> <span class="shortcut-key">[P]</span> تصفح المجلدات</a
           >
-          <a href="{{ url_for('reset_session') }}" class="btn btn-warning"
-            ><i class="fas fa-redo-alt"></i> إعادة تعيين الجلسة</a
+          <a href="{{ url_for('reset_session') }}" id="btn-reset" class="btn btn-warning"
+            ><i class="fas fa-redo-alt"></i> <span class="shortcut-key">[R]</span> إعادة تعيين الجلسة</a
           >
         </div>
       </div>
       {% else %}
       <div class="text-center">
-        <a href="{{ url_for('browse') }}" class="btn btn-primary"
-          ><i class="fas fa-folder-open"></i> تصفح المجلدات</a
+        <!-- تمت إضافة ID و حرف الاختصار -->
+        <a href="{{ url_for('browse') }}" id="btn-browse" class="btn btn-primary"
+          ><i class="fas fa-folder-open"></i> <span class="shortcut-key">[P]</span> تصفح المجلدات</a
         >
-        <!-- اضف هذا الزر الجديد هنا أيضا -->
-        <a href="{{ url_for('manage_tournaments') }}" class="btn btn-secondary"
-           ><i class="fas fa-file-alt"></i> إدارة البطولات JSON</a
+        <a href="{{ url_for('manage_tournaments') }}" id="btn-manage" class="btn btn-secondary"
+           ><i class="fas fa-file-alt"></i> <span class="shortcut-key">[M]</span> إدارة البطولات JSON</a
         >
       </div>
       {% endif %}
 
       {% if selected_folder %}
       <div class="button-group">
-        <a href="{{ url_for('competition') }}" class="btn btn-success"
-          ><i class="fas fa-play"></i> بدء مسابقة</a
+        <!-- START: BUTTONS WITH SHORTCUTS -->
+        
+        <!-- S: Start Competition -->
+        <a href="{{ url_for('competition') }}" id="btn-start" class="btn btn-success"
+          ><i class="fas fa-play"></i> <span class="shortcut-key">[S]</span> بدء مسابقة</a
         >
-        <a href="{{ url_for('top_videos') }}" class="btn btn-secondary"
-          ><i class="fas fa-star"></i> عرض أفضل الفيديوهات</a
+        
+        <!-- D: Dashboard -->
+        <a href="{{ url_for('dashboard') }}" id="btn-dashboard" class="btn btn-warning"
+           ><i class="fas fa-chart-line"></i> <span class="shortcut-key">[D]</span> لوحة التحكم والترتيب</a
         >
-        <a href="{{ url_for('json_analysis') }}" class="btn btn-info"
-          ><i class="fas fa-file-code"></i> تحليل ملف JSON</a
+
+        <!-- K: Top Videos -->
+        <a href="{{ url_for('top_videos') }}" id="btn-top" class="btn btn-secondary"
+          ><i class="fas fa-star"></i> <span class="shortcut-key">[K]</span> عرض أفضل الفيديوهات</a
         >
-        <!-- هذا هو الزر الجديد لصفحة تحليل الأسماء -->
-        <a href="{{ url_for('names_analysis_page') }}" class="btn btn-info"
-          ><i class="fas fa-chart-bar"></i> تحليل الأسماء</a
+        
+        <!-- J: JSON Analysis -->
+        <a href="{{ url_for('json_analysis') }}" id="btn-json" class="btn btn-info"
+          ><i class="fas fa-file-code"></i> <span class="shortcut-key">[J]</span> تحليل ملف JSON</a
         >
-        <a href="{{ url_for('tour_page') }}" class="btn btn-primary"
-          ><i class="fas fa-road"></i> المسابقة (Tour)</a
+        
+        <!-- N: Names Analysis -->
+        <a href="{{ url_for('names_analysis_page') }}" id="btn-names" class="btn btn-info"
+          ><i class="fas fa-chart-bar"></i> <span class="shortcut-key">[N]</span> تحليل الأسماء</a
         >
-         <!-- اضف هذا الزر الجديد هنا -->
-        <a href="{{ url_for('manage_tournaments') }}" class="btn btn-secondary"
-           ><i class="fas fa-file-alt"></i> إدارة البطولات JSON</a
+        
+        <!-- T: Tour Page -->
+        <a href="{{ url_for('tour_page') }}" id="btn-tour" class="btn btn-primary"
+          ><i class="fas fa-road"></i> <span class="shortcut-key">[T]</span> المسابقة (Tour)</a
         >
-        <!-- --- هذا هو الزر الجديد الذي تمت إضافته --- -->
-        <a href="{{ url_for('advanced_tools_page') }}" class="btn btn-dark"
-           ><i class="fas fa-cogs"></i> الأدوات المتقدمة</a
+        
+        <!-- M: Manage Tournaments -->
+        <a href="{{ url_for('manage_tournaments') }}" id="btn-manage" class="btn btn-secondary"
+           ><i class="fas fa-file-alt"></i> <span class="shortcut-key">[M]</span> إدارة البطولات JSON</a
         >
-        <!-- --- هذا هو الزر الجديد لصفحة الفلترة والحذف --- -->
-        <a href="{{ url_for('filter_and_delete') }}" class="btn btn-danger"
-           ><i class="fas fa-filter"></i> فلترة وحذف الفيديوهات</a
+        
+        <!-- E: Advanced Tools -->
+        <a href="{{ url_for('advanced_tools_page') }}" id="btn-tools" class="btn btn-dark"
+           ><i class="fas fa-cogs"></i> <span class="shortcut-key">[E]</span> الأدوات المتقدمة</a
         >
+        
+        <!-- F: Filter/Delete (Changed from D to F to avoid conflict) -->
+        <a href="{{ url_for('filter_and_delete') }}" id="btn-filter" class="btn btn-danger"
+           ><i class="fas fa-filter"></i> <span class="shortcut-key">[F]</span> فلترة وحذف الفيديوهات</a
+        >
+        
+        <!-- END: BUTTONS WITH SHORTCUTS -->
       </div>
       {% else %}
       <p class="text-center">يرجى اختيار مجلد أولاً لتبدأ المنافسات.</p>
       {% endif %}
     </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- START: KEYBOARD SHORTCUTS SCRIPT -->
+    <script>
+      document.addEventListener('keydown', function(event) {
+          // تجاهل الاختصارات إذا كان المستخدم يكتب في حقل نصي (إن وجد)
+          if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+              return;
+          }
+  
+          // الحصول على الزر المضغوط وتحويله لحرف صغير
+          const key = event.key.toLowerCase();
+          
+          let btnId = null;
+  
+          switch (key) {
+              case 's': // Start Competition
+                  btnId = 'btn-start';
+                  break;
+              case 't': // Tour Page
+                  btnId = 'btn-tour';
+                  break;
+              case 'd': // Dashboard
+                  btnId = 'btn-dashboard';
+                  break;
+              case 'p': // Browse Folders (Path)
+                  btnId = 'btn-browse';
+                  break;
+              case 'r': // Reset Session
+                  btnId = 'btn-reset';
+                  break;
+              case 'm': // Manage Tournaments
+                  btnId = 'btn-manage';
+                  break;
+              case 'e': // Advanced Tools (Extra/Engine)
+                  btnId = 'btn-tools';
+                  break;
+              case 'f': // Filter/Delete (استخدمنا F بدلاً من D لحل التعارض)
+                  btnId = 'btn-filter';
+                  break;
+              case 'n': // Names Analysis
+                  btnId = 'btn-names';
+                  break;
+              case 'j': // JSON Analysis
+                  btnId = 'btn-json';
+                  break;
+              case 'k': // Top Videos (Kings/Top)
+                  btnId = 'btn-top';
+                  break;
+          }
+  
+          if (btnId) {
+              const btn = document.getElementById(btnId);
+              if (btn) {
+                  event.preventDefault(); // منع السلوك الافتراضي للمتصفح إذا لزم الأمر
+                  btn.click();
+              }
+          }
+      });
+    </script>
+    <!-- END: KEYBOARD SHORTCUTS SCRIPT -->
+
   </body>
 </html>
-<!-- END: MODIFIED SECTION -->

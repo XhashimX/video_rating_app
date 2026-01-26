@@ -381,7 +381,88 @@ def rename_tournament_file(old_filename, new_filename):
         return False, f"حدث خطأ أثناء إعادة تسمية الملف: {e}"
 # END: MODIFIED SECTION
 
+# --- START OF FILE utilities/tournaments_manager.py ---
 
+import os
+import json
+import shutil
+
+JSON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+ARCHIVE_FILE = os.path.join(JSON_FOLDER, 'tournamentarchive.json')
+
+# ... (الدوال الموجودة سابقاً)
+
+# START: MODIFIED SECTION - الدوال الجديدة
+def rename_tournament_file(old_filename, new_filename):
+    """إعادة تسمية الملف الفعلي فقط"""
+    try:
+        old_path = os.path.join(JSON_FOLDER, old_filename)
+        new_path = os.path.join(JSON_FOLDER, new_filename)
+
+        if not os.path.exists(old_path):
+            return {'success': False, 'message': 'الملف الأصلي غير موجود.'}
+        
+        if os.path.exists(new_path):
+            return {'success': False, 'message': 'يوجد ملف بالفعل بهذا الاسم الجديد.'}
+
+        os.rename(old_path, new_path)
+        return {'success': True, 'message': f'تمت إعادة تسمية الملف إلى {new_filename}', 'new_filename': new_filename}
+    except Exception as e:
+        return {'success': False, 'message': f'خطأ: {str(e)}'}
+
+def rename_archive_entry(old_key, new_key):
+    """إعادة تسمية المفتاح في ملف الأرشيف فقط"""
+    try:
+        if not os.path.exists(ARCHIVE_FILE):
+            return {'success': False, 'message': 'ملف الأرشيف غير موجود.'}
+
+        with open(ARCHIVE_FILE, 'r', encoding='utf-8') as f:
+            archive = json.load(f)
+
+        if old_key not in archive:
+            return {'success': False, 'message': f'لا يوجد سجل في الأرشيف باسم "{old_key}".'}
+        
+        if new_key in archive:
+            return {'success': False, 'message': f'يوجد بالفعل سجل في الأرشيف باسم "{new_key}".'}
+
+        # نقل البيانات للمفتاح الجديد وحذف القديم
+        archive[new_key] = archive[old_key]
+        del archive[old_key]
+
+        # حفظ الأرشيف
+        with open(ARCHIVE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(archive, f, indent=4, ensure_ascii=False)
+
+        return {'success': True, 'message': f'تمت إعادة تسمية السجل في الأرشيف من "{old_key}" إلى "{new_key}".'}
+    except Exception as e:
+        return {'success': False, 'message': f'خطأ في تعديل الأرشيف: {str(e)}'}
+
+def create_archive_entry(key, participants):
+    """إنشاء سجل جديد في الأرشيف"""
+    try:
+        archive = {}
+        if os.path.exists(ARCHIVE_FILE):
+            with open(ARCHIVE_FILE, 'r', encoding='utf-8') as f:
+                try:
+                    archive = json.load(f)
+                except json.JSONDecodeError:
+                    pass # ملف فارغ أو تالف، سنبدأ بأرشيف جديد
+
+        if key in archive:
+            return {'success': False, 'message': f'يوجد بالفعل سجل في الأرشيف باسم "{key}".'}
+
+        # إنشاء السجل الجديد
+        archive[key] = {
+            "initial_participants": int(participants)
+        }
+
+        with open(ARCHIVE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(archive, f, indent=4, ensure_ascii=False)
+
+        return {'success': True, 'message': f'تم إنشاء سجل جديد في الأرشيف باسم "{key}".'}
+    except Exception as e:
+        return {'success': False, 'message': f'خطأ في إنشاء السجل: {str(e)}'}
+# END: MODIFIED SECTION
 
 if __name__ == '__main__':
     print("Listing JSON files:")

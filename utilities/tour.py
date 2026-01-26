@@ -2,7 +2,7 @@ import os
 import json
 import random
 import re
-from .data_manager import create_backup
+from .data_manager import create_backup, load_data
 from flask import flash
 from .video_selector import _select_unique_by_name # تم إضافة هذا السطر للاستيراد
 
@@ -75,7 +75,149 @@ def create_tournament_web(selected_file, num_participants, num_videos, ranking_t
     update_tournament_archive(new_filename, initial_participants=num_participants, final_ranking=None)
     return {'success': True, 'message': f"تم إنشاء المسابقة وحفظها باسم {new_filename}"}
 
+# START OF FILE tour.py (تحديث)
 
+# استيراد مدير الرهانات
+from .bet_manager import load_bets
+
+def create_mixed_tournament(selected_file, num_matches, num_videos_per_match, ranking_type, bet_settings):
+    """
+    إنشاء بطولة مختلطة تحتوي على رهانات محددة (ضد أصحاب المراكز الحالية) + مباريات عشوائية.
+    """
+    # 1. تحميل البيانات الأصلية وتجهيز القائمة المرتبة
+    try:
+        original_data = load_data()
+    except Exception as e:
+        return {'success': False, 'message': f"Error loading data: {e}"}
+
+    all_video_keys = list(original_data.keys())
+    
+    # ترتيب الفيديوهات لمعرفة أصحاب المراكز حالياً
+    sorted_videos_list = sorted(
+        original_data.items(),
+        key=lambda item: item[1].get('rating', 1000),
+        reverse=True
+    )
+    # إنشاء قائمة بأسماء الفيديوهات فقط مرتبة (index 0 = rank 1)
+    sorted_video_names = [item[0] for item in sorted_videos_list]
+    
+    if len(all_video_keys) < num_videos_per_match:
+        return {'success': False, 'message': "لا يوجد فيديوهات كافية."}
+
+    # 2. تجهيز الرهانات
+    matches = []
+    active_bets = load_bets()
+    
+    # تصفية الرهانات النشطة التي يوجد فيها المتحدي في البيانات
+    # ملاحظة: لم نعد نتحقق من وجود defender_video القديم لأنه سيتغير
+    valid_active_bets_info = []
+    for challenger, info in active_bets.items():
+        if info['status'] == 'active' and challenger in original_data:
+            valid_active_bets_info.append((challenger, info))
+
+    bets_to_process = []
+
+    if bet_settings['count'] > 0 and valid_active_bets_info:
+        if bet_settings['mode'] == 'manual':
+            # الوضع اليدوي
+            selected_keys = set(bet_settings.get('selected_bets', []))
+            for chal, info in valid_active_bets_info:
+                if chal in selected_keys:
+                    bets_to_process.append((chal, info))
+        else:
+            # الوضع العشوائي
+            count = min(len(valid_active_bets_info), bet_settings['count'])
+            bets_to_process = random.sample(valid_active_bets_info, count)
+    
+    # تقليص العدد إذا لزم الأمر
+    if len(bets_to_process) > num_matches:
+        bets_to_process = bets_to_process[:num_matches]
+
+    # 3. إنشاء مباريات الرهانات (الحقن الديناميكي)
+    for challenger, info in bets_to_process:
+        target_rank = info.get('target_rank', 1)
+        
+        # البحث عن الخصم الحالي (الديناميكي)
+        current_defender = None
+        if 1 <= target_rank <= len(sorted_video_names):
+            current_defender = sorted_video_names[target_rank - 1]
+        
+        # إذا لم نجد خصم (ترتيب خارج النطاق) أو كان الخصم هو نفسه المتحدي، نستخدم الخصم المسجل
+        # أو نتجاوز الرهان إذا أردنا الصرامة. هنا سنستخدم المسجل كاحتياط.
+        if not current_defender or current_defender == challenger:
+             current_defender = info.get('defender_video')
+             # التأكد مرة أخرى أن الخصم القديم موجود
+             if current_defender not in original_data:
+                 continue # تخطي هذا الرهان إذا لا يوجد خصم صالح
+
+        match_videos = [challenger, current_defender]
+        
+        # ملء الباقي عشوائياً (إذا كانت المباراة رباعية مثلاً)
+        needed = num_videos_per_match - 2
+        if needed > 0:
+            candidates = [
+                (v, original_data[v]) for v in all_video_keys 
+                if v not in match_videos
+            ]
+            fillers = _select_unique_by_name(candidates, needed)
+            for vid, _ in fillers:
+                match_videos.append(vid)
+        
+        random.shuffle(match_videos)
+        
+        match = {
+            "videos": match_videos,
+            "rating": [original_data[v].get("rating", 1000) for v in match_videos],
+            "file_size": [original_data[v].get("file_size", 0) for v in match_videos],
+            "mode": 1,
+            "num_videos": num_videos_per_match,
+            "ranking_type": ranking_type,
+            "competition_type": "bet_mixed"
+        }
+        matches.append(match)
+
+    # 4. ملء باقي المباريات (عشوائي بالكامل)
+    remaining_matches_count = num_matches - len(matches)
+    
+    for _ in range(remaining_matches_count):
+        candidates = [(v, original_data[v]) for v in all_video_keys]
+        selected_items = _select_unique_by_name(candidates, num_videos_per_match)
+        selected_videos = [item[0] for item in selected_items]
+        
+        match = {
+            "videos": selected_videos,
+            "rating": [original_data[v].get("rating", 1000) for v in selected_videos],
+            "file_size": [original_data[v].get("file_size", 0) for v in selected_videos],
+            "mode": 1,
+            "num_videos": num_videos_per_match,
+            "ranking_type": ranking_type,
+            "competition_type": "random"
+        }
+        matches.append(match)
+
+    random.shuffle(matches)
+
+    # 5. الحفظ
+    unique_id = random.randint(1000, 9999)
+    base_name = os.path.splitext(selected_file)[0]
+    if base_name.startswith("topcut_"):
+        base_name = base_name.replace("topcut_", "")
+        
+    new_filename = f"topcut_{base_name}_{unique_id}.json"
+
+    try:
+        create_backup(matches, is_topcut=True)
+        with open(os.path.join('utilities', new_filename), 'w') as f:
+            json.dump(matches, f, indent=4)
+    except Exception as e:
+        return {'success': False, 'message': f"Error saving tournament file: {e}"}
+
+    return {'success': True, 'message': f"تم إنشاء البطولة ({len(bets_to_process)} رهان ديناميكي، {remaining_matches_count} عشوائي) وحفظها باسم {new_filename}"}
+# END: MODIFIED SECTION
+
+# ... (باقي الملف) ...
+
+# ... (باقي الدوال في الملف: continue_tournament_web, update_tournament_archive... تبقى كما هي) ...
 
 def continue_tournament_web(tournament_file):
     """

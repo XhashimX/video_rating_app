@@ -1,136 +1,67 @@
 import json
 import os
+import math
 
-def load_video_data(file_path):
-    """Loads video data from a JSON file."""
-    try:
-        with open(file_path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"Error: File not found at {file_path}")
-        return None
-    except json.JSONDecodeError:
-        print(f"Error: Could not decode JSON from {file_path}")
-        return None
+# المسار الجديد
+input_file = r"C:\Users\Stark\Download\myhome\video_rating_app\utilities\topcut_elo_videos_A1000 elo tik_909.json"
+base_dir = os.path.dirname(input_file)
 
-def calculate_strength_score_1(video_data, bonuses, penalties):
-    """Calculates Strength Score using the first proposed formula."""
-    rating = video_data.get("rating", 0)
-    win_rate = video_data.get("win_rate", 0)
-    win_streak = video_data.get("win_streak", 0)
-    loss_streak = video_data.get("loss_streak", 0)
-    total_wins = video_data.get("total_wins", 0)
-    total_losses = video_data.get("total_losses", 0)
+base_name = "topcut_elo_videos_A1000 elo tik_"
+start_index = 1000
+competitions_per_file = 8   # كل ملف يحتوي 8 مسابقات
 
-    return rating + (win_rate * bonuses['bonus1']) + \
-           (win_streak * bonuses['bonus2']) - (loss_streak * penalties['penalty1']) + \
-           (total_wins * bonuses['bonus3']) - (total_losses * penalties['penalty2'])
+# قراءة الملف الأصلي
+with open(input_file, "r", encoding="utf-8") as f:
+    data = json.load(f)
 
-def calculate_strength_score_2(video_data, bonus_values):
-    """Calculates Strength Score using the second proposed formula."""
-    rating = video_data.get("rating", 0)
-    times_shown = video_data.get("times_shown", 0)
-    total_wins = video_data.get("total_wins", 0)
-    total_losses = video_data.get("total_losses", 0)
-    win_streak = video_data.get("win_streak", 0)
-    loss_streak = video_data.get("loss_streak", 0)
+# ضبط num_videos تلقائياً حسب عدد الفيديوهات الحقيقي
+for comp in data:
+    comp["num_videos"] = len(comp.get("videos", []))
 
-    # Avoid division by zero or very small numbers
-    if times_shown == 0:
-        average_performance = 0
-    else:
-        average_performance = (total_wins - total_losses) / times_shown
+# حساب عدد الملفات
+total = len(data)
+num_files = math.ceil(total / competitions_per_file)
 
-    return rating + (average_performance * bonus_values['bonus']) + \
-           (win_streak * bonus_values['bonus_streak']) - (loss_streak * bonus_values['penalty_streak'])
+created_files = []
+for i in range(num_files):
+    start = i * competitions_per_file
+    end = start + competitions_per_file
+    chunk = data[start:end]
+    if not chunk:
+        continue
 
-def calculate_strength_score_3(video_data, max_times_shown, bonus_values, penalty_values):
-    """Calculates Strength Score using the third proposed formula."""
-    rating = video_data.get("rating", 0)
-    times_shown = video_data.get("times_shown", 0)
-    win_rate = video_data.get("win_rate", 0)
-    loss_streak = video_data.get("loss_streak", 0)
+    idx = start_index + i
+    filename = f"{base_name}{idx}.json"
+    out_path = os.path.join(base_dir, filename)
 
-    # Avoid division by zero for max_times_shown if no videos have been shown
-    if max_times_shown == 0:
-         rating_multiplier = 1
-    else:
-        rating_multiplier = 1 + (times_shown / max_times_shown) * bonus_values['bonus_times_shown']
+    with open(out_path, "w", encoding="utf-8") as out:
+        json.dump(chunk, out, ensure_ascii=False, indent=4)
 
-    return (rating * rating_multiplier) + \
-           (win_rate * bonus_values['bonus_win_rate']) - (loss_streak * penalty_values['penalty_loss_streak'])
+    created_files.append(idx)
 
-def main():
-    """Main function to load data, calculate scores, rank, and save results."""
-    input_file_path = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_A1000 elo tik.json"
-    output_file_path = "C:/Users/Stark/Download/myhome/video_rating_app/utilities/elo_videos_ranked.json"
+print(f"✅ تم إنشاء {len(created_files)} ملف(ملفات):")
+for idx in created_files:
+    print(f" - {base_name}{idx}.json")
 
-    video_data = load_video_data(input_file_path)
+# إنشاء نص الأرشفة
+archive_entries = []
+for idx in created_files:
+    archive_entries.append(
+        f'    "topcut_elo_videos_A1000 elo tik_{idx}": {{\n'
+        f'        "initial_participants": 32\n'
+        f'    }}'
+    )
 
-    if video_data is None:
-        return
+archive_text = "},\n" + ",\n".join(archive_entries) + "\n}"
 
-    # Define initial bonus and penalty values for each formula
-    # These can be adjusted based on desired weighting
-    bonuses_penalties_1 = {'bonus1': 100, 'bonus2': 20, 'penalty1': 15, 'bonus3': 10, 'penalty2': 5}
-    bonus_values_2 = {'bonus': 100, 'bonus_streak': 20, 'penalty_streak': 15}
-    bonus_penalty_values_3 = {'bonus_times_shown': 100, 'bonus_win_rate': 100, 'penalty_loss_streak': 15}
+print("\n=== نص الأرشيف ===\n")
+print(archive_text)
 
-    # Calculate max_times_shown for formula 3
-    max_times_shown = 0
-    for data in video_data.values():
-        max_times_shown = max(max_times_shown, data.get("times_shown", 0))
+archive_file = os.path.join(
+    base_dir,
+    f"archive_topcut_elo_tik_{created_files[0]}to{created_files[-1]}.txt"
+)
+with open(archive_file, "w", encoding="utf-8") as af:
+    af.write(archive_text)
 
-    video_strength_scores = {}
-    for video_file, data in video_data.items():
-        score1 = calculate_strength_score_1(data, bonuses_penalties_1, bonuses_penalties_1)
-        score2 = calculate_strength_score_2(data, bonus_values_2)
-        score3 = calculate_strength_score_3(data, max_times_shown, bonus_penalty_values_3, bonus_penalty_values_3)
-
-        video_strength_scores[video_file] = {
-            'score1': score1,
-            'score2': score2,
-            'score3': score3
-        }
-
-    # Calculate individual ranks for each formula
-    ranked_videos_1 = sorted(video_strength_scores.keys(), key=lambda x: video_strength_scores[x]['score1'], reverse=True)
-    ranked_videos_2 = sorted(video_strength_scores.keys(), key=lambda x: video_strength_scores[x]['score2'], reverse=True)
-    ranked_videos_3 = sorted(video_strength_scores.keys(), key=lambda x: video_strength_scores[x]['score3'], reverse=True)
-
-    # Store the rank of each video in each list
-    video_ranks = {}
-    for video_file in video_data.keys():
-        rank1 = ranked_videos_1.index(video_file) + 1
-        rank2 = ranked_videos_2.index(video_file) + 1
-        rank3 = ranked_videos_3.index(video_file) + 1
-
-        video_ranks[video_file] = {
-            'rank1': rank1,
-            'rank2': rank2,
-            'rank3': rank3,
-            'average_rank': (rank1 + rank2 + rank3) / 3
-        }
-
-    # Sort videos based on the average rank
-    final_ranked_videos = sorted(video_ranks.keys(), key=lambda x: video_ranks[x]['average_rank'])
-
-    # Create the final ordered dictionary with the original data and the average rank
-    ordered_video_data = {}
-    for video_file in final_ranked_videos:
-        ordered_video_data[video_file] = video_data[video_file]
-        # Optionally, add the calculated scores and ranks to the output data
-        # ordered_video_data[video_file]['strength_scores'] = video_strength_scores[video_file]
-        # ordered_video_data[video_file]['ranks'] = video_ranks[video_file]
-
-
-    # Save the ranked data to a new JSON file
-    try:
-        with open(output_file_path, 'w') as f:
-            json.dump(ordered_video_data, f, indent=4)
-        print(f"Ranked video data saved to {output_file_path}")
-    except IOError:
-        print(f"Error: Could not write to file {output_file_path}")
-
-if __name__ == "__main__":
-    main()
+print(f"\n✅ تم حفظ ملف الأرشيف في:\n{archive_file}")

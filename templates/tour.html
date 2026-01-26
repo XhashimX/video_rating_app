@@ -308,55 +308,100 @@
   {% endif %} {% endwith %}
 
   <div class="row">
+    <!-- START: MODIFIED SECTION - New Tournament Form -->
     <div class="col-md-6">
       <div class="card">
         <h3>إنشاء مسابقة جديدة</h3>
         <form action="{{ url_for('tour_create') }}" method="POST">
           <div class="mb-3">
-            <label for="json_file" class="form-label">اختر ملف JSON:</label>
-            <select
-              class="form-select"
-              id="json_file"
-              name="json_file"
-              required
-            >
+            <label for="json_file" class="form-label">اختر ملف المصدر (Base):</label>
+            <select class="form-select" id="json_file" name="json_file" required>
               {% for file in available_files %}
               <option value="{{ file }}">{{ file }}</option>
               {% endfor %}
             </select>
           </div>
-          <div class="mb-3">
-            <label for="num_participants" class="form-label"
-              >عدد المشاركين:</label
-            >
-            <input
-              type="number"
-              class="form-control"
-              id="num_participants"
-              name="num_participants"
-              required
-            />
-            <label for="num_videos">عدد الفيديوهات لكل مباراة:</label>
-            <input
-              type="number"
-              id="num_videos"
-              name="num_videos"
-              min="2"
-              value="2"
-            />
-            <br />
-            <label for="ranking_type">نوع التصنيف:</label>
-            <select id="ranking_type" name="ranking_type">
-              <option value="winner_only">Winner Only</option>
-              <option value="ranked_type">Ranked Type</option>
-            </select>
+
+          <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="num_participants" class="form-label small">عدد المشاركين (للعشوائي):</label>
+                <input type="number" class="form-control" id="num_participants" name="num_participants" placeholder="مثلاً 32">
+              </div>
+              <div class="col-md-6">
+                <label for="num_matches_total" class="form-label small">أو عدد المباريات الإجمالي:</label>
+                <input type="number" class="form-control" id="num_matches_total" name="num_matches_total" placeholder="مثلاً 16">
+              </div>
           </div>
-          <button type="submit" class="btn btn-success">
-            إنشاء المسابقة
+
+          <div class="mb-3">
+            <div class="row">
+                <div class="col-6">
+                    <label for="num_videos" class="form-label small">فيديوهات لكل مباراة:</label>
+                    <input type="number" id="num_videos" name="num_videos" class="form-control" min="2" value="2">
+                </div>
+                <div class="col-6">
+                    <label for="ranking_type" class="form-label small">نوع التصنيف:</label>
+                    <select id="ranking_type" name="ranking_type" class="form-select">
+                      <option value="winner_only">Winner Only</option>
+                      <option value="ranked_type">Ranked Type</option>
+                    </select>
+                </div>
+            </div>
+          </div>
+
+          <!-- قسم إعدادات المراهنة -->
+          <div class="card bg-dark border-warning mb-3">
+              <div class="card-header border-warning text-warning p-2">
+                  <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="include_bets" name="include_bets" onchange="toggleBetOptions()">
+                      <label class="form-check-label fw-bold" for="include_bets">
+                          <i class="fas fa-crosshairs"></i> تضمين الرهانات
+                      </label>
+                  </div>
+              </div>
+              <div class="card-body p-2" id="bet_options" style="display: none;">
+                  <div class="mb-2">
+                      <label class="form-label small">عدد الرهانات لإدراجها:</label>
+                      <input type="number" name="bet_count" class="form-control bg-secondary text-white form-control-sm" min="1" value="1">
+                  </div>
+                  
+                  <div class="mb-2">
+                      <label class="form-label small">طريقة الاختيار:</label>
+                      <div class="btn-group w-100 btn-group-sm" role="group">
+                          <input type="radio" class="btn-check" name="bet_mode" id="bet_mode_random" value="random" checked onchange="toggleBetList()">
+                          <label class="btn btn-outline-warning" for="bet_mode_random">عشوائي</label>
+
+                          <input type="radio" class="btn-check" name="bet_mode" id="bet_mode_manual" value="manual" onchange="toggleBetList()">
+                          <label class="btn btn-outline-warning" for="bet_mode_manual">يدوي</label>
+                      </div>
+                  </div>
+
+                  <!-- قائمة الرهانات اليدوية -->
+                  <div id="manual_bet_list" style="display: none; max-height: 150px; overflow-y: auto; background: #222; padding: 5px; border-radius: 4px;">
+                      <label class="form-label text-muted small mb-1">اختر الرهانات:</label>
+                      {% if active_bets %}
+                          {% for bet in active_bets %}
+                          <div class="form-check">
+                              <input class="form-check-input" type="checkbox" name="selected_bets" value="{{ bet.challenger }}" id="bet_check_{{ loop.index }}">
+                              <label class="form-check-label small text-light" for="bet_check_{{ loop.index }}" style="font-size: 0.8em;">
+                                  {{ bet.challenger }} <span class="text-warning">VS</span> {{ bet.defender }} ({{ bet.target }})
+                              </label>
+                          </div>
+                          {% endfor %}
+                      {% else %}
+                          <p class="text-danger small mb-0">لا توجد رهانات نشطة.</p>
+                      {% endif %}
+                  </div>
+              </div>
+          </div>
+
+          <button type="submit" class="btn btn-success w-100">
+            <i class="fas fa-plus-circle"></i> إنشاء المسابقة
           </button>
         </form>
       </div>
     </div>
+    <!-- END: MODIFIED SECTION -->
 
     <div class="col-md-6">
       <div class="card">
@@ -763,6 +808,18 @@
       });
     }
   });
+
+  // START: MODIFIED SECTION - Bet Options Toggle Script
+  function toggleBetOptions() {
+      const isChecked = document.getElementById('include_bets').checked;
+      document.getElementById('bet_options').style.display = isChecked ? 'block' : 'none';
+  }
+
+  function toggleBetList() {
+      const isManual = document.getElementById('bet_mode_manual').checked;
+      document.getElementById('manual_bet_list').style.display = isManual ? 'block' : 'none';
+  }
+  // END: MODIFIED SECTION
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
