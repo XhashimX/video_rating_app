@@ -1,14 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}الصور المميزة - متصفح الصور{% endblock %}
+{% block title %}نتائج البحث عن "{{ query }}"{% endblock %}
 
 {% block top_controls %}
-    {% if favorite_images %}
+    {% if images %}
     <div class="page-info">
-        <p>عرض {{ favorite_images|length }} صورة في هذه الصفحة (الإجمالي: {{ total_images }} صورة)</p>
+        <p>عرض {{ images|length }} صورة في هذه الصفحة (الإجمالي: {{ total_images }} نتيجة)</p>
         <div class="pagination-controls">
             <div class="per-page-selector">
-                <form method="get" action="{{ url_for('view_favorites') }}">
+                <form method="get" action="{{ url_for('search') }}">
+                    <!-- حقل خفي للحفاظ على كلمة البحث عند تغيير عدد الصور -->
+                    <input type="hidden" name="q" value="{{ query }}">
                     <label for="per_page">الصور في الصفحة:</label>
                     <select name="per_page" id="per_page" onchange="this.form.submit()">
                         {% for num in [25, 50, 75, 100, 150, 200] %}
@@ -23,25 +25,24 @@
 {% endblock %}
 
 {% block content %}
-<body class="favorites-page">
-
 <a href="/" class="back-button">← العودة للصفحة الرئيسية</a>
 
-<h1>⭐ الصور المميزة بنجمة</h1>
-
 <div class="section">
-    {% if favorite_images %}
+    <div class="section-header">
+        <h2 class="section-title">نتائج البحث عن: "{{ query }}"</h2>
+    </div>
+
+    {% if images %}
         <div class="images-grid">
-            {% for image in favorite_images %}
+            {% for image in images %}
             <div class="image-card" 
                  data-image-path="{{ image.relative_path }}"
                  data-image-name="{{ image.name | e }}"
                  data-model-name="{{ image.model_name | default('غير معروف') | e }}"
                  data-prompt-data="{{ image.prompt_data | e }}"
                  data-source-group="{{ image.source_group | default('') }}">
-
+                
                 <span class="favorite-star {% if image.is_favorite %}favorited{% endif %}" onclick="toggleFavorite(this, event)">★</span>
-
                 <div class="image-content" onclick="toggleExifData(this)">
                     <img src="/image/{{ image.relative_path }}" alt="{{ image.name }}" loading="lazy">
                     <div class="image-info">
@@ -56,7 +57,7 @@
         <!-- أزرار الترقيم -->
         <div class="pagination-controls">
             {% if page > 1 %}
-                <a href="{{ url_for('view_favorites', page=page-1, per_page=per_page) }}">→ الصفحة السابقة</a>
+                <a href="{{ url_for('search', q=query, page=page-1, per_page=per_page) }}">→ الصفحة السابقة</a>
             {% else %}
                 <span class="disabled">→ الصفحة السابقة</span>
             {% endif %}
@@ -64,14 +65,13 @@
             <span class="current-page">صفحة {{ page }} من {{ total_pages }}</span>
 
             {% if page < total_pages %}
-                <a href="{{ url_for('view_favorites', page=page+1, per_page=per_page) }}">الصفحة التالية ←</a>
+                <a href="{{ url_for('search', q=query, page=page+1, per_page=per_page) }}">الصفحة التالية ←</a>
             {% else %}
                 <span class="disabled">الصفحة التالية ←</span>
             {% endif %}
         </div>
     {% else %}
-        <div class="no-images">لم تقم بتمييز أي صورة بعد. اضغط على النجمة ★ على أي صورة لإضافتها هنا.</div>
+        <div class="no-images">لم يتم العثور على نتائج للبحث عن "{{ query }}".</div>
     {% endif %}
 </div>
-</body>
 {% endblock %}

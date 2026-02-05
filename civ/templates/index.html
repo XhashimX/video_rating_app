@@ -1,76 +1,108 @@
-<!-- START: MODIFIED SECTION -->
-{% extends "base.html" %} {% block title %}{{ folder_name }} - متصفح الصور{%
-endblock %} {% block content %}
-<a href="/" class="back-button">← العودة للصفحة الرئيسية</a>
 
-<h1>مجلد: {{ folder_name }}</h1>
+{% extends "base.html" %}
 
-<div class="folder-controls">
-  <button id="sort-alpha-btn" class="action-button">فرز حسب الاسم (أ-ي)</button>
-  <button id="sort-date-btn" class="action-button" style="display: none">
-    فرز حسب التاريخ (الأحدث)
-  </button>
+{% block title %}متصفح الصور - الصفحة الرئيسية{% endblock %}
 
-  {% if show_classification %}
-  <div
-    id="classification-controls"
-    style="display: inline-block; margin-left: 15px"
-  >
-    <button id="classify-by-model-btn" class="action-button">
-      تصنيف حسب الموديل
-    </button>
-    <button id="show-all-btn" class="action-button" style="display: none">
-      عرض كل الصور
-    </button>
-    <button id="back-to-models-btn" class="action-button" style="display: none">
-      العودة لقائمة الموديلات
-    </button>
-  </div>
-  {% endif %}
-</div>
+{% block top_controls %}
+    {% if download_images %}
+    <div class="page-info">
+        <p>عرض {{ download_images|length }} صورة في هذه الصفحة (الإجمالي: {{ total_images }} صورة)</p>
+        
+        <!-- شريط التحكم (فرز + عدد الصور) -->
+        <div class="controls-bar">
+            <form method="get" action="{{ url_for('index') }}" style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+                
+                <!-- خيار الفرز -->
+                <div class="control-group">
+                    <label for="sort_by">ترتيب حسب:</label>
+                    <select name="sort_by" id="sort_by" onchange="this.form.submit()">
+                        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>الأحدث أولاً</option>
+                        <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>الأقدم أولاً</option>
+                        <option value="alpha_asc" {% if sort_by == 'alpha_asc' %}selected{% endif %}>أبجدياً (A-Z)</option>
+                        <option value="alpha_desc" {% if sort_by == 'alpha_desc' %}selected{% endif %}>أبجدياً (Z-A)</option>
+                        <option value="random" {% if sort_by == 'random' %}selected{% endif %}>عشوائي (Shuffle)</option>
+                    </select>
+                </div>
 
-<div class="section">
-  {% if images %}
-  <div class="images-grid" id="images-grid-container">
-    {% for image in images %}
-    <div
-      class="image-card"
-      data-image-path="{{ image.relative_path }}"
-      data-image-name="{{ image.name | e }}"
-      data-model-name="{{ image.model_name | default('غير معروف') | e }}"
-    >
-      <span
-        class="favorite-star {% if image.is_favorite %}favorited{% endif %}"
-        onclick="toggleFavorite(this, event)"
-        >★</span
-      >
-
-      <div class="image-content" onclick="toggleExifData(this)">
-        <img
-          src="/image/{{ image.relative_path }}"
-          alt="{{ image.name }}"
-          loading="lazy"
-        />
-        <div class="image-info">
-          <div class="image-name">{{ image.name }}</div>
-          <div class="exif-data"></div>
+                <!-- عدد الصور -->
+                <div class="control-group">
+                    <label for="per_page">الصور في الصفحة:</label>
+                    <select name="per_page" id="per_page" onchange="this.form.submit()">
+                        {% for num in [25, 50, 75, 100, 150, 200] %}
+                        <option value="{{ num }}" {% if num == per_page %}selected{% endif %}>{{ num }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
         </div>
-      </div>
     </div>
-    {% endfor %}
-  </div>
-  <div
-    class="folders-grid"
-    id="models-grid-container"
-    style="display: none"
-  ></div>
-  {% else %}
-  <div class="no-images">
-    لا توجد صور في هذا المجلد بالامتدادات المسموح بها.
-  </div>
-  {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- قسم الكاش الرئيسي -->
+<div class="section">
+    <div class="section-header">
+        <h2 class="section-title">الكاش الرئيسي (Downloads + Dib + Extra)</h2>
+    </div>
+
+    {% if download_images %}
+        <div class="images-grid">
+            {% for image in download_images %}
+            <div class="image-card" 
+                 data-image-path="{{ image.relative_path }}"
+                 data-image-name="{{ image.name | e }}"
+                 data-model-name="{{ image.model_name | default('غير معروف') | e }}"
+                 data-prompt-data="{{ image.prompt_data | e }}"
+                 data-source-group="{{ image.source_group | default('') }}">
+                
+                <span class="favorite-star {% if image.is_favorite %}favorited{% endif %}" onclick="toggleFavorite(this, event)">★</span>
+                <div class="image-content" onclick="toggleExifData(this)">
+                    <img src="/image/{{ image.relative_path }}" alt="{{ image.name }}" loading="lazy">
+                    <div class="image-info">
+                        <div class="image-name">{{ image.name }}</div>
+                        <div class="exif-data"></div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- أزرار التنقل بين الصفحات (مع الحفاظ على الفرز) -->
+        <div class="pagination-controls">
+            {% if page > 1 %}
+                <a href="{{ url_for('index', page=page-1, per_page=per_page, sort_by=sort_by) }}">→ الصفحة السابقة</a>
+            {% else %}
+                <span class="disabled">→ الصفحة السابقة</span>
+            {% endif %}
+
+            <span class="current-page">صفحة {{ page }} من {{ total_pages }}</span>
+
+            {% if page < total_pages %}
+                <a href="{{ url_for('index', page=page+1, per_page=per_page, sort_by=sort_by) }}">الصفحة التالية ←</a>
+            {% else %}
+                <span class="disabled">الصفحة التالية ←</span>
+            {% endif %}
+        </div>
+
+    {% else %}
+        <div class="no-images">لا توجد صور. قم بتشغيل `scan.py` أولاً.</div>
+    {% endif %}
 </div>
 
-<!-- تم حذف قسم <script> بالكامل من هنا لأنه موجود الآن في base.html -->
+<!-- قسم المجلدات الأخرى (TikTok) -->
+<div class="section">
+    <h2>المجلدات الأخرى</h2>
+    {% if tiktok_folders %}
+        <div class="folders-grid">
+            {% for folder in tiktok_folders %}
+            <div class="folder-card">
+                <a href="/folder/{{ folder.name }}">📁 {{ folder.name }}</a>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-images">لا توجد مجلدات</div>
+    {% endif %}
+</div>
 {% endblock %}
-<!-- END: MODIFIED SECTION -->

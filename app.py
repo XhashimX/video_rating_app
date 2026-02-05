@@ -1,10 +1,13 @@
 import json
 import sys
 import os
-import socket  # START: MODIFIED SECTION
+import socket
 from flask_session import Session
 from flask import jsonify
 import time 
+# START: MODIFIED SECTION - إضافة timedelta
+from datetime import timedelta
+# END: MODIFIED SECTION
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask import send_from_directory
 from utilities.config import SECRET_KEY, BACKUP_FOLDER
@@ -16,36 +19,35 @@ from utilities.helpers import video_handler
 from utilities.routes import init_routes
 from utilities import advanced_tools
 from utilities.video_filter import get_deletion_candidates, load_skipped_videos, save_skipped_videos
-# --- تعديل الاستيراد هنا ---
 from utilities.video_selector import select_winner as select_winner_function, choose_videos_function
-# --- نهاية التعديل ---
 from utilities.analyze import analyze_data, Color, save_analysis_to_file
 from utilities.data_manager import create_backup
 from utilities import tour
 from utilities.elo_calculator import update_ratings_multiple
 
-
-
 # 1. تعريف المسار الأساسي للمشروع (BASE_DIR)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# بعد تعريف BASE_DIR، أضف هذا السطر
 UPSCALED_MEDIA_DIR = os.path.join(BASE_DIR, "upscaled_media")
-app = Flask(__name__, template_folder='templates',
-            static_folder='static')  # Added static folder
+
+app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = SECRET_KEY
+
+# START: MODIFIED SECTION - إعدادات الجلسة الدائمة
+# 1. استخدام نظام الملفات للجلسات
 app.config['SESSION_TYPE'] = 'filesystem'
-Session(app)  # هذا السطر ضروري لتفعيل Flask-Session
+# 2. جعل الجلسة دائمة (لا تموت بإغلاق المتصفح)
+app.config['SESSION_PERMANENT'] = True
+# 3. تحديد مدة حياة الجلسة (مثلاً 31 يوماً)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=31)
+# 4. تحديد مسار ملفات الجلسة (اختياري لزيادة الأمان، لضمان أنها بجوار التطبيق)
+app.config['SESSION_FILE_DIR'] = os.path.join(BASE_DIR, '.flask_session')
+# END: MODIFIED SECTION
+
+Session(app)
 init_routes(app)
 
-JSON_FOLDER = os.path.join("utilities")
-STATUS_FOLDER = os.path.join("utilities", "status")
-
-
-# 2. استخدام المسار الأساسي لتعريف مسارات المجلدات بشكل موثوق
 JSON_FOLDER = os.path.join(BASE_DIR, "utilities")
 STATUS_FOLDER = os.path.join(BASE_DIR, "utilities", "status")
-
-# 3. تحديث المسار المطلق القديم ليصبح ديناميكياً أيضاً
 PROCESSED_VIDEOS_FILE = os.path.join(BASE_DIR, 'utilities', 'processed_videos.json')
 
 def load_processed_videos_data():
@@ -554,7 +556,6 @@ def advanced_tools_page():
 # END: MODIFIED SECTION
 
 
-# START: MODIFIED SECTION
 @app.route('/run_tool', methods=['POST'])
 def run_tool():
     """
@@ -566,8 +567,10 @@ def run_tool():
             return jsonify({'success': False, 'message': 'لم يتم استلام أي بيانات.'}), 400
 
         action = data.get('action')
+        # تحديد مسار مجلد utilities
         utilities_folder = os.path.join(BASE_DIR, "utilities")
         
+        # 1. الاستخراج حسب الحجم (لم يتغير)
         if action == 'extract_by_size':
             content = data.get('input_content')
             if not content or not content.strip():
@@ -590,6 +593,7 @@ def run_tool():
             )
             return jsonify(result)
 
+        # 2. صنع المسابقات (لم يتغير)
         elif action == 'make_competition':
             input_file = data.get('input_json_path')
             settings = data.get('settings')
@@ -605,14 +609,29 @@ def run_tool():
             )
             return jsonify(result)
         
+        # 3. المقارنة والتصحيح (تم التعديل لدعم القوائم وتحديث التقييم)
         elif action == 'compare_and_correct':
-            target_file = data.get('target_file')
+            # استقبال البيانات (قد تكون قائمة ملفات أو ملف واحد)
+            target_input = data.get('target_file')
             output_option = data.get('output_option')
+            # استقبال خيار تحديث التقييم (افتراضياً False)
+            update_ratings = data.get('update_ratings', False)
 
-            if not target_file:
-                return jsonify({'success': False, 'message': 'الرجاء اختيار ملف بطولة لتصحيحه.'})
+            if not target_input:
+                return jsonify({'success': False, 'message': 'الرجاء اختيار ملف أو أكثر لتصحيحه.'})
+
+            # تجهيز قائمة المسارات الكاملة
+            target_file_paths = []
+            if isinstance(target_input, list):
+                # التعامل مع القائمة (Multiple Select)
+                for fname in target_input:
+                    target_file_paths.append(os.path.join(utilities_folder, fname))
+            else:
+                # التعامل مع ملف واحد (String) لضمان عدم حدوث خطأ
+                target_file_paths.append(os.path.join(utilities_folder, target_input))
 
             try:
+                # تجميع ملفات قاعدة البيانات الموثوقة
                 master_db_names = [f for f in os.listdir(utilities_folder) if f.startswith('elo_videos') and f.endswith('.json')]
                 if not master_db_names:
                     return jsonify({'success': False, 'message': "لم يتم العثور على ملفات قاعدة البيانات الموثوقة (elo_videos_*.json)." })
@@ -621,17 +640,17 @@ def run_tool():
             except FileNotFoundError:
                 return jsonify({'success': False, 'message': "مجلد 'utilities' غير موجود."})
 
-            target_file_path = os.path.join(utilities_folder, target_file)
-
+            # استدعاء الدالة الجديدة (لاحظ تغيير أسماء المعاملات لتطابق الدالة الجديدة)
             result = advanced_tools.function_compare_and_correct(
-                target_file_path=target_file_path,
+                target_file_paths=target_file_paths, # نرسل القائمة هنا
                 master_db_paths=master_db_paths,
                 output_option=output_option,
-                base_output_path=utilities_folder
+                base_output_path=utilities_folder,
+                update_ratings=update_ratings # نرسل خيار التقييم
             )
             return jsonify(result)
 
-        # --- بداية القسم الجديد ---
+        # 4. معالجة الأوزان (لم يتغير)
         elif action == 'process_weights_and_create':
             settings = data.get('settings')
             if not settings:
@@ -642,7 +661,6 @@ def run_tool():
                 base_utilities_path=utilities_folder
             )
             return jsonify(result)
-        # --- نهاية القسم الجديد ---
             
         else:
             return jsonify({'success': False, 'message': 'الإجراء المطلوب غير معروف.'}), 400
@@ -652,70 +670,152 @@ def run_tool():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'message': f'حدث خطأ غير متوقع في الخادم: {str(e)}'}), 500
-# END: MODIFIED SECTION
+
+# --- START OF FILE app.py (New Function Added) ---
+
+# START: ADDED SECTION - دالة لتحديث قائمة الفيديوهات يدوياً
+@app.route('/manual_refresh_videos', methods=['GET', 'POST'])
+def manual_refresh_videos():
+    """
+    يقوم هذا المسار بفحص المجلد واكتشاف الفيديوهات الجديدة وإضافتها لملف JSON.
+    يستخدم يدوياً بدلاً من الفحص التلقائي المستمر الذي يبطئ البرنامج.
+    """
+    if not session.get('selected_folder'):
+        flash("يرجى اختيار مجلد أولاً.", "warning")
+        return redirect(url_for('index'))
+
+    # 1. تحميل البيانات الحالية (بسرعة، بدون فحص)
+    data = load_data()
+    
+    # 2. استدعاء دالة الفحص الثقيلة الآن فقط
+    # تأكد من أن update_video_list مستوردة في أعلى الملف
+    from utilities.file_manager import update_video_list
+    
+    print("Starting manual video list update...") # DEBUG
+    updated_data = update_video_list(data)
+    
+    # 3. حفظ التغييرات إذا وجدت فيديوهات جديدة
+    save_data(updated_data)
+    
+    flash("تم تحديث قائمة الفيديوهات وفحص الملفات الجديدة بنجاح.", "success")
+    
+    # العودة للصفحة السابقة أو الرئيسية
+    return redirect(request.referrer or url_for('index'))
+# END: ADDED SECTION
 
 
-
+# START: MODIFIED SECTION - دالة competition الكاملة مع تحديث الرهان اللحظي وتمرير الأسماء
 @app.route('/competition', methods=['GET', 'POST'])
 def competition():
     """
     Handles competition requests.
-    MODIFIED: Added precise timing to diagnose the 7-10s delay.
+    MODIFIED: Includes Just-in-Time opponent swapping AND passes 'all_names'.
     """
+    # استيرادات ضرورية داخل الدالة لضمان عملها
+    from utilities.bet_manager import load_bets
+    
     tournament_files = tour.list_tournament_files()
 
     # --- GET REQUEST Handling ---
     if request.method == 'GET' and request.args.get('tournament_file'):
         tournament_file = request.args.get('tournament_file')
         session['last_selected_tournament'] = tournament_file
-        print(f"GET request with tournament_file param: {tournament_file}")
+        # print(f"GET request with tournament_file param: {tournament_file}")
         try:
             with open(os.path.join("utilities", tournament_file), 'r', encoding='utf-8') as f:
                 json_data = f.read()
-            print("Tournament file read successfully.")
+            # print("Tournament file read successfully.")
         except Exception as e:
             flash(f"Error loading tournament file: {str(e)}", "danger")
-            print(f"Error reading tournament file: {str(e)}")
+            # print(f"Error reading tournament file: {str(e)}")
             return render_template(
                 'start_competition.html', tournament_files=tour.list_tournament_files())
 
         if json_data:
             try:
-                print("Parsing JSON from tournament file...")
+                # print("Parsing JSON from tournament file...")
                 competitions = json.loads(json_data)
-                print("JSON parsed successfully.")
+                # print("JSON parsed successfully.")
                 if not isinstance(competitions, list):
                     raise ValueError("JSON data must be a list.")
 
                 # --- START: AUTO-FILTER LOGIC (GET) ---
                 if tournament_file:
-                    print(f"Auto-filtering unplayed matches for '{tournament_file}'...")
+                    # print(f"Auto-filtering unplayed matches for '{tournament_file}'...")
                     filter_result = tour.filter_unplayed_matches(tournament_file)
                     if filter_result.get('success'):
                         original_count = len(competitions)
                         competitions = filter_result.get('data', [])
-                        print(f"Auto-filter successful. Match count reduced from {original_count} to {len(competitions)}.")
+                        # print(f"Auto-filter successful. Match count reduced from {original_count} to {len(competitions)}.")
                     else:
                         flash(f"Could not automatically filter unplayed matches: {filter_result.get('message')}", "warning")
-                        print(f"WARNING: Auto-filtering failed for {tournament_file}.")
+                        # print(f"WARNING: Auto-filtering failed for {tournament_file}.")
                 # --- END: AUTO-FILTER LOGIC (GET) ---
 
                 data = load_data()
                 if not data:
                     flash("No competition data available.", "danger")
-                    print("Loaded data is empty when processing tournament file.")
+                    # print("Loaded data is empty when processing tournament file.")
                     return redirect(url_for('competition'))
 
+                # --- START: NEW ADDITION (Get all names) ---
+                all_names = get_unique_names(data)
+                # --- END: NEW ADDITION ---
+
                 session['competitions_queue'] = competitions
-                print(f"Stored competitions queue in session, count: {len(competitions)}")
+                # print(f"Stored competitions queue in session, count: {len(competitions)}")
                 if not competitions:
                      flash("Tournament file is empty or all matches are completed.", "warning")
-                     print("Tournament file provided an empty list after filtering.")
+                     # print("Tournament file provided an empty list after filtering.")
                      return render_template('start_competition.html', tournament_files=tour.list_tournament_files(), last_selected_file=tournament_file)
 
+                # سحب المباراة التالية
                 current_competition = session['competitions_queue'].pop(0)
+
+                # ==============================================================================
+                # START: DYNAMIC BETTING OPPONENT SWAP (GET)
+                # ==============================================================================
+                comp_type = current_competition.get('competition_type')
+                if comp_type in ['bet_mixed', 'betting_match']:
+                    current_bets = load_bets()
+                    videos_in_match = current_competition.get('videos', [])
+                    
+                    # نفترض أن المتحدي هو الأول (index 0)
+                    if videos_in_match and len(videos_in_match) >= 2:
+                        challenger = videos_in_match[0]
+                        
+                        # هل يوجد رهان نشط؟
+                        if challenger in current_bets and current_bets[challenger]['status'] == 'active':
+                            target_rank = current_bets[challenger]['target_rank']
+                            
+                            # ترتيب البيانات الحالية لمعرفة صاحب المركز
+                            sorted_current = sorted(
+                                data.items(),
+                                key=lambda item: item[1].get('rating', 1000),
+                                reverse=True
+                            )
+                            
+                            # (target_rank - 1) لأن القائمة تبدأ من 0
+                            if 0 <= target_rank - 1 < len(sorted_current):
+                                real_defender_name = sorted_current[target_rank - 1][0]
+                                
+                                # استبدال الخصم إذا لم يكن هو نفسه المتحدي
+                                if real_defender_name != challenger:
+                                    old_defender = videos_in_match[1]
+                                    if old_defender != real_defender_name:
+                                        # print(f"♻️ LIVE SWAP (GET): {challenger} vs {old_defender} -> vs {real_defender_name} (Rank {target_rank})")
+                                        current_competition['videos'][1] = real_defender_name
+                                        
+                                        # تحديث رقم التقييم المعروض أيضاً
+                                        if 'rating' in current_competition and len(current_competition['rating']) >= 2:
+                                            new_def_rating = data.get(real_defender_name, {}).get('rating', 1000)
+                                            current_competition['rating'][1] = new_def_rating
+                # ==============================================================================
+                # END: DYNAMIC BETTING OPPONENT SWAP
+                # ==============================================================================
+
                 session['competition_params'] = current_competition
-                print(f"Popped first competition from queue. Params: {current_competition}")
+                # print(f"Popped first competition from queue. Params: {current_competition}")
 
                 videos_from_json = current_competition.get('videos')
                 mode = current_competition.get('mode', 1)
@@ -725,7 +825,7 @@ def competition():
                 competition_type = current_competition.get('competition_type', 'random')
                 value = current_competition.get('value')
 
-                print(f"Starting competition from JSON - Mode: {mode}, Num Videos: {num_videos}")
+                # print(f"Starting competition from JSON - Mode: {mode}, Num Videos: {num_videos}")
 
                 # --- DIAGNOSTIC TIMER (GET) ---
                 t_start = time.time()
@@ -733,7 +833,7 @@ def competition():
                     data, mode, value, num_videos, use_dynamic_weighting,
                     competition_type, videos_from_json or [], session=session
                 )
-                print(f"⏱️ DIAGNOSTIC: choose_videos_function (GET) took {time.time() - t_start:.4f} seconds")
+                # print(f"⏱️ DIAGNOSTIC: choose_videos_function (GET) took {time.time() - t_start:.4f} seconds")
                 # ------------------------------
 
                 processed_data_dict = load_processed_videos_data()
@@ -765,13 +865,14 @@ def competition():
                     enriched_competition_videos.append(enriched_video_info)
 
                 competition_videos_to_render = enriched_competition_videos
-                print(f"Prepared {len(competition_videos_to_render)} enriched videos for rendering.")
+                # print(f"Prepared {len(competition_videos_to_render)} enriched videos for rendering.")
 
                 if competition_videos_to_render and len(competition_videos_to_render) >= 2:
                      template_params_get = {
                          'competition_videos': competition_videos_to_render, 'num_videos': num_videos,
                          'mode': mode, 'ranking_type': ranking_type, 'competition_type': competition_type,
-                         'data': data
+                         'data': data,
+                         'all_names': all_names # <-- PASSING NAMES
                      }
                      if isinstance(value, dict):
                          template_params_get.update(value)
@@ -799,13 +900,13 @@ def competition():
 
     # --- POST REQUEST Handling ---
     if request.method == 'POST':
-        print("Received POST request for competition.")
+        # print("Received POST request for competition.")
         
         tournament_file = request.form.get('tournament_file')
         
         if tournament_file:
             session['last_selected_tournament'] = tournament_file
-            print(f"A file was selected in the form: '{tournament_file}'. Saved to session.")
+            # print(f"A file was selected in the form: '{tournament_file}'. Saved to session.")
 
         json_data = request.form.get('json_data')
         
@@ -813,36 +914,36 @@ def competition():
         
         if not json_data or not json_data.strip():
             if tournament_file:
-                print(f"Textarea is empty, loading from selected file: {tournament_file}")
+                # print(f"Textarea is empty, loading from selected file: {tournament_file}")
                 try:
                     with open(os.path.join("utilities", tournament_file), 'r', encoding='utf-8') as f:
                         json_data = f.read()
                     data_is_from_file = True
-                    print("Read JSON data from file as fallback.")
+                    # print("Read JSON data from file as fallback.")
                 except Exception as e:
                     flash(f"Error loading tournament file from POST: {str(e)}", "danger")
                     return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
         else:
-             print("Using JSON data provided in the textarea.")
+             # print("Using JSON data provided in the textarea.")
              if tournament_file:
                  data_is_from_file = True
 
         if json_data:
             try:
-                print("Parsing JSON from POST request...")
+                # print("Parsing JSON from POST request...")
                 competitions = json.loads(json_data)
-                print("JSON parsed successfully from POST.")
+                # print("JSON parsed successfully from POST.")
                 if not isinstance(competitions, list):
                     raise ValueError("JSON data must be a list.")
 
                 # --- START: AUTO-FILTER LOGIC (POST) ---
                 if data_is_from_file and tournament_file:
-                    print(f"Auto-filtering unplayed matches for '{tournament_file}'...")
+                    # print(f"Auto-filtering unplayed matches for '{tournament_file}'...")
                     filter_result = tour.filter_unplayed_matches(tournament_file)
                     if filter_result.get('success'):
                         original_count = len(competitions)
                         competitions = filter_result.get('data', [])
-                        print(f"Auto-filter successful. Match count reduced from {original_count} to {len(competitions)}.")
+                        # print(f"Auto-filter successful. Match count reduced from {original_count} to {len(competitions)}.")
                     else:
                         flash(f"Could not automatically filter unplayed matches: {filter_result.get('message')}", "warning")
                 # --- END: AUTO-FILTER LOGIC (POST) ---
@@ -851,10 +952,13 @@ def competition():
                 if not data:
                     flash("No competition data available.", "danger")
                     return redirect(url_for('competition'))
+                
+                # --- START: NEW ADDITION (Get all names) ---
+                all_names = get_unique_names(data)
+                # --- END: NEW ADDITION ---
 
                 session['competitions_queue'] = competitions
-                # --- هذا هو المكان الذي أشرت إليه في سجلك ---
-                print(f"Stored competitions queue from POST, count: {len(competitions)}") 
+                # print(f"Stored competitions queue from POST, count: {len(competitions)}") 
                 if not competitions:
                      flash("JSON data is empty or all matches are completed.", "warning")
                      return render_template('start_competition.html', tournament_files=tour.list_tournament_files(), last_selected_file=tournament_file)
@@ -862,9 +966,47 @@ def competition():
                 # --- نتتبع الوقت هنا ---
                 t_pop = time.time()
                 current_competition = session['competitions_queue'].pop(0)
+
+                # ==============================================================================
+                # START: DYNAMIC BETTING OPPONENT SWAP (POST)
+                # ==============================================================================
+                comp_type = current_competition.get('competition_type')
+                if comp_type in ['bet_mixed', 'betting_match']:
+                    current_bets = load_bets()
+                    videos_in_match = current_competition.get('videos', [])
+                    
+                    if videos_in_match and len(videos_in_match) >= 2:
+                        challenger = videos_in_match[0]
+                        
+                        if challenger in current_bets and current_bets[challenger]['status'] == 'active':
+                            target_rank = current_bets[challenger]['target_rank']
+                            
+                            # ترتيب البيانات الحالية
+                            sorted_current = sorted(
+                                data.items(),
+                                key=lambda item: item[1].get('rating', 1000),
+                                reverse=True
+                            )
+                            
+                            if 0 <= target_rank - 1 < len(sorted_current):
+                                real_defender_name = sorted_current[target_rank - 1][0]
+                                
+                                if real_defender_name != challenger:
+                                    old_defender = videos_in_match[1]
+                                    if old_defender != real_defender_name:
+                                        # print(f"♻️ LIVE SWAP (POST): {challenger} vs {old_defender} -> vs {real_defender_name} (Rank {target_rank})")
+                                        current_competition['videos'][1] = real_defender_name
+                                        
+                                        if 'rating' in current_competition and len(current_competition['rating']) >= 2:
+                                            new_def_rating = data.get(real_defender_name, {}).get('rating', 1000)
+                                            current_competition['rating'][1] = new_def_rating
+                # ==============================================================================
+                # END: DYNAMIC BETTING OPPONENT SWAP
+                # ==============================================================================
+
                 session['competition_params'] = current_competition
-                print(f"Popped first competition from POST queue. Params: {current_competition}")
-                print(f"⏱️ DIAGNOSTIC: Queue Pop took {time.time() - t_pop:.4f} seconds")
+                # print(f"Popped first competition from POST queue. Params: {current_competition}")
+                # print(f"⏱️ DIAGNOSTIC: Queue Pop took {time.time() - t_pop:.4f} seconds")
 
                 videos_from_json = current_competition.get('videos')
                 mode = current_competition.get('mode', 1)
@@ -874,16 +1016,16 @@ def competition():
                 competition_type = current_competition.get('competition_type', 'random')
                 value = current_competition.get('value')
 
-                print(f"Starting competition from POST JSON - Mode: {mode}")
+                # print(f"Starting competition from POST JSON - Mode: {mode}")
 
                 # --- DIAGNOSTIC TIMER (POST - JSON) - المنطقة المشبوهة ---
-                print("⏱️ DIAGNOSTIC: Starting choose_videos_function (This is likely the delay)...")
+                # print("⏱️ DIAGNOSTIC: Starting choose_videos_function (This is likely the delay)...")
                 t_start = time.time()
                 competition_videos_raw = choose_videos_function(
                     data, mode, value, num_videos, use_dynamic_weighting,
                     competition_type, videos_from_json or [], session=session
                 )
-                print(f"⏱️ DIAGNOSTIC: choose_videos_function (POST JSON) took {time.time() - t_start:.4f} seconds")
+                # print(f"⏱️ DIAGNOSTIC: choose_videos_function (POST JSON) took {time.time() - t_start:.4f} seconds")
                 # --------------------------------------------------------
 
                 processed_data_dict = load_processed_videos_data()
@@ -915,14 +1057,15 @@ def competition():
                     enriched_competition_videos.append(enriched_video_info)
 
                 competition_videos_to_render = enriched_competition_videos
-                print(f"Prepared {len(competition_videos_to_render)} enriched videos for rendering.")
+                # print(f"Prepared {len(competition_videos_to_render)} enriched videos for rendering.")
 
                 if competition_videos_to_render and len(competition_videos_to_render) >= 2:
-                    print(f"Rendering select_winner.html with {len(competition_videos_to_render)} videos from POST JSON.")
+                    # print(f"Rendering select_winner.html with {len(competition_videos_to_render)} videos from POST JSON.")
                     template_params_post_json = {
                         'competition_videos': competition_videos_to_render, 'num_videos': num_videos,
                         'mode': mode, 'ranking_type': ranking_type, 'competition_type': competition_type,
-                        'data': data
+                        'data': data,
+                        'all_names': all_names # <-- PASSING NAMES
                     }
                     if isinstance(value, dict):
                         template_params_post_json.update(value)
@@ -981,13 +1124,17 @@ def competition():
                 flash("No competition data available.", "danger")
                 return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
 
+            # --- START: NEW ADDITION (Get all names) ---
+            all_names = get_unique_names(data)
+            # --- END: NEW ADDITION ---
+
             # --- DIAGNOSTIC TIMER (POST - FORM) ---
-            print("⏱️ DIAGNOSTIC: Starting choose_videos_function (Form)...")
+            # print("⏱️ DIAGNOSTIC: Starting choose_videos_function (Form)...")
             t_start = time.time()
             competition_videos_raw = choose_videos_function(
                 data, mode, value, num_videos, use_dynamic_weighting, competition_type, [], session=session
             )
-            print(f"⏱️ DIAGNOSTIC: choose_videos_function (POST Form) took {time.time() - t_start:.4f} seconds")
+            # print(f"⏱️ DIAGNOSTIC: choose_videos_function (POST Form) took {time.time() - t_start:.4f} seconds")
             # --------------------------------------
             
             processed_data_dict = load_processed_videos_data()
@@ -1020,7 +1167,8 @@ def competition():
                 template_params = {
                     'competition_videos': competition_videos_to_render, 'num_videos': num_videos,
                     'mode': mode, 'ranking_type': ranking_type, 'competition_type': competition_type,
-                    'data': data
+                    'data': data,
+                    'all_names': all_names # <-- PASSING NAMES
                 }
                 if isinstance(value, dict):
                     template_params.update(value)
@@ -1033,30 +1181,139 @@ def competition():
                 return render_template('start_competition.html', tournament_files=tour.list_tournament_files())
 
     # GET request without params
-    print("Rendering start_competition.html (GET request).")
+    # print("Rendering start_competition.html (GET request).")
     session.pop('competitions_queue', None)
     session.pop('competition_params', None)
     session.pop('last_winner', None)
 
-    sorted_tournament_files = sorted(tournament_files)
+
+    
+    # القديم:
+    # sorted_tournament_files = sorted(tournament_files)
+
+    # الجديد (المعدل):
+    sorted_tournament_files = sorted(tournament_files, key=get_tournament_priority)
     last_selected_file = session.get('last_selected_tournament')
 
     return render_template('start_competition.html', 
                            tournament_files=sorted_tournament_files,
                            last_selected_file=last_selected_file)
+# --- START: ADDED SECTION (app.py) ---
+@app.route('/start_all_bets', methods=['POST'])
+def start_all_bets():
+    """
+    يبدأ سلسلة مسابقات لجميع الرهانات النشطة دفعة واحدة.
+    """
+    active_bets = load_bets()
+    match_queue = []
+    
+    # 1. تجميع كل المباريات المقترحة
+    for challenger, info in active_bets.items():
+        if info.get('status') == 'active':
+            match_data_list = get_proposed_match(challenger)
+            if match_data_list:
+                match_queue.extend(match_data_list)
+    
+    if not match_queue:
+        flash("لا توجد رهانات نشطة لبدء المسابقة.", "warning")
+        return redirect(url_for('dashboard'))
 
+    # 2. تخزين الطابور في الجلسة
+    session['competitions_queue'] = match_queue
+    
+    # 3. سحب المباراة الأولى للبدء
+    current_competition = session['competitions_queue'].pop(0)
+    
+    # === تطبيق منطق "استبدال الخصم لحظة اللعب" للمباراة الأولى ===
+    data = load_data()
+    comp_type = current_competition.get('competition_type')
+    
+    # --- START: NEW ADDITION (Get all names) ---
+    all_names = get_unique_names(data)
+    # --- END: NEW ADDITION ---
+    
+    if comp_type in ['bet_mixed', 'betting_match']:
+        videos_in_match = current_competition.get('videos', [])
+        if videos_in_match and len(videos_in_match) >= 2:
+            challenger = videos_in_match[0]
+            current_bets_check = load_bets()
+            if challenger in current_bets_check and current_bets_check[challenger]['status'] == 'active':
+                target_rank = current_bets_check[challenger]['target_rank']
+                
+                sorted_current = sorted(
+                    data.items(),
+                    key=lambda item: item[1].get('rating', 1000),
+                    reverse=True
+                )
+                
+                if 0 <= target_rank - 1 < len(sorted_current):
+                    real_defender_name = sorted_current[target_rank - 1][0]
+                    
+                    if real_defender_name != challenger:
+                        old_defender = videos_in_match[1]
+                        if old_defender != real_defender_name:
+                            # print(f"♻️ QUEUE START SWAP: {challenger} vs {real_defender_name} (Rank {target_rank})")
+                            current_competition['videos'][1] = real_defender_name
+                            current_competition['rating'][1] = data.get(real_defender_name, {}).get('rating', 1000)
+    # ========================================================
 
+    session['competition_params'] = current_competition
 
-# START: MODIFIED SECTION - دالة select_winner (محسنة + المنطق القديم)
+    # 4. تجهيز العرض
+    competition_videos_raw = choose_videos_function(
+        data, 
+        mode=1, 
+        value=None, 
+        num_videos=2, 
+        use_dynamic_weighting=False,
+        competition_type='betting_match', 
+        specific_videos=current_competition['videos'], 
+        session=session
+    )
+    
+    processed_data_dict = load_processed_videos_data()
+    video_folder = session.get('selected_folder')
+    ranking_map = create_ranking_map(data)
+    
+    enriched_competition_videos = []
+    for vid_name, rating, times_shown, tags, *_ in competition_videos_raw:
+        display_name_from_db = data.get(vid_name, {}).get('name', '')
+        enriched_video_info = {
+            'name': vid_name, 'display_name': display_name_from_db,
+            'rating': rating, 'times_shown': times_shown, 'tags': tags,
+            'is_processed': False, 'weight': None,
+            'rank': ranking_map.get(vid_name, 'N/A')
+        }
+        if video_folder:
+            try:
+                full_video_path = os.path.join(video_folder, vid_name)
+                file_size = os.path.getsize(full_video_path)
+                if file_size in processed_data_dict:
+                    enriched_video_info['is_processed'] = True
+                    enriched_video_info['weight'] = processed_data_dict[file_size].get('total_weight')
+            except: pass
+        enriched_competition_videos.append(enriched_video_info)
+
+    return render_template(
+        'select_winner.html',
+        competition_videos=enriched_competition_videos,
+        num_videos=2,
+        mode=1,
+        ranking_type='winner_only',
+        competition_type='betting_match',
+        data=data,
+        all_names=all_names # <-- PASSING NAMES
+    )
+# --- END: ADDED SECTION ---
 @app.route('/select_winner', methods=['POST'])
 def select_winner():
     """
     Processes the winner selection form submission.
-    يتضمن الآن منطق "القفز" القديم مع الحفاظ على تحسينات الأداء.
+    MODIFIED: Now passes 'all_names' to the template for the autocomplete feature.
     """
     import time
     grand_start = time.time()
-    print("\n⭐⭐ STARTING TIMER: /select_winner (Optimized + Old Logic) ⭐⭐")
+    # print("\n⭐⭐ STARTING TIMER: /select_winner (Optimized + Live Swap) ⭐⭐")
 
     if not session.get('selected_folder'):
         flash("Please select a folder first.", "warning")
@@ -1065,13 +1322,26 @@ def select_winner():
     # --- 1. Load Data ---
     t_start = time.time()
     data = load_data()
-    print(f"⏱️ [1] Load Data took: {time.time() - t_start:.4f}s")
+    # print(f"⏱️ [1] Load Data took: {time.time() - t_start:.4f}s")
     
     if not data:
         flash("No competition data available.", "danger")
         return redirect(url_for('competition'))
 
+    # --- START: NEW ADDITION (Get all names) ---
+    all_names = get_unique_names(data)
+    # --- END: NEW ADDITION ---
+
     original_video_names_in_competition = request.form.getlist('videos')
+    
+    
+    
+    
+    from utilities.bet_manager import process_bet_match_completion
+    process_bet_match_completion(original_video_names_in_competition)
+    # END: NEW CODE
+    # 
+    
 
     if not original_video_names_in_competition:
         flash("No videos were submitted.", "danger")
@@ -1097,16 +1367,12 @@ def select_winner():
                         tag_updates_made = True
     except Exception as e:
          print(f"ERROR during tag processing: {e}")
-    print(f"⏱️ [2] Tag Processing took: {time.time() - t_start:.4f}s")
+    # print(f"⏱️ [2] Tag Processing took: {time.time() - t_start:.4f}s")
 
     # --- Skip Logic ---
     if request.form.get('skip_competition') == 'true':
         flash("Competition skipped.", "info")
-        # (منطق التخطي المعتاد - مختصر هنا للحفاظ على المساحة، يبقى كما هو في كودك)
-        # ... تأكد من أن كود التخطي موجود هنا كما كان ...
-        # إذا كنت تحتاج كود التخطي كاملاً أخبرني، سأفترض أنه موجود لديك
         
-        # كود تحضير الجولة التالية للتخطي (مختصر):
         next_competition_params = None
         competitions_queue = session.get('competitions_queue')
         params_from_skipped = session.get('competition_params')
@@ -1116,7 +1382,7 @@ def select_winner():
         else:
              next_competition_params = params_from_skipped
              
-        # ... بقية منطق إعادة التوجيه للتخطي ...
+        # إعادة التوجيه
         return redirect(url_for('competition'))
 
 
@@ -1129,7 +1395,7 @@ def select_winner():
         competition_type = request.form.get('competition_type')
         value = None 
         
-        # استعادة القيم (Value reconstruction)
+        # استعادة القيم
         if mode == 8: value = {'min_value1': request.form.get('min_value1', type=float), 'max_value1': request.form.get('max_value1', type=float), 'min_value2': request.form.get('min_value2', type=float), 'max_value2': request.form.get('max_value2', type=float)}
         elif mode in [5, 6]: value = {'min_value': request.form.get('min_value', type=float), 'max_value': request.form.get('max_value', type=float)}
         elif mode in [3, 4]: val_str = request.form.get('value'); value = float(val_str) if val_str else None
@@ -1139,7 +1405,7 @@ def select_winner():
         elif mode == 10: value = {'tags': request.form.get('tags_value_input')}
 
         winner_vid = None
-        ranked_videos_for_update_sorted = [] # (name, current_rating, rank_index)
+        ranked_videos_for_update_sorted = [] 
 
         if ranking_type == 'winner_only':
             winner_vid = request.form.get('winner')
@@ -1168,7 +1434,6 @@ def select_winner():
                  if vid in data: videos_with_ranks.append((vid, float(data[vid].get('rating', 1000.0)), r))
              videos_with_ranks.sort(key=lambda x: x[2])
              
-             # Re-map to 0-based index
              for i, (vid, rating, _) in enumerate(videos_with_ranks):
                  ranked_videos_for_update_sorted.append((vid, rating, i))
              
@@ -1177,7 +1442,6 @@ def select_winner():
         if len(ranked_videos_for_update_sorted) < 2:
              return redirect(url_for('competition'))
 
-        # حفظ التقييمات الأصلية قبل الحساب (مهم للمنطق القديم)
         original_ratings_before_elo = {
             vid: data.get(vid, {}).get('rating', 1000.0) 
             for vid, _, _ in ranked_videos_for_update_sorted
@@ -1186,56 +1450,41 @@ def select_winner():
         # --- 4. The ELO Update Function ---
         t_elo = time.time()
         update_ratings_multiple(ranked_videos_for_update_sorted, data)
-        print(f"⏱️ [4] ELO Math took: {time.time() - t_elo:.4f}s")
+        # print(f"⏱️ [4] ELO Math took: {time.time() - t_elo:.4f}s")
 
-        # --- 5. START: RE-INTEGRATED OLD LOGIC (Post-ELO Adjustment) ---
-        print("\n--- Applying Post-ELO Adjustment (Old Logic Restored) ---")
-        
-        # استخراج قائمة الأسماء مرتبة حسب الرتبة (الفائز أولاً)
+        # --- 5. RE-INTEGRATED OLD LOGIC (Post-ELO Adjustment) ---
+        # print("\n--- Applying Post-ELO Adjustment (Old Logic Restored) ---")
         ranked_video_names_final_order = [item[0] for item in ranked_videos_for_update_sorted]
 
-        # التأكد من وجود فائز (Rank 0) وخاسرين
         if ranked_videos_for_update_sorted and ranked_videos_for_update_sorted[0][2] == 0:
             winner_name = ranked_video_names_final_order[0]
-            
-            # التكرار على الخاسرين
             for i in range(1, len(ranked_video_names_final_order)):
                 loser_name = ranked_video_names_final_order[i]
-                
-                # التأكد من صحة البيانات
                 if winner_name in data and loser_name in data:
                     rating_a_after = data[winner_name]['rating']
                     rating_b_after = data[loser_name]['rating']
-                    
                     orig_a = original_ratings_before_elo.get(winner_name)
                     orig_b = original_ratings_before_elo.get(loser_name)
 
-                    # 1. الحالة الاستثنائية: الفائز 1000 بالضبط يهزم خصماً أقوى
                     if (orig_a is not None and orig_b is not None and
                         orig_a < orig_b and abs(orig_a - 1000.0) < 0.01):
-                        
-                        print(f"  [Snatch] Newcomer {winner_name} (1000) beat {loser_name} ({orig_b}). Snatching rating!")
+                        # print(f"  [Snatch] Newcomer {winner_name} (1000) beat {loser_name} ({orig_b}). Snatching rating!")
                         data[winner_name]['rating'] = orig_b
-                        # الخاسر يحتفظ بتقييمه بعد الـ Elo (لا تغيير إضافي)
                         continue 
 
-                    # 2. التعديل القياسي: إذا ظل تقييم الفائز أقل من الخاسر بعد الحساب
                     if rating_a_after < rating_b_after:
-                        print(f"  [Swap] Winner {winner_name} ({rating_a_after:.0f}) still < Loser {loser_name} ({rating_b_after:.0f}). Swapping!")
+                        # print(f"  [Swap] Winner {winner_name} ({rating_a_after:.0f}) still < Loser {loser_name} ({rating_b_after:.0f}). Swapping!")
                         data[winner_name]['rating'] = rating_b_after
                         data[loser_name]['rating'] = (rating_a_after + rating_b_after) / 2.0
-
-        print("--- End of Post-ELO Adjustment ---")
-        # --- END: RE-INTEGRATED OLD LOGIC ---
+        # print("--- End of Post-ELO Adjustment ---")
 
         # --- 6. Names Analysis ---
         t_start = time.time()
         explicit_winner_id = winner_vid
         explicit_loser_ids = [vid for vid in original_video_names_in_competition if vid != explicit_winner_id]
-
         if explicit_winner_id and explicit_loser_ids:
             update_names_analysis(explicit_winner_id, explicit_loser_ids, original_video_names_in_competition, data)
-        print(f"⏱️ [6] Names Analysis took: {time.time() - t_start:.4f}s")
+        # print(f"⏱️ [6] Names Analysis took: {time.time() - t_start:.4f}s")
 
         # --- 7. Win/Loss Stats Update ---
         t_start = time.time()
@@ -1250,7 +1499,7 @@ def select_winner():
                   total = data[vid]['total_wins'] + data[vid]['total_losses']
                   data[vid]['win_rate'] = (data[vid]['total_wins'] / total) if total > 0 else 0.0
                   data[vid]['times_shown'] = data[vid].get('times_shown', 0) + 1
-        print(f"⏱️ [7] Stats Update took: {time.time() - t_start:.4f}s")
+        # print(f"⏱️ [7] Stats Update took: {time.time() - t_start:.4f}s")
 
         # --- 8. Save Data & Backup ---
         t_start = time.time()
@@ -1260,9 +1509,9 @@ def select_winner():
              flash("Ratings, stats, and tags updated successfully!", "success")
         except Exception as e:
              flash(f"Error saving: {e}", "danger")
-        print(f"⏱️ [8] Disk Save took: {time.time() - t_start:.4f}s")
+        # print(f"⏱️ [8] Disk Save took: {time.time() - t_start:.4f}s")
 
-        # --- 9. Prepare Next Round ---
+        # --- 9. Prepare Next Round (START: MODIFIED SECTION) ---
         t_start = time.time()
         if winner_vid: session['last_winner'] = winner_vid
         else: session.pop('last_winner', None)
@@ -1270,24 +1519,66 @@ def select_winner():
         next_competition_params = None
         competitions_queue = session.get('competitions_queue')
         params_from_completed_round = session.get('competition_params')
+        
+        # تعريف متغير البيانات لاستخدامه في المنطق الجديد
+        data_for_next_round = data 
+        
+        # --- START: NEW ADDITION (Refresh names for next round) ---
+        all_names = get_unique_names(data_for_next_round)
+        # --- END: NEW ADDITION ---
 
         if competitions_queue:
              next_competition_params = competitions_queue.pop(0)
+             
+             # =================================================================
+             # START: DYNAMIC SWAP FOR NEXT ROUND (Essential for queues)
+             # هذا الكود يضمن أن المباراة التالية في الطابور تحصل على الخصم المحدث
+             # =================================================================
+             from utilities.bet_manager import load_bets # تأكد من الاستيراد
+             
+             comp_type = next_competition_params.get('competition_type')
+             if comp_type in ['bet_mixed', 'betting_match']:
+                # استخدام البيانات المحدثة (data_for_next_round) التي تحتوي على نتائج المباراة السابقة
+                current_bets_next = load_bets()
+                videos_in_next = next_competition_params.get('videos', [])
+                
+                if videos_in_next and len(videos_in_next) >= 2:
+                    next_challenger = videos_in_next[0]
+                    if next_challenger in current_bets_next and current_bets_next[next_challenger]['status'] == 'active':
+                        target_rank = current_bets_next[next_challenger]['target_rank']
+                        
+                        # ترتيب البيانات المحدثة
+                        sorted_next_data = sorted(
+                            data_for_next_round.items(),
+                            key=lambda item: item[1].get('rating', 1000),
+                            reverse=True
+                        )
+                        
+                        if 0 <= target_rank - 1 < len(sorted_next_data):
+                            real_defender_next = sorted_next_data[target_rank - 1][0]
+                            
+                            if real_defender_next != next_challenger:
+                                old_defender_next = videos_in_next[1]
+                                if old_defender_next != real_defender_next:
+                                    # print(f"♻️ NEXT MATCH SWAP: {next_challenger} vs {real_defender_next} (Rank {target_rank})")
+                                    next_competition_params['videos'][1] = real_defender_next
+                                    # لا ننسى تحديث قائمة التقييمات في الباراميترز لتجنب الأخطاء
+                                    if 'rating' in next_competition_params:
+                                         # قد نحتاج لتوسيع القائمة إذا كانت قصيرة (نادرة الحدوث هنا)
+                                         while len(next_competition_params['rating']) < 2:
+                                             next_competition_params['rating'].append(1000)
+                                         next_competition_params['rating'][1] = data_for_next_round.get(real_defender_next, {}).get('rating', 1000)
+             # =================================================================
+             # END: DYNAMIC SWAP FOR NEXT ROUND
+             # =================================================================
+
              session['competition_params'] = next_competition_params
         else:
              next_competition_params = params_from_completed_round
-
-        reconstructed_next_value = next_competition_params.get('value')
-        # ... (نفس منطق إعادة بناء القيمة 9 و 10 الموجود سابقاً يفترض وجوده هنا) ...
-        # (اختصرته هنا لأن الكود لم يتغير في هذه المنطقة)
         
-        # هام: إذا كنت تستخدم الكود المختصر في إعادة بناء القيمة في حال التكرار (Mode 9/10)
-        # تأكد من أنه موجود كما كان.
-
+        # استكمال الإعداد للجولة التالية
+        reconstructed_next_value = next_competition_params.get('value')
         final_next_value_for_choose_videos = reconstructed_next_value
-
-        # استخدام البيانات من الذاكرة (Optimization)
-        data_for_next_round = data 
 
         new_competition_videos_raw = choose_videos_function(
             data_for_next_round, 
@@ -1326,8 +1617,8 @@ def select_winner():
                  except: pass
              enriched_competition_videos.append(enriched_video_info)
         
-        print(f"⏱️ [9] Prepare Next Round took: {time.time() - t_start:.4f}s")
-        print(f"⭐⭐ TOTAL REQUEST TIME: {time.time() - grand_start:.4f}s ⭐⭐\n")
+        # print(f"⏱️ [9] Prepare Next Round took: {time.time() - t_start:.4f}s")
+        # print(f"⭐⭐ TOTAL REQUEST TIME: {time.time() - grand_start:.4f}s ⭐⭐\n")
 
         template_params_next = {
             'competition_videos': enriched_competition_videos,
@@ -1335,7 +1626,8 @@ def select_winner():
             'mode': next_competition_params.get('mode', 1),
             'ranking_type': next_competition_params.get('ranking_type', 'winner_only'),
             'competition_type': next_competition_params.get('competition_type', 'random'),
-            'data': data_for_next_round
+            'data': data_for_next_round,
+            'all_names': all_names # <-- PASSING NAMES HERE
         }
         if isinstance(final_next_value_for_choose_videos, dict):
              template_params_next.update(final_next_value_for_choose_videos)
@@ -1350,13 +1642,212 @@ def select_winner():
         import traceback
         traceback.print_exc()
         return redirect(url_for('competition'))
-# END: MODIFIED SECTION
+
+
 
 @app.route('/rename_all_videos', methods=['POST'])
 def rename_all_videos():
     return rename_all_videos_function()
 
+@app.route('/start_bet_match', methods=['POST'])
+def start_bet_match():
+    video_name = request.form.get('video_name')
+    match_data = get_proposed_match(video_name)
+    
+    if match_data:
+        session['competitions_queue'] = match_data
+        first_match = match_data[0]
+        session['competition_params'] = first_match
+        
+        data = load_data()
+        # --- START: NEW ADDITION (Get all names) ---
+        all_names = get_unique_names(data)
+        # --- END: NEW ADDITION ---
+        
+        competition_videos_raw = choose_videos_function(
+            data, 
+            mode=1, 
+            value=None, 
+            num_videos=2, 
+            use_dynamic_weighting=False,
+            competition_type='betting_match', 
+            specific_videos=first_match['videos'], 
+            session=session
+        )
+        
+        processed_data_dict = load_processed_videos_data()
+        video_folder = session.get('selected_folder')
+        ranking_map = create_ranking_map(data)
+        
+        enriched_competition_videos = []
+        for vid_name, rating, times_shown, tags, *_ in competition_videos_raw:
+            display_name_from_db = data.get(vid_name, {}).get('name', '')
+            enriched_video_info = {
+                'name': vid_name, 
+                'display_name': display_name_from_db,
+                'rating': rating, 
+                'times_shown': times_shown, 
+                'tags': tags,
+                'is_processed': False, 
+                'weight': None,
+                'rank': ranking_map.get(vid_name, 'N/A')
+            }
+            if video_folder:
+                try:
+                    full_video_path = os.path.join(video_folder, vid_name)
+                    file_size = os.path.getsize(full_video_path)
+                    if file_size in processed_data_dict:
+                        enriched_video_info['is_processed'] = True
+                        enriched_video_info['weight'] = processed_data_dict[file_size].get('total_weight')
+                except: pass
+            enriched_competition_videos.append(enriched_video_info)
 
+        return render_template(
+            'select_winner.html',
+            competition_videos=enriched_competition_videos,
+            num_videos=2,
+            mode=1,
+            ranking_type='winner_only',
+            competition_type='betting_match',
+            data=data,
+            all_names=all_names # <-- PASSING NAMES
+        )
+    else:
+        flash("حدث خطأ في تحضير المنافسة.", "danger")
+        return redirect(url_for('dashboard'))
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+# --- START: ADDED SECTION (app.py) ---
+@app.route('/start_custom_match', methods=['POST'])
+def start_custom_match():
+    """
+    يبدأ منافسة فورية بين الفيديوهات التي اختارها المستخدم يدوياً من القائمة.
+    """
+    selected_videos = request.form.getlist('selected_videos')
+    
+    if not selected_videos or len(selected_videos) < 2:
+        flash("يجب اختيار فيديوهين اثنين على الأقل لبدء المنافسة.", "warning")
+        return redirect(url_for('dashboard'))
+
+    data = load_data()
+    # --- START: NEW ADDITION (Get all names) ---
+    all_names = get_unique_names(data)
+    # --- END: NEW ADDITION ---
+    
+    match_data = {
+        "videos": selected_videos,
+        "rating": [data.get(v, {}).get('rating', 1000) for v in selected_videos],
+        "file_size": [data.get(v, {}).get('file_size', 0) for v in selected_videos],
+        "mode": 1,
+        "num_videos": len(selected_videos),
+        "ranking_type": "winner_only",
+        "competition_type": "custom_selection"
+    }
+    
+    session['competitions_queue'] = [match_data]
+    session['competition_params'] = match_data
+    
+    competition_videos_raw = choose_videos_function(
+        data, 
+        mode=1, 
+        value=None, 
+        num_videos=len(selected_videos), 
+        use_dynamic_weighting=False,
+        competition_type='custom_selection', 
+        specific_videos=selected_videos, 
+        session=session
+    )
+    
+    processed_data_dict = load_processed_videos_data()
+    video_folder = session.get('selected_folder')
+    ranking_map = create_ranking_map(data)
+    
+    enriched_competition_videos = []
+    for vid_name, rating, times_shown, tags, *_ in competition_videos_raw:
+        display_name_from_db = data.get(vid_name, {}).get('name', '')
+        enriched_video_info = {
+            'name': vid_name, 
+            'display_name': display_name_from_db,
+            'rating': rating, 
+            'times_shown': times_shown, 
+            'tags': tags,
+            'is_processed': False, 
+            'weight': None,
+            'rank': ranking_map.get(vid_name, 'N/A')
+        }
+        if video_folder:
+            try:
+                full_video_path = os.path.join(video_folder, vid_name)
+                file_size = os.path.getsize(full_video_path)
+                if file_size in processed_data_dict:
+                    enriched_video_info['is_processed'] = True
+                    enriched_video_info['weight'] = processed_data_dict[file_size].get('total_weight')
+            except: pass
+        enriched_competition_videos.append(enriched_video_info)
+
+    return render_template(
+        'select_winner.html',
+        competition_videos=enriched_competition_videos,
+        num_videos=len(selected_videos),
+        mode=1,
+        ranking_type='winner_only',
+        competition_type='custom_selection',
+        data=data,
+        all_names=all_names # <-- PASSING NAMES
+    )
+# --- END: ADDED SECTION ---
+
+
+
+def get_unique_names(data):
+    """
+    دالة مساعدة لاستخراج قائمة بجميع الأسماء الفريدة الموجودة في قاعدة البيانات.
+    تستخدم لملء قائمة الاقتراحات في الواجهة الأمامية.
+    """
+    names = set()
+    for info in data.values():
+        name = info.get('name', '').strip()
+        if name:
+            names.add(name)
+    return sorted(list(names))
+# --- END: NEW HELPER FUNCTION ---
+
+
+# --- START: NEW API ROUTE ---
+@app.route('/api/update_video_name', methods=['POST'])
+def update_video_name():
+    """
+    API لتحديث اسم العرض (Display Name) لفيديو محدد.
+    """
+    try:
+        req_data = request.get_json()
+        filename = req_data.get('filename')
+        new_name = req_data.get('new_name', '').strip()
+
+        if not filename:
+            return jsonify({'success': False, 'message': 'اسم الملف مفقود.'}), 400
+
+        data = load_data()
+        if filename in data:
+            data[filename]['name'] = new_name
+            save_data(data)
+            return jsonify({'success': True, 'new_name': new_name})
+        else:
+            return jsonify({'success': False, 'message': 'الفيديو غير موجود في قاعدة البيانات.'}), 404
+
+    except Exception as e:
+        print(f"Error updating video name: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+# --- END: NEW API ROUTE ---
 @app.route('/top_videos', methods=['GET', 'POST'])
 def top_videos():
     return render_top_videos()
@@ -2173,74 +2664,19 @@ def delete_bet_action():
     return redirect(url_for('dashboard', filter=return_filter, search=return_search))
 
 
-@app.route('/start_bet_match', methods=['POST'])
-def start_bet_match():
-    video_name = request.form.get('video_name')
-    match_data = get_proposed_match(video_name)
-    
-    if match_data:
-        session['competitions_queue'] = match_data
-        first_match = match_data[0]
-        session['competition_params'] = first_match
-        
-        data = load_data()
-        
-        # استدعاء choose_videos لتهيئة البيانات فقط (لأن الفيديوهات محددة مسبقاً)
-        competition_videos_raw = choose_videos_function(
-            data, 
-            mode=1, 
-            value=None, 
-            num_videos=2, 
-            use_dynamic_weighting=False,
-            competition_type='betting_match', 
-            specific_videos=first_match['videos'], 
-            session=session
-        )
-        
-        # تجهيز العرض
-        processed_data_dict = load_processed_videos_data()
-        video_folder = session.get('selected_folder')
-        ranking_map = create_ranking_map(data)
-        
-        enriched_competition_videos = []
-        for vid_name, rating, times_shown, tags, *_ in competition_videos_raw:
-            display_name_from_db = data.get(vid_name, {}).get('name', '')
-            enriched_video_info = {
-                'name': vid_name, 
-                'display_name': display_name_from_db,
-                'rating': rating, 
-                'times_shown': times_shown, 
-                'tags': tags,
-                'is_processed': False, 
-                'weight': None,
-                'rank': ranking_map.get(vid_name, 'N/A')
-            }
-            if video_folder:
-                try:
-                    full_video_path = os.path.join(video_folder, vid_name)
-                    file_size = os.path.getsize(full_video_path)
-                    if file_size in processed_data_dict:
-                        enriched_video_info['is_processed'] = True
-                        enriched_video_info['weight'] = processed_data_dict[file_size].get('total_weight')
-                except: pass
-            enriched_competition_videos.append(enriched_video_info)
-
-        return render_template(
-            'select_winner.html',
-            competition_videos=enriched_competition_videos,
-            num_videos=2,
-            mode=1,
-            ranking_type='winner_only',
-            competition_type='betting_match',
-            data=data
-        )
+def get_tournament_priority(filename):
+    """
+    دالة مساعدة لترتيب ملفات البطولة حسب الأولويات المطلوبة.
+    1. Tik
+    2. Pic
+    3. الباقي (أبجدياً)
+    """
+    if filename.startswith("topcut_elo_videos_A1000 elo tik_"):
+        return (1, filename)
+    elif filename.startswith("topcut_elo_videos_A1000 elo pic_"):
+        return (2, filename)
     else:
-        flash("حدث خطأ في تحضير المنافسة.", "danger")
-        return redirect(url_for('dashboard'))
-# END: REPLACEMENT SECTION
-# return jsonify(result)
-# END: MODIFIED SECTION
-
+        return (3, filename)
 def main():
     # إنشاء المجلدات الضرورية عند بدء التشغيل
     os.makedirs(BACKUP_FOLDER, exist_ok=True)

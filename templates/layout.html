@@ -1,5 +1,4 @@
-<!-- START: MODIFIED SECTION -->
-<!-- هذا هو المحتوى الكامل لملف templates/layout.html الجديد -->
+<!-- START OF FILE templates/layout.html -->
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -32,6 +31,20 @@
         .alert {
            color: #000;
         }
+
+        /* START: MODIFIED SECTION - إخفاء السكرول نهائياً */
+        /* هذا الكود سيطبق على كل الصفحات */
+        html, body, * {
+            scrollbar-width: none !important; /* Firefox */
+            -ms-overflow-style: none !important;  /* IE and Edge */
+        }
+        
+        *::-webkit-scrollbar {
+            display: none !important; /* Chrome, Safari, Opera */
+            width: 0 !important;
+            height: 0 !important;
+        }
+        /* END: MODIFIED SECTION */
     </style>
 
     <title>{% block title %}مدير مسابقات الفيديو{% endblock %}</title>
@@ -40,11 +53,6 @@
     <nav class="navbar navbar-expand-md navbar-dark mb-4">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('index') }}"><i class="fas fa-home"></i> الصفحة الرئيسية</a>
-            <div class="collapse navbar-collapse">
-                <ul class="navbar-nav me-auto mb-2 mb-md-0">
-                    <!-- يمكن إضافة روابط أخرى هنا في المستقبل -->
-                </ul>
-            </div>
         </div>
     </nav>
 
@@ -61,13 +69,58 @@
                 {% endif %}
             {% endwith %}
             
-            <!-- هذا هو المكان الذي سيتم فيه إدراج محتوى الصفحات الأخرى -->
             {% block main %}{% endblock %}
         </div>
     </main>
 
-    <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- START: MODIFIED SECTION - سكريبت الاختصارات الشامل -->
+    <script>
+        // متغير لحفظ مستوى الزوم
+        let currentZoom = 1.0;
+
+        document.addEventListener('keydown', function(event) {
+            
+            // 1. اختصار الرجوع للخلف (الزر ] يقابل الدال بالعربي)
+            if (event.key === ']') {
+                event.preventDefault();
+                window.history.back();
+                return;
+            }
+
+            // 2. اختصار ملء الشاشة F11
+            if (event.key === 'F11') {
+                event.preventDefault();
+                // التأكد من أن pywebview موجود قبل استدعائه
+                if (window.pywebview && window.pywebview.api) {
+                    window.pywebview.api.toggle_fullscreen();
+                }
+                return;
+            }
+
+            // 3. اختصارات التكبير والتصغير (Ctrl مع + أو - أو 0)
+            if (event.ctrlKey) {
+                if (event.key === '=' || event.key === '+') { // تكبير
+                    event.preventDefault();
+                    currentZoom += 0.1;
+                    document.body.style.zoom = currentZoom;
+                } 
+                else if (event.key === '-') { // تصغير
+                    event.preventDefault();
+                    if (currentZoom > 0.3) {
+                        currentZoom -= 0.1;
+                        document.body.style.zoom = currentZoom;
+                    }
+                } 
+                else if (event.key === '0') { // استعادة الحجم
+                    event.preventDefault();
+                    currentZoom = 1.0;
+                    document.body.style.zoom = currentZoom;
+                }
+            }
+        });
+    </script>
+    <!-- END: MODIFIED SECTION -->
 </body>
 </html>
-<!-- END: MODIFIED SECTION -->

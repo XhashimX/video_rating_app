@@ -1,3 +1,5 @@
+<!-- START OF FILE templates/dashboard.html -->
+
 <!doctype html>
 <html lang="ar" dir="rtl">
   <head>
@@ -92,6 +94,10 @@
       <!-- أدوات التحكم والفلترة -->
       <div class="card mb-4 p-3">
         
+        <!-- START: MODIFIED SECTION - Added form for custom match and new buttons -->
+        <!-- النموذج المخفي الذي سيرسل بيانات المنافسة المخصصة -->
+        <form id="custom_match_form" action="{{ url_for('start_custom_match') }}" method="POST"></form>
+
         <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
             <!-- أزرار الفلتر -->
             <div class="btn-group" role="group">
@@ -102,6 +108,19 @@
                     <i class="fas fa-crosshairs"></i> المراهنات النشطة
                 </a>
             </div>
+
+            <!-- زر تشغيل كل الرهانات -->
+            <form action="{{ url_for('start_all_bets') }}" method="POST" class="d-inline">
+                 <button type="submit" class="btn btn-success fw-bold">
+                     <i class="fas fa-play-circle"></i> تشغيل كل الرهانات (VS All)
+                 </button>
+            </form>
+
+            <!-- زر بدء منافسة مخصصة -->
+            <button type="submit" form="custom_match_form" class="btn btn-info fw-bold">
+                <i class="fas fa-gamepad"></i> ابدأ منافسة للمحددين
+            </button>
+            <!-- END: MODIFIED SECTION -->
 
             <!-- قائمة إجراءات الرهان بالجملة -->
             <div class="dropdown">
@@ -196,6 +215,11 @@
         <table class="table table-dark table-hover align-middle">
             <thead>
                 <tr>
+                    <!-- START: MODIFIED SECTION - Added checkbox column -->
+                    <th width="40" class="text-center">
+                        <input type="checkbox" class="form-check-input" onclick="toggleAllCustom(this)" title="تحديد الكل/إلغاء التحديد">
+                    </th>
+                    <!-- END: MODIFIED SECTION -->
                     <th class="text-center" width="80">الترتيب</th>
                     <th width="60">تشغيل</th>
                     <th>الفيديو</th>
@@ -209,6 +233,13 @@
             <tbody>
                 {% for vid in videos %}
                 <tr>
+                    <!-- START: MODIFIED SECTION - Added checkbox cell -->
+                    <td class="text-center">
+                        <input type="checkbox" name="selected_videos" value="{{ vid.filename }}" 
+                               class="form-check-input custom-match-check" form="custom_match_form">
+                    </td>
+                    <!-- END: MODIFIED SECTION -->
+
                     <!-- الترتيب -->
                     <td class="text-center">
                         <span class="rank-circle rank-{{ vid.rank }}">
@@ -360,6 +391,16 @@
             videoPlayer.pause();
             videoPlayer.src = "";
         });
+
+        // START: MODIFIED SECTION - Added "select all" script
+        // دالة لتحديد جميع الفيديوهات الظاهرة في الجدول للمنافسة المخصصة
+        function toggleAllCustom(source) {
+            const checkboxes = document.querySelectorAll('.custom-match-check');
+            for(let i=0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = source.checked;
+            }
+        }
+        // END: MODIFIED SECTION
     </script>
   </body>
 </html>

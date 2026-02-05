@@ -1,560 +1,534 @@
-<!-- START: MODIFIED SECTION -->
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}متصفح الصور{% endblock %}</title>
     <style>
-      /* ... (قسم style بالكامل يبقى كما هو بدون تغيير) ... */
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      body {
-        background-color: #1a1a1a;
-        color: #ffffff;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        line-height: 1.6;
-      }
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-      }
-      h1,
-      h2 {
-        text-align: center;
-        color: #4caf50;
-      }
-      .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 20px;
-        border-bottom: 1px solid #333;
-      }
-      .nav-buttons a {
-        background-color: #4caf50;
-        color: white;
-        padding: 10px 15px;
-        text-decoration: none;
-        border-radius: 5px;
-        margin-right: 10px;
-        transition: background-color 0.3s ease;
-      }
-      .nav-buttons a:hover {
-        background-color: #45a049;
-      }
-      .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-      }
-      .section-header h2 {
-        margin-bottom: 0;
-      }
-      .section {
-        margin-bottom: 40px;
-        background-color: #2d2d2d;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      }
-      .folders-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 15px;
-        margin-bottom: 30px;
-      }
-      .folder-card {
-        background-color: #3d3d3d;
-        padding: 15px;
-        border-radius: 8px;
-        text-align: center;
-        transition: transform 0.3s ease, background-color 0.3s ease;
-        cursor: pointer;
-      }
-      .folder-card:hover {
-        transform: translateY(-5px);
-        background-color: #4d4d4d;
-      }
-      .folder-card a {
-        color: #ffffff;
-        text-decoration: none;
-        font-weight: bold;
-      }
-      .images-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 20px;
-        align-items: start;
-      }
-      .image-card {
-        background-color: #3d3d3d;
-        border-radius: 10px;
-        overflow: hidden;
-        transition: transform 0.3s ease;
-        position: relative;
-      }
-      .image-card .image-content {
-        cursor: pointer;
-      }
-      .image-card:hover {
-        transform: scale(1.05);
-      }
-      .image-card img {
-        width: 100%;
-        height: auto;
-        display: block;
-      }
-      .image-info {
-        padding: 15px;
-      }
-      .image-name {
-        font-weight: bold;
-        margin-bottom: 10px;
-        word-break: break-all;
-      }
-      .favorite-star {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        font-size: 28px;
-        color: #888;
-        cursor: pointer;
-        text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
-        transition: color 0.2s, transform 0.2s;
-        z-index: 10;
-      }
-      .favorite-star:hover {
-        transform: scale(1.2);
-      }
-      .favorite-star.favorited {
-        color: #ffd700;
-      }
-      .exif-data {
-        background-color: #1a1a1a;
-        padding: 15px;
-        border-radius: 5px;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        font-size: 14px;
-        max-height: 400px;
-        overflow-y: auto;
-        display: none;
-        margin-top: 10px;
-        text-align: right;
-      }
-      .exif-section {
-        margin-bottom: 15px;
-      }
-      .exif-title {
-        color: #4caf50;
-        font-weight: bold;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #444;
-        padding-bottom: 5px;
-        font-size: 1.1em;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .exif-content {
-        color: #e0e0e0;
-        word-break: break-word;
-        white-space: pre-wrap;
-        line-height: 1.5;
-        padding-right: 5px;
-      }
-      .exif-settings p {
-        margin: 4px 0;
-      }
-      .exif-settings strong {
-        color: #cccccc;
-        margin-left: 5px;
-      }
-      .loading {
-        text-align: center;
-        color: #4caf50;
-        font-style: italic;
-      }
-      .back-button,
-      .action-button {
-        display: inline-block;
-        background-color: #4caf50;
-        color: white;
-        padding: 10px 20px;
-        text-decoration: none;
-        border-radius: 5px;
-        margin-bottom: 20px;
-        transition: background-color 0.3s ease;
-        border: none;
-        cursor: pointer;
-      }
-      .back-button:hover,
-      .action-button:hover {
-        background-color: #45a049;
-      }
-      .no-images {
-        text-align: center;
-        color: #888;
-        font-style: italic;
-        padding: 40px;
-      }
-      .copy-button {
-        background-color: #555;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.8em;
-        margin-right: 5px;
-        transition: background-color 0.2s ease;
-      }
-      .copy-button:hover {
-        background-color: #777;
-      }
-      #notes-section {
-        background-color: #2d2d2d;
-        padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 30px;
-      }
-      #notes-section h2 {
-        margin-bottom: 15px;
-      }
-      #notes-textarea {
-        width: 100%;
-        min-height: 150px;
-        background-color: #1a1a1a;
-        color: #e0e0e0;
-        border: 1px solid #444;
-        border-radius: 5px;
-        padding: 10px;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        resize: vertical;
-      }
-      #save-notes-btn {
-        margin-top: 10px;
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-      }
-      .folder-controls {
-        margin-bottom: 20px;
-        text-align: center;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <!-- قسم الحافظة يبقى في الأعلى كما هو -->
-      <div id="notes-section" class="section">
-        <h2>الحافظة</h2>
-        <textarea
-          id="notes-textarea"
-          placeholder="اكتب ملاحظاتك هنا..."
-        ></textarea>
-        <button id="save-notes-btn" class="action-button">حفظ الملاحظات</button>
-      </div>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #1a1a1a; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        h1, h2 { text-align: center; color: #4CAF50; }
+        
+        .page-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #333; gap: 15px; }
+        
+        /* أزرار التنقل */
+        .nav-buttons a { background-color: #4CAF50; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin-right: 10px; transition: background-color 0.3s ease; }
+        .nav-buttons a:hover { background-color: #45a049; }
+        
+        .section-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; }
+        .section-header h2 { margin-bottom: 0; }
+        .section { margin-bottom: 40px; background-color: #2d2d2d; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); }
+        
+        /* شبكة المجلدات */
+        .folders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .folder-card { background-color: #3d3d3d; padding: 15px; border-radius: 8px; text-align: center; transition: transform 0.3s ease, background-color 0.3s ease; cursor: pointer; }
+        .folder-card:hover { transform: translateY(-5px); background-color: #4d4d4d; }
+        .folder-card a { color: #ffffff; text-decoration: none; font-weight: bold; }
+        
+        /* شبكة الصور */
+        .images-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; align-items: start; }
+        .image-card { background-color: #3d3d3d; border-radius: 10px; overflow: hidden; transition: transform 0.3s ease; position: relative; }
+        .image-card .image-content { cursor: pointer; }
+        .image-card:hover { transform: scale(1.05); }
+        .image-card img { width: 100%; height: auto; display: block; }
+        
+        .image-info { padding: 15px; }
+        .image-name { font-weight: bold; margin-bottom: 10px; word-break: break-all; }
+        
+        /* النجمة المفضلة */
+        .favorite-star { position: absolute; top: 10px; left: 10px; font-size: 28px; color: #888; cursor: pointer; text-shadow: 0 0 5px rgba(0,0,0,0.7); transition: color 0.2s, transform 0.2s; z-index: 10; }
+        .favorite-star:hover { transform: scale(1.2); }
+        .favorite-star.favorited { color: #FFD700; }
+        
+        /* EXIF Data */
+        .exif-data { background-color: #1a1a1a; padding: 15px; border-radius: 5px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; max-height: 400px; overflow-y: auto; display: none; margin-top: 10px; text-align: right; cursor: text; /* يجعل المؤشر نصياً */ }
+        .exif-section { margin-bottom: 15px; }
+        .exif-title { color: #4CAF50; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #444; padding-bottom: 5px; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center; }
+        .exif-content { color: #e0e0e0; word-break: break-word; white-space: pre-wrap; line-height: 1.5; padding-right: 5px; }
+        .exif-settings p { margin: 4px 0; }
+        .exif-settings strong { color: #cccccc; margin-left: 5px; }
+        .loading { text-align: center; color: #4CAF50; font-style: italic; }
+        
+        /* أزرار عامة */
+        .back-button, .action-button { display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-bottom: 20px; transition: background-color 0.3s ease; border: none; cursor: pointer; }
+        .back-button:hover, .action-button:hover { background-color: #45a049; }
+        .no-images { text-align: center; color: #888; font-style: italic; padding: 40px; }
+        .copy-button { background-color: #555; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; margin-right: 5px; transition: background-color 0.2s ease; }
+        .copy-button:hover { background-color: #777; }
+        
+        /* البحث */
+        .search-container { flex-grow: 1; max-width: 500px; }
+        .search-container form { display: flex; }
+        .search-container input[type="search"] { width: 100%; padding: 10px; border: 1px solid #555; background-color: #333; color: white; border-radius: 5px 0 0 5px; }
+        .search-container button { padding: 10px 15px; border: none; background-color: #4CAF50; color: white; cursor: pointer; border-radius: 0 5px 5px 0; }
+        
+        /* الترقيم والتحكم (Pagination & Controls) */
+        .pagination-controls { display: flex; justify-content: center; align-items: center; margin-top: 30px; gap: 10px; flex-wrap: wrap; }
+        .pagination-controls a, .pagination-controls span { padding: 8px 15px; background-color: #3d3d3d; color: white; text-decoration: none; border-radius: 5px; }
+        .pagination-controls a:hover { background-color: #4CAF50; }
+        .pagination-controls .current-page { background-color: #45a049; font-weight: bold; }
+        .pagination-controls .disabled { color: #777; background-color: #2a2a2a; cursor: not-allowed; }
+        .page-info { text-align: center; margin-top: 15px; color: #aaa; }
+        .per-page-selector { display: flex; align-items: center; gap: 8px; }
+        .per-page-selector select { background-color: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 5px; }
 
-      {% block content %}{% endblock %}
+        /* --- (جديد) تنسيقات شريط التحكم والفرز --- */
+        .controls-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            background-color: #333;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .control-group { display: flex; align-items: center; gap: 8px; }
+        .control-group label { color: #ccc; font-size: 0.9em; }
+        .control-group select { background-color: #222; color: white; border: 1px solid #555; padding: 6px; border-radius: 5px; cursor: pointer; }
+        .control-group select:hover { border-color: #4CAF50; }
+
+        /* الحافظة (Notes) */
+        #notes-textarea { width: 100%; height: 150px; background-color: #333; color: #fff; border: 1px solid #555; padding: 10px; border-radius: 5px; resize: vertical; margin-bottom: 10px; }
+
+        /* قائمة الموديلات */
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .model-card {
+            background-color: #3d3d3d;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .model-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+        }
+        .model-card a {
+            text-decoration: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .model-preview-img {
+            width: 100%;
+            height: 200px; /* ارتفاع ثابت للصورة المصغرة */
+            object-fit: cover; /* يضمن أن الصورة تملأ المساحة دون تشويه */
+            background-color: #2a2a2a; /* لون خلفية احتياطي */
+        }
+        .model-card-info {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex-grow: 1; /* يجعل هذا القسم يملأ المساحة المتبقية */
+        }
+        .model-card-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+        .model-card-count {
+            font-size: 0.9em;
+            color: #b0b0b0;
+            align-self: flex-start; /* يضمن أن العدد يبقى في الأسفل */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="page-header">
+            <h1><a href="/" style="text-decoration: none; color: #4CAF50;">متصفح الصور</a></h1>
+            
+            <!-- مربع البحث -->
+            <div class="search-container">
+                <form action="{{ url_for('search') }}" method="get">
+                    <input type="search" name="q" placeholder="ابحث في بيانات البرومبت..." value="{{ query or '' }}" required>
+                    <button type="submit">بحث</button>
+                </form>
+            </div>
+
+            <!-- أزرار التنقل -->
+            <div class="nav-buttons">
+                <a href="/models">🎨 التصنيف حسب الموديل</a>
+                <a href="/favorites">⭐ الصور المميزة</a>
+            </div>
+        </div>
+
+        <!-- قسم الملاحظات -->
+        <div id="notes-section" class="section">
+            <h2>الحافظة</h2>
+            <textarea id="notes-textarea" placeholder="اكتب ملاحظاتك هنا..."></textarea>
+            <button id="save-notes-btn" class="action-button">حفظ الملاحظات</button>
+        </div>
+
+        {% block top_controls %}{% endblock %}
+
+        {% block content %}{% endblock %}
     </div>
 
-    <!-- ========= بداية قسم السكريبتات الموحد ========= -->
     <script>
-      // --- دالة النسخ (لا تغيير) ---
-      function copyToClipboard(text, button) {
-        navigator.clipboard
-          .writeText(text)
-          .then(() => {
-            const originalText = button.textContent;
-            button.textContent = "تم النسخ!";
-            setTimeout(() => {
-              button.textContent = originalText;
-            }, 1500);
-          })
-          .catch((err) => {
-            console.error("Failed to copy text: ", err);
-            button.textContent = "فشل النسخ";
-          });
-      }
-
-      // --- دالة عرض EXIF المحسّنة مع طريقة احتياطية ---
-      function parseAndDisplayExif(exifDiv, data) {
-        const params = data.UserComment || data.Parameters;
-        if (!params) {
-          exifDiv.innerHTML = `<pre style="text-align: left; font-family: 'Courier New', monospace; font-size: 12px;">${JSON.stringify(
-            data,
-            null,
-            2
-          )}</pre>`;
-          return;
+        // --- دوال النسخ والـ Clipboard ---
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).catch(err => console.error('Failed to copy text: ', err));
         }
 
-        let html = "";
-        // الطريقة القديمة (الاحتياطية): تحليل النص العادي
-        const promptMatch = params.match(/^([\s\S]*?)Negative prompt:/);
-        const positivePrompt = promptMatch
-          ? promptMatch[1].trim()
-          : params.split("\n")[0];
-
-        const negativePromptMatch = params.match(
-          /Negative prompt: ([\s\S]*?)Steps:/
-        );
-        const negativePrompt = negativePromptMatch
-          ? negativePromptMatch[1].trim()
-          : "";
-
-        html += `<div class="exif-section" data-copy-text="${positivePrompt.replace(
-          /"/g,
-          "&quot;"
-        )}"><div class="exif-title"><span>البرومبت (Prompt)</span><button class="copy-button">نسخ</button></div><div class="exif-content">${positivePrompt}</div></div>`;
-        if (negativePrompt) {
-          html += `<div class="exif-section" data-copy-text="${negativePrompt.replace(
-            /"/g,
-            "&quot;"
-          )}"><div class="exif-title"><span>البرومبت السلبي</span><button class="copy-button">نسخ</button></div><div class="exif-content">${negativePrompt}</div></div>`;
-        }
-
-        const settingsMatch = params.match(/Steps: [\s\S]*/);
-        if (settingsMatch) {
-          const settingsText = settingsMatch[0].replace(/, /g, "\n");
-          let settingsHtml = "";
-          let settingsForCopy = settingsMatch[0];
-          settingsText.split("\n").forEach((line) => {
-            const parts = line.split(":");
-            if (parts.length > 1) {
-              settingsHtml += `<p><strong>${parts[0].trim()}:</strong> ${parts
-                .slice(1)
-                .join(":")
-                .trim()}</p>`;
+        function copyExifSection(button) {
+            const textToCopy = button.dataset.copyText;
+            if (textToCopy) {
+                copyToClipboard(textToCopy);
+                const originalText = button.textContent;
+                button.textContent = 'تم النسخ!';
+                setTimeout(() => { button.textContent = originalText; }, 1500);
             }
-          });
-          html += `<div class="exif-section" data-copy-text="${settingsForCopy.replace(
-            /"/g,
-            "&quot;"
-          )}"><div class="exif-title"><span>الإعدادات</span><button class="copy-button">نسخ</button></div><div class="exif-content exif-settings">${settingsHtml}</div></div>`;
         }
 
-        exifDiv.innerHTML = html;
-      }
+        // --- دوال مساعدة لتحليل النصوص ---
+        function cleanComfyText(text) {
+            if (typeof text !== 'string') return "";
+            text = text.trim();
+            if (text.startsWith('"') && text.endsWith('"')) text = text.substring(1, text.length - 1);
+            text = text.replace(/^,+|,+$/g, '').trim();
+            text = text.replace(/,\s*,/g, ',');
+            return text.replace(/\s+/g, ' ').trim();
+        }
 
-      // --- دالة عرض/إخفاء EXIF (لا تغيير) ---
-      function toggleExifData(imageContentDiv) {
-        const imageCard = imageContentDiv.closest(".image-card");
-        const exifDiv = imageCard.querySelector(".exif-data");
-        const imagePath = imageCard.dataset.imagePath;
+        // دالة تتبعية لاستخراج النص من العقد المتداخلة
+        function extractTextFromNode(nodeId, nodesMap, visited) {
+            if (!visited) visited = new Set();
+            if (visited.has(nodeId)) return "";
+            visited.add(nodeId);
 
-        if (exifDiv.style.display === "none" || exifDiv.style.display === "") {
-          exifDiv.style.display = "block";
-          exifDiv.innerHTML =
-            '<div class="loading">جاري تحميل بيانات EXIF...</div>';
+            const node = nodesMap[nodeId];
+            if (!node) return "";
 
-          fetch(`/exif/${imagePath}`)
-            .then((response) =>
-              response.ok
-                ? response.json()
-                : Promise.reject("Network response was not ok")
-            )
-            .then((data) => {
-              parseAndDisplayExif(exifDiv, data);
-              exifDiv.querySelectorAll(".copy-button").forEach((button) => {
-                button.addEventListener("click", (event) => {
-                  event.stopPropagation();
-                  const section = button.closest(".exif-section");
-                  const textToCopy = section.dataset.copyText;
-                  copyToClipboard(textToCopy, button);
+            // 1. محاولة قراءة Inputs.text
+            if (node.inputs && node.inputs.text) {
+                const textInput = node.inputs.text;
+                if (typeof textInput === 'string') {
+                    return cleanComfyText(textInput);
+                } else if (Array.isArray(textInput)) {
+                    // إذا كان رابطاً لعقدة أخرى: ["ID", Slot]
+                    return extractTextFromNode(String(textInput[0]), nodesMap, visited);
+                }
+            }
+
+            // 2. محاولة قراءة Widgets Values (للعقد البدائية مثل Text Multiline)
+            if (node.widgets_values && Array.isArray(node.widgets_values)) {
+                const val = node.widgets_values[0];
+                if (typeof val === 'string' && val.trim().length > 0) {
+                    return cleanComfyText(val);
+                }
+            }
+            return "";
+        }
+
+        // --- (جديد ومحسن) تحليل بيانات ComfyUI ---
+        function parseAndDisplayComfyUI(exifDiv, rawData) {
+            try {
+                let jsonString = "";
+                if (rawData.Make && rawData.Make.startsWith('Prompt:')) {
+                    jsonString = rawData.Make.substring(7);
+                } else if (rawData.ImageDescription && rawData.ImageDescription.startsWith('Workflow:')) {
+                    const workflowJson = JSON.parse(rawData.ImageDescription.substring(9));
+                    const promptJson = {};
+                    if(workflowJson.nodes) {
+                        for(const node of workflowJson.nodes) {
+                            promptJson[node.id] = node;
+                        }
+                    }
+                    jsonString = JSON.stringify(promptJson);
+                } else if (rawData.UserComment) {
+                    // محاولة أخيرة إذا كان JSON مباشرة
+                     jsonString = rawData.UserComment;
+                }
+                
+                if (!jsonString) throw new Error("No ComfyUI data found.");
+
+                // --- إصلاح الخطأ الحرج: استبدال NaN بـ null ---
+                jsonString = jsonString.replace(/\bNaN\b/g, "null");
+                
+                let data;
+                try {
+                    data = JSON.parse(jsonString);
+                } catch(e) {
+                     throw new Error("Invalid JSON after cleaning.");
+                }
+                
+                // تحويل البيانات إلى خريطة (Map)
+                let nodesMap = {};
+                if (data.nodes && Array.isArray(data.nodes)) {
+                     data.nodes.forEach(n => nodesMap[String(n.id)] = n);
+                } else {
+                     for (const key in data) {
+                         nodesMap[String(key)] = data[key];
+                     }
+                }
+
+                let positivePrompt = '';
+                let negativePrompt = '';
+                const settings = {};
+                let ksamplerFound = false;
+
+                // 1. البحث عن KSampler (الطريقة الذكية)
+                for (const [id, node] of Object.entries(nodesMap)) {
+                    const classType = String(node.class_type || node.type || "").toLowerCase();
+                    
+                    if (classType.includes("ksampler")) {
+                        ksamplerFound = true;
+                        
+                        // استخراج الإعدادات
+                        if (node.inputs) {
+                            if (node.inputs.seed !== undefined) settings['Seed'] = node.inputs.seed;
+                            if (node.inputs.steps !== undefined) settings['Steps'] = node.inputs.steps;
+                            if (node.inputs.cfg !== undefined) settings['CFG'] = node.inputs.cfg;
+                            if (node.inputs.sampler_name !== undefined) settings['Sampler'] = node.inputs.sampler_name;
+                            if (node.inputs.scheduler !== undefined) settings['Scheduler'] = node.inputs.scheduler;
+                            if (node.inputs.denoise !== undefined) settings['Denoise'] = node.inputs.denoise;
+                            
+                            // تتبع البرومبت الإيجابي
+                            if (node.inputs.positive && Array.isArray(node.inputs.positive)) {
+                                const posNodeId = String(node.inputs.positive[0]);
+                                let extracted = extractTextFromNode(posNodeId, nodesMap);
+                                if (!extracted && nodesMap[posNodeId] && nodesMap[posNodeId].inputs && nodesMap[posNodeId].inputs.text) {
+                                     // محاولة مباشرة أخيرة
+                                     const t = nodesMap[posNodeId].inputs.text;
+                                     if (Array.isArray(t)) extracted = extractTextFromNode(String(t[0]), nodesMap);
+                                     else if (typeof t === 'string') extracted = cleanComfyText(t);
+                                }
+                                positivePrompt = extracted;
+                            }
+
+                            // تتبع البرومبت السلبي
+                            if (node.inputs.negative && Array.isArray(node.inputs.negative)) {
+                                const negNodeId = String(node.inputs.negative[0]);
+                                let extracted = extractTextFromNode(negNodeId, nodesMap);
+                                if (!extracted && nodesMap[negNodeId] && nodesMap[negNodeId].inputs && nodesMap[negNodeId].inputs.text) {
+                                     const t = nodesMap[negNodeId].inputs.text;
+                                     if (Array.isArray(t)) extracted = extractTextFromNode(String(t[0]), nodesMap);
+                                     else if (typeof t === 'string') extracted = cleanComfyText(t);
+                                }
+                                negativePrompt = extracted;
+                            }
+                        }
+                        break; 
+                    }
+                }
+
+                // 2. Fallback: إذا لم نجد KSampler أو البرومبت فارغ
+                if (!positivePrompt && !negativePrompt) {
+                     const negativeKeywords = ['lowres', 'worst quality', 'bad quality', 'bad anatomy', 'nsfw', 'watermark'];
+                     for (const [id, node] of Object.entries(nodesMap)) {
+                        const classType = String(node.class_type || node.type || "").toLowerCase();
+                        // البحث في أي عقدة نصية
+                        if (classType.includes("text") && !classType.includes("load")) {
+                            const text = extractTextFromNode(id, nodesMap);
+                            if (text && text.length > 5 && !text.includes("[filename]")) {
+                                if (negativeKeywords.some(kw => text.toLowerCase().includes(kw))) {
+                                    negativePrompt += text + " ";
+                                } else {
+                                    positivePrompt += text + " ";
+                                }
+                            }
+                        }
+                     }
+                }
+
+                // استخراج الموديل والأبعاد
+                for (const [id, node] of Object.entries(nodesMap)) {
+                    const classType = String(node.class_type || node.type || "").toLowerCase();
+                    if (node.inputs) {
+                        if (classType.includes("loader") && node.inputs.ckpt_name) {
+                            settings['Model'] = node.inputs.ckpt_name;
+                        }
+                        if (classType.includes("latent") && node.inputs.width && node.inputs.height) {
+                            settings['Size'] = `${node.inputs.width}x${node.inputs.height}`;
+                        }
+                    }
+                }
+
+                // بناء HTML
+                let html = '';
+                positivePrompt = positivePrompt.trim();
+                negativePrompt = negativePrompt.trim();
+
+                if (positivePrompt) {
+                    html += `<div class="exif-section"><div class="exif-title"><span>البرومبت (Prompt)</span><button class="copy-button" data-copy-text="${positivePrompt.replace(/"/g, '&quot;')}" onclick="copyExifSection(this)">نسخ</button></div><div class="exif-content">${positivePrompt}</div></div>`;
+                }
+                if (negativePrompt) {
+                     html += `<div class="exif-section"><div class="exif-title"><span>البرومبت السلبي (Negative Prompt)</span><button class="copy-button" data-copy-text="${negativePrompt.replace(/"/g, '&quot;')}" onclick="copyExifSection(this)">نسخ</button></div><div class="exif-content">${negativePrompt}</div></div>`;
+                }
+                
+                if (Object.keys(settings).length > 0) {
+                    let settingsHtml = '';
+                    let settingsTextToCopy = '';
+                    for (const [key, value] of Object.entries(settings)) {
+                        settingsHtml += `<p><strong>${key}:</strong> ${value}</p>`;
+                        settingsTextToCopy += `${key}: ${value}, `;
+                    }
+                    html += `<div class="exif-section"><div class="exif-title"><span>الإعدادات (Settings)</span><button class="copy-button" data-copy-text="${settingsTextToCopy.slice(0, -2).replace(/"/g, '&quot;')}" onclick="copyExifSection(this)">نسخ</button></div><div class="exif-content exif-settings">${settingsHtml}</div></div>`;
+                }
+                
+                exifDiv.innerHTML = html || '<div style="color: #ff6b6b;">لم يتم العثور على بيانات برومبت واضحة.</div>';
+
+            } catch (error) {
+                console.error("Error parsing ComfyUI EXIF data:", error);
+                exifDiv.innerHTML = '<div style="color: #ff6b6b;">خطأ في تحليل بيانات ComfyUI.</div><pre style="text-align: left;">' + JSON.stringify(rawData, null, 2) + '</pre>';
+            }
+        }
+        
+        // --- دالة تحليل وعرض بيانات EXIF العامة ---
+        function parseAndDisplayExif(exifDiv, data) {
+            const isComfy = (data.Make && data.Make.startsWith('Prompt:')) || (data.ImageDescription && data.ImageDescription.startsWith('Workflow:'));
+            
+            if (isComfy) {
+                parseAndDisplayComfyUI(exifDiv, data);
+                return;
+            }
+
+            const isA1111 = data.UserComment || data.Parameters;
+            if (isA1111) {
+                const generationParams = data.UserComment || data.Parameters;
+                // ... (نفس كود A1111 السابق) ...
+                try {
+                    let html = '';
+                    let remainingText = generationParams;
+                    const negPromptMarker = 'Negative prompt:';
+                    const stepsMarker = 'Steps:';
+                    let positivePrompt = '', negativePrompt = '', settingsText = '';
+                    const negPromptIndex = remainingText.indexOf(negPromptMarker);
+                    const stepsIndex = remainingText.indexOf(stepsMarker);
+                    let endOfPositivePrompt = -1;
+                    if (negPromptIndex !== -1 && stepsIndex !== -1) { endOfPositivePrompt = Math.min(negPromptIndex, stepsIndex); } 
+                    else if (negPromptIndex !== -1) { endOfPositivePrompt = negPromptIndex; } 
+                    else if (stepsIndex !== -1) { endOfPositivePrompt = stepsIndex; }
+                    if (endOfPositivePrompt !== -1) { 
+                        positivePrompt = remainingText.substring(0, endOfPositivePrompt).trim();
+                        remainingText = remainingText.substring(endOfPositivePrompt).trim();
+                    } else { 
+                        positivePrompt = remainingText.trim(); 
+                        remainingText = ''; 
+                    }
+                    html += `<div class="exif-section"><div class="exif-title"><span>البرومبت (Prompt)</span><button class="copy-button" data-copy-text="${positivePrompt.replace(/"/g, '&quot;')}" onclick="copyExifSection(this)">نسخ</button></div><div class="exif-content">${positivePrompt}</div></div>`;
+                    if (remainingText.startsWith(negPromptMarker)) {
+                        remainingText = remainingText.substring(negPromptMarker.length).trim();
+                        const endOfNegativePrompt = remainingText.indexOf(stepsMarker);
+                        if (endOfNegativePrompt !== -1) { 
+                            negativePrompt = remainingText.substring(0, endOfNegativePrompt).trim();
+                            remainingText = remainingText.substring(endOfNegativePrompt).trim();
+                        } else { 
+                            negativePrompt = remainingText.trim(); 
+                            remainingText = ''; 
+                        }
+                        html += `<div class="exif-section"><div class="exif-title"><span>البرومبت السلبي (Negative Prompt)</span><button class="copy-button" data-copy-text="${negativePrompt.replace(/"/g, '&quot;')}" onclick="copyExifSection(this)">نسخ</button></div><div class="exif-content">${negativePrompt}</div></div>`;
+                    }
+                    if (remainingText.trim()) {
+                        settingsText = remainingText.trim();
+                        const paramsArray = settingsText.split(', ');
+                        let settingsHtml = '';
+                        paramsArray.forEach(param => {
+                            const paramParts = param.split(':');
+                            if (paramParts.length >= 2) {
+                                const key = paramParts[0].trim();
+                                const value = paramParts.slice(1).join(':').trim();
+                                if (key && value) { settingsHtml += `<p><strong>${key}:</strong> ${value}</p>`; }
+                            }
+                        });
+                        html += `<div class="exif-section"><div class="exif-title"><span>الإعدادات (Settings)</span><button class="copy-button" data-copy-text="${settingsText.replace(/"/g, '&quot;')}" onclick="copyExifSection(this)">نسخ</button></div><div class="exif-content exif-settings">${settingsHtml}</div></div>`;
+                    }
+                    exifDiv.innerHTML = html;
+                } catch (error) {
+                    console.error("Error parsing A1111 EXIF data:", error);
+                    exifDiv.innerHTML = '<div style="color: #ff6b6b;">خطأ في تحليل بيانات EXIF.</div>';
+                }
+                return;
+            }
+            
+            // Fallback
+            const formattedData = JSON.stringify(data, null, 2);
+            exifDiv.innerHTML = `<pre style="text-align: left; font-family: 'Courier New', monospace; font-size: 12px;">${formattedData}</pre>`;
+        }
+        
+        // --- دالة إظهار/إخفاء البيانات ---
+        function toggleExifData(imageContentDiv) {
+            if (window.event && window.event.target) {
+                const target = window.event.target;
+                if (target.closest('.exif-data') || target.closest('.copy-button')) {
+                    return; 
+                }
+            }
+
+            const imageCard = imageContentDiv.closest('.image-card');
+            const exifDiv = imageCard.querySelector('.exif-data');
+            const imagePath = imageCard.dataset.imagePath;
+            if (exifDiv.style.display === 'none' || exifDiv.style.display === '') {
+                exifDiv.style.display = 'block';
+                exifDiv.innerHTML = '<div class="loading">جاري تحميل بيانات EXIF...</div>';
+                fetch(`/exif/${imagePath}`)
+                    .then(response => response.ok ? response.json() : Promise.reject('Network response was not ok'))
+                    .then(data => parseAndDisplayExif(exifDiv, data))
+                    .catch(error => {
+                        console.error('Fetch error:', error);
+                        exifDiv.innerHTML = '<div style="color: #ff6b6b;">خطأ في تحميل بيانات EXIF</div>';
+                    });
+            } else {
+                exifDiv.style.display = 'none';
+            }
+        }
+
+        // --- Notes Script (الحافظة) ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const notesTextarea = document.getElementById('notes-textarea');
+            const saveNotesBtn = document.getElementById('save-notes-btn');
+            if (notesTextarea) {
+                fetch('/notes').then(response => response.text()).then(text => { notesTextarea.value = text; });
+                saveNotesBtn.addEventListener('click', () => {
+                    const originalText = saveNotesBtn.textContent;
+                    saveNotesBtn.textContent = '...جاري الحفظ';
+                    fetch('/notes', { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8' }, body: notesTextarea.value })
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.status === 'success') { saveNotesBtn.textContent = 'تم الحفظ!'; } else { saveNotesBtn.textContent = 'خطأ!'; }
+                        setTimeout(() => { saveNotesBtn.textContent = originalText; }, 2000);
+                    });
                 });
-              });
-            })
-            .catch((error) => {
-              console.error("Fetch error:", error);
-              exifDiv.innerHTML =
-                '<div style="color: #ff6b6b;">خطأ في تحميل بيانات EXIF</div>';
-            });
-        } else {
-          exifDiv.style.display = "none";
-        }
-      }
-
-      // --- دالة تمييز الصور (لا تغيير) ---
-      function toggleFavorite(starIcon, event) {
-        event.stopPropagation();
-        const imageCard = starIcon.closest(".image-card");
-        const imageData = {
-          relative_path: imageCard.dataset.imagePath,
-          name: imageCard.dataset.imageName,
-          model_name: imageCard.dataset.modelName,
-        };
-        fetch("/toggle_favorite", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(imageData),
-        })
-          .then((r) => r.json())
-          .then((d) => {
-            if (d.status === "favorited") {
-              starIcon.classList.add("favorited");
-            } else if (d.status === "unfavorited") {
-              starIcon.classList.remove("favorited");
-              if (document.body.classList.contains("favorites-page")) {
-                imageCard.style.display = "none";
-              }
             }
-          })
-          .catch((error) => console.error("Error toggling favorite:", error));
-      }
+        });
 
-      // --- Event Listener الرئيسي الذي يعمل بعد تحميل الصفحة ---
-      document.addEventListener("DOMContentLoaded", function () {
-        // 1. منطق الحافظة (Notes)
-        const notesTextarea = document.getElementById("notes-textarea");
-        const saveNotesBtn = document.getElementById("save-notes-btn");
-        if (notesTextarea && saveNotesBtn) {
-          fetch("/notes")
-            .then((r) => r.text())
-            .then((t) => {
-              notesTextarea.value = t;
-            });
-          saveNotesBtn.addEventListener("click", () => {
-            const originalText = saveNotesBtn.textContent;
-            saveNotesBtn.textContent = "...جاري الحفظ";
-            fetch("/notes", {
-              method: "POST",
-              headers: { "Content-Type": "text/plain; charset=utf-8" },
-              body: notesTextarea.value,
+        // --- دالة المفضلة ---
+        function toggleFavorite(starIcon, event) {
+            event.stopPropagation();
+            const imageCard = starIcon.closest('.image-card');
+            const imageData = { 
+                relative_path: imageCard.dataset.imagePath, 
+                name: imageCard.dataset.imageName, 
+                model_name: imageCard.dataset.modelName,
+                prompt_data: imageCard.dataset.promptData,
+                source_group: imageCard.dataset.sourceGroup
+            };
+            fetch('/toggle_favorite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(imageData) })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'favorited') {
+                    starIcon.classList.add('favorited');
+                } else if (data.status === 'unfavorited') {
+                    starIcon.classList.remove('favorited');
+                    if(document.body.classList.contains('favorites-page')) { imageCard.style.display = 'none'; }
+                }
             })
-              .then((r) => r.json())
-              .then((d) => {
-                saveNotesBtn.textContent =
-                  d.status === "success" ? "تم الحفظ!" : "خطأ!";
-                setTimeout(() => {
-                  saveNotesBtn.textContent = originalText;
-                }, 2000);
-              });
-          });
+            .catch(error => console.error('Error toggling favorite:', error));
         }
-
-        // 2. منطق الفرز الأبجدي/حسب التاريخ (يعمل في folder.html)
-        const sortAlphaBtn = document.getElementById("sort-alpha-btn");
-        const sortDateBtn = document.getElementById("sort-date-btn");
-        const imagesGridForSort = document.getElementById(
-          "images-grid-container"
-        );
-        if (sortAlphaBtn && sortDateBtn && imagesGridForSort) {
-          const originalImageCards = Array.from(
-            imagesGridForSort.querySelectorAll(".image-card")
-          );
-          sortAlphaBtn.addEventListener("click", () => {
-            const imageCards = Array.from(
-              imagesGridForSort.querySelectorAll(".image-card")
-            );
-            imageCards.sort((a, b) =>
-              a.dataset.imageName.localeCompare(b.dataset.imageName)
-            );
-            imagesGridForSort.innerHTML = "";
-            imageCards.forEach((card) => imagesGridForSort.appendChild(card));
-            sortAlphaBtn.style.display = "none";
-            sortDateBtn.style.display = "inline-block";
-          });
-          sortDateBtn.addEventListener("click", () => {
-            imagesGridForSort.innerHTML = "";
-            originalImageCards.forEach((card) =>
-              imagesGridForSort.appendChild(card)
-            );
-            sortDateBtn.style.display = "none";
-            sortAlphaBtn.style.display = "inline-block";
-          });
-        }
-
-        // 3. منطق التصنيف حسب الموديل (يعمل في index.html و folder.html)
-        const classifyBtn = document.getElementById("classify-by-model-btn");
-        if (classifyBtn) {
-          const imagesGrid = document.getElementById("images-grid-container");
-          const showAllBtn = document.getElementById("show-all-btn");
-          const backToModelsBtn = document.getElementById("back-to-models-btn");
-          const modelsGridContainer = document.getElementById(
-            "models-grid-container"
-          );
-          const sectionTitleElement =
-            document.getElementById("download-section-title") ||
-            document.querySelector("h1");
-          const allImageCards = Array.from(
-            imagesGrid.querySelectorAll(".image-card")
-          );
-          const originalTitle = sectionTitleElement.textContent;
-
-          function showAllImagesView() {
-            sectionTitleElement.textContent = originalTitle;
-            modelsGridContainer.style.display = "none";
-            imagesGrid.style.display = "grid";
-            allImageCards.forEach((card) => {
-              card.style.display = "block";
-            });
-            showAllBtn.style.display = "none";
-            backToModelsBtn.style.display = "none";
-            classifyBtn.style.display = "inline-block";
-            if (sortAlphaBtn) sortAlphaBtn.style.display = "inline-block";
-          }
-
-          function showModelsView() {
-            const models = new Map();
-            allImageCards.forEach((card) => {
-              const modelName = card.dataset.modelName || "غير معروف";
-              models.set(modelName, (models.get(modelName) || 0) + 1);
-            });
-            const sortedModels = new Map(
-              [...models.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-            );
-
-            sectionTitleElement.textContent = "التصنيف حسب الموديل";
-            imagesGrid.style.display = "none";
-            modelsGridContainer.innerHTML = "";
-
-            sortedModels.forEach((count, modelName) => {
-              const modelCard = document.createElement("div");
-              modelCard.className = "folder-card";
-              modelCard.innerHTML = `<a>🎨 ${modelName} (${count})</a>`;
-              modelCard.onclick = () => showImagesForModel(modelName);
-              modelsGridContainer.appendChild(modelCard);
-            });
-            modelsGridContainer.style.display = "grid";
-
-            classifyBtn.style.display = "none";
-            showAllBtn.style.display = "inline-block";
-            backToModelsBtn.style.display = "none";
-            if (sortAlphaBtn) sortAlphaBtn.style.display = "none";
-            if (sortDateBtn) sortDateBtn.style.display = "none";
-          }
-
-          function showImagesForModel(modelName) {
-            sectionTitleElement.textContent = `الموديل: ${modelName}`;
-            modelsGridContainer.style.display = "none";
-            imagesGrid.style.display = "grid";
-
-            allImageCards.forEach((card) => {
-              card.style.display =
-                card.dataset.modelName === modelName ? "block" : "none";
-            });
-
-            showAllBtn.style.display = "inline-block";
-            backToModelsBtn.style.display = "inline-block";
-            classifyBtn.style.display = "none";
-            if (sortAlphaBtn) sortAlphaBtn.style.display = "inline-block";
-          }
-
-          classifyBtn.addEventListener("click", showModelsView);
-          showAllBtn.addEventListener("click", showAllImagesView);
-          backToModelsBtn.addEventListener("click", showModelsView);
-        }
-      });
     </script>
-    <!-- ========= نهاية قسم السكريبتات الموحد ========= -->
-  </body>
+</body>
 </html>
-<!-- END: MODIFIED SECTION -->

@@ -1,3 +1,5 @@
+<!-- START: MODIFIED SECTION -->
+<!-- Mentorbot: Added Right Click (Button 2) logic to trigger Tag 'L' (D key equivalent) and disabled context menu -->
 <!doctype html>
 
 <html lang="ar">
@@ -389,9 +391,11 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
+        /* لا نضع max-width/height هنا لأننا سنحسبها بالجافاسكربت عند التدوير */
         max-width: 100%;
         max-height: 100vh;
         object-fit: contain;
+        transform-origin: center center;
         transition: transform 0.3s ease-out;
       }
 
@@ -527,6 +531,107 @@
         background: rgba(32, 201, 151, 0.7);
       }
 
+      /* كلاس جديد للحاوية القابلة للدوران */
+      .rotatable-group {
+        position: relative;
+        display: inline-block;
+        transition: transform 0.3s ease;
+        transform-origin: center center;
+        width: 100%;
+      }
+      .rotatable-group video {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      /* الإطار الخاص بالفيديوهات التي لا تحمل اسماً مخصصاً - اللون الأحمر الغامق */
+      .no-name-border {
+          border: 5px solid #8b0000; /* Dark Red */
+          border-radius: 8px;
+          box-sizing: border-box; /* لضمان أن الإطار لا يؤثر على الأبعاد */
+      }
+
+      /* تنسيق تراكب الترتيب والمراهنة */
+      .rank-overlay {
+          position: absolute;
+          top: 10px;
+          right: 10px; /* تم التعديل ليكون داخل حدود الدوران */
+          z-index: 1001;
+          background: rgba(0, 0, 0, 0.6);
+          padding: 3px 8px;
+          border-radius: 5px;
+          color: white;
+          font-size: 14px;
+          font-weight: bold;
+          display: inline-block;
+      }
+
+      /* تعديل بسيط على تنسيق الرقم ليتناسب مع الخلفية الجديدة */
+      .rank-overlay .rank-display {
+          border-bottom: 1px dashed #aaa;
+          padding: 0;
+      }
+      .rank-overlay .rank-display:hover {
+          border-bottom-color: #20c997;
+      }
+
+      /* تعديل على فورم الإدخال السريع ليتناسب مع التراكب */
+      .rank-overlay .quick-bet-form {
+          background: transparent;
+          border: none;
+          padding: 0;
+      }
+
+      /* START: NAME EDIT MODAL STYLES */
+      #name-edit-modal {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: #2a2a2a;
+          border: 2px solid #20c997;
+          border-radius: 10px;
+          padding: 20px;
+          z-index: 3000;
+          width: 350px;
+          max-width: 90%;
+          box-shadow: 0 0 20px rgba(0,0,0,0.8);
+          display: none;
+      }
+      #name-edit-modal h5 {
+          margin-bottom: 15px;
+          color: #fff;
+          text-align: center;
+      }
+      #name-input-field {
+          width: 100%;
+          background: #111;
+          border: 1px solid #555;
+          color: #fff;
+          padding: 8px;
+          border-radius: 5px;
+          margin-bottom: 10px;
+      }
+      #name-suggestions-list {
+          max-height: 200px;
+          overflow-y: auto;
+          background: #1e1e1e;
+          border: 1px solid #444;
+          border-radius: 5px;
+      }
+      .name-suggestion-item {
+          padding: 8px 12px;
+          cursor: pointer;
+          border-bottom: 1px solid #333;
+          color: #ccc;
+      }
+      .name-suggestion-item:hover, .name-suggestion-item.selected {
+          background-color: #20c997;
+          color: #fff;
+      }
+      /* END: NAME EDIT MODAL STYLES */
+
       .video-fullscreen-overlay {
         position: fixed;
         top: 0;
@@ -543,6 +648,7 @@
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
+        transform-origin: center center;
         transition: transform 0.3s ease; /* إضافة حركة سلسة للتدوير في ملء الشاشة */
       }
       #close-fullscreen-video {
@@ -651,6 +757,26 @@
 
   </head>
   <body>
+    <!-- START: NAME EDIT MODAL -->
+    <div id="name-edit-modal">
+        <h5>تعديل الاسم</h5>
+        <input type="text" id="name-input-field" placeholder="اكتب اسماً مخصصاً..." autocomplete="off">
+        <div id="name-suggestions-list">
+            <!-- سيتم ملء هذه القائمة بالجافاسكربت -->
+            {% if all_names %}
+                {% for name in all_names %}
+                    <div class="name-suggestion-item" data-value="{{ name }}">{{ name }}</div>
+                {% endfor %}
+            {% else %}
+                <div style="padding:10px; color:#777; text-align:center;">لا توجد أسماء محفوظة</div>
+            {% endif %}
+        </div>
+        <div style="text-align: right; margin-top: 10px; font-size: 0.8em; color: #888;">
+            اضغط <b>Alt+E</b> للحفظ | <b>Esc</b> للإلغاء
+        </div>
+    </div>
+    <!-- END: NAME EDIT MODAL -->
+
     <div class="container-fluid px-0">
         <!-- عناصر المؤقت والعداد والمتوسط -->
         <div style="background-color: rgba(40, 40, 40, 0.85); padding: 10px; border-radius: 0 0 8px 8px; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-family: 'Cairo', sans-serif; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
@@ -685,7 +811,7 @@
               </video>
               <button class="fullscreen-button">ملء الشاشة</button>
             </div>
-            {% elif video.name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))
+            {% elif video.name.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))
             %}
             <img
               src="{{ get_display_url(video.name) }}"
@@ -731,8 +857,10 @@
 
           {% for video in competition_videos %}
           <input type="hidden" name="videos" value="{{ video.name }}" />
-          <div class="video-card" id="video-card-{{ loop.index }}">
-            <h5 class="text-center mb-2 {% if video.is_processed %}processed-title{% endif %}">
+          <!-- إضافة data-filename للبطاقة لاستخدامها في التحديث -->
+          <div class="video-card" id="video-card-{{ loop.index }}" data-filename="{{ video.name }}">
+            <!-- إضافة id للعنوان لتحديثه بالجافاسكربت -->
+            <h5 id="video-title-{{ loop.index }}" class="text-center mb-2 {% if video.is_processed %}processed-title{% endif %}">
               الملف {{ loop.index }}:
               {% if video.display_name and video.display_name | length > 0 %}
                 {{ video.display_name }}
@@ -745,37 +873,6 @@
               <span class="rating-value">{{ "%.2f" | format(video.rating) }}</span> 
               | الظهور:
               <span class="appearance-value">{{ video.times_shown }}</span>
-              
-              | الترتيب: 
-              <div style="display: inline-block; vertical-align: middle;">
-                  <!-- 1. رقم الترتيب الظاهر -->
-                  <span id="rank-display-{{ loop.index }}" 
-                        class="rank-value rank-display"
-                        onclick="showInlineBet('{{ loop.index }}')"
-                        title="اضغط للتعديل والمراهنة">
-                      {{ video.rank }}
-                  </span>
-
-                  <!-- 2. نموذج الإدخال المخفي (يظهر عند الضغط) -->
-                  <div id="bet-form-{{ loop.index }}" class="quick-bet-form">
-                      <input type="number" 
-                             id="bet-input-{{ loop.index }}" 
-                             class="quick-bet-input" 
-                             placeholder="الهدف"
-                             onkeydown="if(event.key==='Enter') submitInlineBet('{{ loop.index }}', '{{ video.name|quote }}')">
-                             
-                      <button type="button" class="btn-mini btn-mini-save" 
-                              onclick="submitInlineBet('{{ loop.index }}', '{{ video.name|quote }}')">
-                          <i class="fas fa-check"></i>
-                      </button>
-                      
-                      <button type="button" class="btn-mini btn-mini-cancel" 
-                              onclick="hideInlineBet('{{ loop.index }}')">
-                          <i class="fas fa-times"></i>
-                      </button>
-                  </div>
-              </div>
-
               {% if video.is_processed and video.weight is not none %}
               | الوزن: <span class="weight-value">{{ "%.2f" | format(video.weight) }}</span> 
               {% endif %}
@@ -894,30 +991,74 @@
                   </button>
                 </div>
               </div>
+              
               <div class="video-container">
-                <video playsinline>
-                  <source
-                    src="{{ get_display_url(video.name) }}"
-                    type="video/mp4"
-                  />
-                  متصفحك لا يدعم تشغيل الفيديو.
-                </video>
+                <!-- الحاوية القابلة للدوران التي تضم الفيديو وعناصر الترتيب -->
+                <!-- إضافة id للحاوية لتحديث الكلاس بالجافاسكربت -->
+                <div id="rotatable-group-{{ loop.index }}" class="rotatable-group {{ 'no-name-border' if not video.display_name or video.display_name|length == 0 else '' }}">
+                    <video playsinline>
+                      <source
+                        src="{{ get_display_url(video.name) }}"
+                        type="video/mp4"
+                      />
+                      متصفحك لا يدعم تشغيل الفيديو.
+                    </video>
+                    
+                    <!-- حاوية الترتيب والمراهنة داخل المجموعة لتدور معها -->
+                    <div class="rank-overlay">
+                        <!-- 1. رقم الترتيب الظاهر -->
+                        <span id="rank-display-{{ loop.index }}" 
+                              class="rank-value rank-display"
+                              onclick="showInlineBet('{{ loop.index }}')"
+                              title="اضغط للتعديل والمراهنة">
+                            <i class="fas fa-star" style="margin-right: 4px; color: #ffc107;"></i>{{ video.rank }}
+                        </span>
+
+                        <!-- 2. نموذج الإدخال المخفي -->
+                        <!-- START: MODIFIED SECTION - Added autocomplete off -->
+                        <div id="bet-form-{{ loop.index }}" class="quick-bet-form">
+                            <input type="number" 
+                                   id="bet-input-{{ loop.index }}" 
+                                   class="quick-bet-input" 
+                                   placeholder="الهدف"
+                                   autocomplete="off"
+                                   onkeydown="if(event.key==='Enter') submitInlineBet('{{ loop.index }}', '{{ video.name|quote }}')">
+                                   
+                            <button type="button" class="btn-mini btn-mini-save" 
+                                    onclick="submitInlineBet('{{ loop.index }}', '{{ video.name|quote }}')">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            
+                            <button type="button" class="btn-mini btn-mini-cancel" 
+                                    onclick="hideInlineBet('{{ loop.index }}')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <!-- END: MODIFIED SECTION -->
+                    </div>
+                </div>
+
                 <button class="fullscreen-button">ملء الشاشة</button>
                 
                 <!-- زر التدوير -->
                 <button type="button" class="rotate-button" title="تدوير جميع الفيديوهات">
                     <i class="fas fa-redo"></i>
                 </button>
-                
               </div>
+              
             </div>
-            {% elif video.name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif'))
+            {% elif video.name.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))
             %}
             <img
               src="{{ get_display_url(video.name) }}"
               class="file-preview"
               data-index="{{ loop.index0 }}"
             />
+            <div class="text-center mt-2">
+                 <button type="button" class="btn btn-primary next-button" data-next="{{ loop.index + 1 }}">
+                    التالي
+                 </button>
+            </div>
             {% endif %}
           </div>
           {% endfor %}
@@ -974,14 +1115,180 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
+        // --- START: MODIFIED NAME EDIT FUNCTIONALITY (SORT + FILTER) ---
+        const modal = document.getElementById('name-edit-modal');
+        const inputField = document.getElementById('name-input-field');
+        const suggestionsList = document.getElementById('name-suggestions-list');
+        let currentTargetIndex = null; 
+        
+        // 1. قراءة الأسماء الأولية وترتيبها أبجدياً عند تحميل الصفحة
+        let originalNames = [];
+        const rawItems = document.querySelectorAll('.name-suggestion-item');
+        rawItems.forEach(item => {
+            originalNames.push(item.dataset.value);
+        });
+        originalNames.sort((a, b) => a.localeCompare(b, 'ar')); // ترتيب أبجدي (يدعم العربية)
+
+        // دالة لإعادة رسم القائمة بناءً على مصفوفة أسماء
+        function renderSuggestions(namesArray) {
+            suggestionsList.innerHTML = '';
+            if (namesArray.length === 0) {
+                suggestionsList.innerHTML = '<div style="padding:10px; color:#777; text-align:center;">لا توجد أسماء مطابقة</div>';
+                return;
+            }
+            namesArray.forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'name-suggestion-item';
+                div.dataset.value = name;
+                div.textContent = name;
+                suggestionsList.appendChild(div);
+            });
+        }
+
+        function openNameModal(index) {
+            currentTargetIndex = index;
+            modal.style.display = 'block';
+            inputField.value = ''; 
+            inputField.focus();
+            
+            // عند الفتح، نعرض القائمة الكاملة المرتبة
+            renderSuggestions(originalNames);
+            
+            const firstItem = suggestionsList.querySelector('.name-suggestion-item');
+            if(firstItem) selectSuggestion(firstItem);
+        }
+
+        function closeNameModal() {
+            modal.style.display = 'none';
+            currentTargetIndex = null;
+        }
+
+        function selectSuggestion(element) {
+            const prev = suggestionsList.querySelector('.selected');
+            if(prev) prev.classList.remove('selected');
+            element.classList.add('selected');
+            element.scrollIntoView({ block: 'nearest' });
+        }
+        
+        // 2. الفلترة الفورية عند الكتابة
+        inputField.addEventListener('input', function() {
+            const filterText = inputField.value.trim().toLowerCase();
+            
+            // فلترة الأسماء التي تبدأ بالنص المكتوب
+            const filtered = originalNames.filter(name => 
+                name.toLowerCase().startsWith(filterText)
+            );
+            
+            renderSuggestions(filtered);
+            
+            // تحديد أول عنصر في القائمة المفلترة
+            const firstItem = suggestionsList.querySelector('.name-suggestion-item');
+            if(firstItem) selectSuggestion(firstItem);
+        });
+
+        // النقر على عنصر من القائمة
+        suggestionsList.addEventListener('click', function(e) {
+            if(e.target.classList.contains('name-suggestion-item')) {
+                inputField.value = e.target.dataset.value;
+                selectSuggestion(e.target);
+            }
+        });
+
+        function saveName() {
+            if (!currentTargetIndex) return;
+            
+            let newName = inputField.value.trim();
+            const selectedItem = suggestionsList.querySelector('.name-suggestion-item.selected');
+            
+            if (!newName && selectedItem) {
+                newName = selectedItem.dataset.value;
+            }
+
+            if (!newName) {
+                alert("الرجاء كتابة اسم أو اختيار اسم من القائمة.");
+                return;
+            }
+
+            const card = document.getElementById(`video-card-${currentTargetIndex}`);
+            const filename = card.dataset.filename;
+
+            fetch('/api/update_video_name', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: filename, new_name: newName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const titleEl = document.getElementById(`video-title-${currentTargetIndex}`);
+                    titleEl.textContent = `الملف ${currentTargetIndex}: ${data.new_name}`;
+                    
+                    const rotatableGroup = document.getElementById(`rotatable-group-${currentTargetIndex}`);
+                    if(rotatableGroup) {
+                        rotatableGroup.classList.remove('no-name-border');
+                    }
+                    
+                    closeNameModal();
+                } else {
+                    alert("خطأ: " + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("فشل الاتصال بالخادم.");
+            });
+        }
+
+        // معالجة مفاتيح الكيبورد داخل المودال
+        document.addEventListener('keydown', function(e) {
+            if (modal.style.display === 'block') {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeNameModal();
+                }
+                else if (e.altKey && e.key.toLowerCase() === 'e') {
+                    e.preventDefault();
+                    saveName();
+                }
+                else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    // التنقل في القائمة المفلترة الحالية
+                    e.preventDefault();
+                    const items = Array.from(suggestionsList.querySelectorAll('.name-suggestion-item'));
+                    if (items.length === 0) return;
+
+                    let currentIndex = items.findIndex(item => item.classList.contains('selected'));
+                    
+                    if (e.key === 'ArrowDown') {
+                        // إذا لم يكن هناك شيء محدد، حدد الأول
+                        if (currentIndex === -1) currentIndex = -1; 
+                        const nextIndex = (currentIndex + 1) % items.length;
+                        selectSuggestion(items[nextIndex]);
+                    } else {
+                        // إذا لم يكن هناك شيء محدد، حدد الأخير
+                        if (currentIndex === -1) currentIndex = 0;
+                        const prevIndex = (currentIndex - 1 + items.length) % items.length;
+                        selectSuggestion(items[prevIndex]);
+                    }
+                }
+            } else {
+                if (e.key.toLowerCase() === 'e' && !e.altKey && currentHoveredIndex) {
+                    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                        e.preventDefault();
+                        openNameModal(currentHoveredIndex);
+                    }
+                }
+            }
+        });
+        // --- END: NAME EDIT FUNCTIONALITY ---
+
+
         // تطبيق ألوان مختلفة على تقييم الفيديو
         const ratingValues = document.querySelectorAll(".rating-value");
         ratingValues.forEach((value) => {
-          const rating = parseFloat(value.textContent); // استخدم parseFloat لأن التقييم قد يكون عشرياً
+          const rating = parseFloat(value.textContent); 
           applyColor(value, rating);
         });
 
-        // تطبيق ألوان مختلفة على عدد مرات الظهور
         const appearanceValues = document.querySelectorAll(".appearance-value");
         appearanceValues.forEach((value) => {
           const appearance = parseInt(value.textContent);
@@ -1020,14 +1327,12 @@
         const rankingType = document.querySelector(
           'input[name="ranking_type"]',
         ).value;
-        // --- إضافة جديدة: متغير لتتبع الفيديو الذي يقف عليه الماوس ---
         let currentHoveredIndex = null;
         document.querySelectorAll(".video-card").forEach((card) => {
             const index = card.id.split('-')[2];
             card.addEventListener('mouseenter', () => currentHoveredIndex = index);
             card.addEventListener('click', () => currentHoveredIndex = index);
         });
-        // -----------------------------------------------------------
 
         function createNavigationDots() {
           dotsContainer.innerHTML = "";
@@ -1049,29 +1354,57 @@
           });
         }
 
+        let globalRotation = parseInt(localStorage.getItem('user_rotation_preference')) || 0;
+
+        function applyGlobalRotation() {
+            const elementsToRotate = document.querySelectorAll('.rotatable-group, .file-preview');
+            elementsToRotate.forEach(element => {
+                element.style.transform = `rotate(${globalRotation}deg)`;
+            });
+            if (document.getElementById('fullscreen-overlay').style.display === 'block' || 
+                document.getElementById('video-fullscreen-overlay').style.display === 'flex') {
+                updateFullscreenFit();
+            }
+        }
+
+        function rotateAllVideos() {
+            globalRotation = (globalRotation + 90) % 360;
+            localStorage.setItem('user_rotation_preference', globalRotation);
+            applyGlobalRotation();
+        }
+
         function showFullscreen(src) {
+          localStorage.setItem('is_fullscreen_active', 'true');
+          resetFullscreenStyles(fullscreenImage); 
           fullscreenImage.src = src;
           overlay.style.display = "block";
           document.body.style.overflow = "hidden";
           createNavigationDots();
+          if (globalRotation !== 0) updateFullscreenFit();
         }
 
         function hideFullscreen() {
+          localStorage.setItem('is_fullscreen_active', 'false');
           overlay.style.display = "none";
+          resetFullscreenStyles(fullscreenImage); 
           document.body.style.overflow = "auto";
         }
 
         function showNextImage() {
+          resetFullscreenStyles(fullscreenImage);
           currentImageIndex = (currentImageIndex + 1) % images.length;
           showFullscreen(images[currentImageIndex].src);
           updateNavigationDots();
+          if (globalRotation % 180 !== 0) updateFullscreenFit();
         }
 
         function showPrevImage() {
+          resetFullscreenStyles(fullscreenImage);
           currentImageIndex =
             (currentImageIndex - 1 + images.length) % images.length;
           showFullscreen(images[currentImageIndex].src);
           updateNavigationDots();
+          if (globalRotation % 180 !== 0) updateFullscreenFit();
         }
 
         overlay.addEventListener("touchstart", function (e) {
@@ -1164,7 +1497,8 @@
             if (
               e.target.closest(".rank-buttons") ||
               e.target.closest(".fullscreen-button") ||
-              e.target.closest(".rotate-button")
+              e.target.closest(".rotate-button") ||
+              e.target.closest(".rank-overlay") 
             )
               return; 
 
@@ -1254,27 +1588,57 @@
           });
         });
         
-        // --- متغير عام لتخزين زاوية التدوير الحالية لجميع الفيديوهات ---
-        let globalRotation = 0;
-
-        // دالة لتدوير جميع الفيديوهات (بما في ذلك الفيديو النشط في وضع ملء الشاشة)
-        function rotateAllVideos() {
-            globalRotation = (globalRotation + 90) % 360;
-            
-            // 1. تدوير الفيديوهات في البطاقات
-            const cardVideos = document.querySelectorAll('.video-container video');
-            cardVideos.forEach(video => {
-                video.style.transform = `rotate(${globalRotation}deg)`;
-            });
-
-            // 2. تدوير فيديو ملء الشاشة (إذا كان موجوداً)
-            const fsVideo = document.getElementById('fullscreen-video');
-            if (fsVideo) {
-                fsVideo.style.transform = `rotate(${globalRotation}deg)`;
-            }
+        function resetFullscreenStyles(element) {
+            if (!element) return;
+            element.style.width = '';
+            element.style.height = '';
+            element.style.maxWidth = '';
+            element.style.maxHeight = '';
+            element.style.transform = '';
         }
 
-        // ربط أزرار التدوير بالدالة العامة
+        function updateFullscreenFit() {
+             const imgOverlay = document.getElementById('fullscreen-overlay');
+             const vidOverlay = document.getElementById('video-fullscreen-overlay');
+             
+             let activeElement = null;
+
+             if (imgOverlay.style.display === 'block') {
+                 activeElement = document.getElementById('fullscreen-image');
+             } else if (vidOverlay.style.display === 'flex') {
+                 activeElement = document.getElementById('fullscreen-video');
+             }
+
+             if (!activeElement) return;
+
+             const winW = window.innerWidth;
+             const winH = window.innerHeight;
+             
+             let nw = activeElement.naturalWidth || activeElement.videoWidth || activeElement.clientWidth;
+             let nh = activeElement.naturalHeight || activeElement.videoHeight || activeElement.clientHeight;
+
+             activeElement.style.maxWidth = 'none';
+             activeElement.style.maxHeight = 'none';
+             activeElement.style.width = nw + 'px';
+             activeElement.style.height = nh + 'px';
+
+             let transform = 'translate(-50%, -50%) rotate(' + globalRotation + 'deg)';
+             let scale = 1;
+
+             if (globalRotation % 180 !== 0) {
+                 const scaleX = winW / nh;
+                 const scaleY = winH / nw;
+                 scale = Math.min(scaleX, scaleY);
+             } else {
+                 const scaleX = winW / nw;
+                 const scaleY = winH / nh;
+                 scale = Math.min(scaleX, scaleY);
+             }
+
+             transform += ` scale(${scale})`;
+             activeElement.style.transform = transform;
+        }
+
         document.querySelectorAll('.rotate-button').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault(); 
@@ -1318,19 +1682,28 @@
         });
 
         function openFullscreenVideo(index) {
+            localStorage.setItem('is_fullscreen_active', 'true');
+            resetFullscreenStyles(fullscreenVideo); 
             currentVideoIndex = index; 
             if (videoSources[currentVideoIndex]) {
                 fullscreenVideo.src = videoSources[currentVideoIndex];
-                // تطبيق التدوير الحالي فور فتح الفيديو
-                fullscreenVideo.style.transform = `rotate(${globalRotation}deg)`;
                 videoFullscreenOverlay.style.display = "flex";
-                fullscreenVideo.play(); 
+                fullscreenVideo.play();
+                if (globalRotation !== 0) {
+                    updateFullscreenFit();
+                }
             }
         }
 
         function closeFullscreen() {
+          localStorage.setItem('is_fullscreen_active', 'false');
           videoFullscreenOverlay.style.display = "none";
           fullscreenVideo.pause();
+          resetFullscreenStyles(fullscreenVideo); 
+          const imgOverlay = document.getElementById("fullscreen-overlay");
+          if (imgOverlay) imgOverlay.style.display = "none";
+          resetFullscreenStyles(fullscreenImage); 
+          document.body.style.overflow = "auto";
         }
 
         const fsButtons = document.querySelectorAll(
@@ -1366,8 +1739,7 @@
             }
             fullscreenVideo.src = videoSources[currentVideoIndex];
             fullscreenVideo.play(); 
-            // تأكيد تطبيق التدوير عند تغيير الفيديو في ملء الشاشة
-            fullscreenVideo.style.transform = `rotate(${globalRotation}deg)`;
+            if (globalRotation !== 0) updateFullscreenFit();
           }
         });
 
@@ -1480,8 +1852,6 @@
              } else {
                  hiddenInput.value = selectedTags.join(','); 
              }
-
-             console.log(`Updated tag_${index} hidden input to: "${hiddenInput.value}"`); 
              
              const parentCard = this.closest('.video-card');
              if (parentCard) {
@@ -1630,44 +2000,238 @@
                 clearInterval(timerInterval);
             }
         });
-// # START: MODIFIED SECTION (Keyboard Shortcuts)
-        // --- Keyboard Shortcuts Logic (Updated for Tags Safety) ---
+        
+        window.addEventListener('resize', function() {
+            if (globalRotation % 180 !== 0) updateFullscreenFit();
+        });
+
+        // # START: UNIFIED SHORTCUT LOGIC
+        
+        function actionNext() {
+            const isImageFullscreen = document.getElementById('fullscreen-overlay').style.display === 'block';
+            const isVideoFullscreen = document.getElementById('video-fullscreen-overlay').style.display === 'flex';
+            
+            if (isImageFullscreen) {
+                showNextImage();
+            } else if (isVideoFullscreen) {
+                currentVideoIndex = (currentVideoIndex + 1) % videoSources.length;
+                fullscreenVideo.src = videoSources[currentVideoIndex];
+                fullscreenVideo.play();
+                if (globalRotation % 180 !== 0) updateFullscreenFit();
+            } else if (currentHoveredIndex) {
+                const card = document.getElementById(`video-card-${currentHoveredIndex}`);
+                const nextBtn = card ? card.querySelector('.next-button') : null;
+                if (nextBtn) nextBtn.click();
+            }
+        }
+
+        function actionPrev() {
+            const isImageFullscreen = document.getElementById('fullscreen-overlay').style.display === 'block';
+            const isVideoFullscreen = document.getElementById('video-fullscreen-overlay').style.display === 'flex';
+            
+            if (isImageFullscreen) {
+                showPrevImage();
+            } else if (isVideoFullscreen) {
+                currentVideoIndex = (currentVideoIndex - 1 + videoSources.length) % videoSources.length;
+                fullscreenVideo.src = videoSources[currentVideoIndex];
+                fullscreenVideo.play();
+                if (globalRotation % 180 !== 0) updateFullscreenFit();
+            } else if (currentHoveredIndex) {
+                 // START: FIX ADDED HERE
+                 const prevIndex = parseInt(currentHoveredIndex) - 1;
+                 if (prevIndex >= 1) {
+                     const prevCard = document.getElementById(`video-card-${prevIndex}`);
+                     if (prevCard) {
+                          prevCard.scrollIntoView({ behavior: "smooth", block: "center" });
+                          const prevVideo = prevCard.querySelector("video");
+                          if (prevVideo) {
+                              document.querySelectorAll('video').forEach(v => { if (v !== prevVideo) v.pause(); });
+                              prevVideo.play();
+                          } else {
+                              // Handle images
+                              const prevImg = prevCard.querySelector('.file-preview');
+                              if (prevImg) {
+                                   // Just scroll (already done above)
+                              }
+                          }
+                     }
+                 }
+                 // END: FIX ADDED HERE
+            }
+        }
+
+        function actionWinner() {
+             const isImageFullscreen = document.getElementById('fullscreen-overlay').style.display === 'block';
+             const isVideoFullscreen = document.getElementById('video-fullscreen-overlay').style.display === 'flex';
+             let targetIndex = -1;
+
+             if (isImageFullscreen) {
+                  const currentImg = images[currentImageIndex];
+                  if (currentImg) targetIndex = parseInt(currentImg.dataset.index) + 1;
+             } else if (isVideoFullscreen) {
+                  const currentSrc = videoSources[currentVideoIndex];
+                  const allVideos = document.querySelectorAll('video source');
+                  for(let source of allVideos) {
+                      if(source.src === currentSrc || source.src.endsWith(currentSrc)) {
+                          const card = source.closest('.video-card');
+                          if(card) {
+                              const idParts = card.id.split('-');
+                              targetIndex = parseInt(idParts[2]);
+                              break;
+                          }
+                      }
+                  }
+             } else if (currentHoveredIndex) {
+                  targetIndex = currentHoveredIndex;
+             }
+
+             if (targetIndex !== -1) {
+                  const radioBtn = document.getElementById(`winner-${targetIndex}`);
+                  if (radioBtn) {
+                      radioBtn.checked = true;
+                      form.submit();
+                  }
+             }
+        }
+
+        function actionTag(type) {
+            let indexToTag = null;
+            const isImageFullscreen = document.getElementById('fullscreen-overlay').style.display === 'block';
+            const isVideoFullscreen = document.getElementById('video-fullscreen-overlay').style.display === 'flex';
+
+            if (isImageFullscreen) {
+                 const currentImg = images[currentImageIndex];
+                 if (currentImg) indexToTag = parseInt(currentImg.dataset.index) + 1;
+            } else if (isVideoFullscreen) {
+                 const currentSrc = videoSources[currentVideoIndex];
+                 const allVideos = document.querySelectorAll('video source');
+                 for(let source of allVideos) {
+                     if(source.src === currentSrc || source.src.endsWith(currentSrc)) {
+                         const card = source.closest('.video-card');
+                         if(card) {
+                             const idParts = card.id.split('-');
+                             indexToTag = parseInt(idParts[2]);
+                             break;
+                         }
+                     }
+                 }
+            } else if (currentHoveredIndex) {
+                indexToTag = currentHoveredIndex;
+            }
+
+            if (indexToTag) {
+                const checkboxId = `tag-${type}-${indexToTag}`;
+                const checkbox = document.getElementById(checkboxId);
+                const label = document.querySelector(`label[for="${checkboxId}"]`);
+                if (checkbox && label && !checkbox.checked) {
+                    label.click();
+                }
+            }
+        }
+        
+        function goBackUrl() {
+            const backBtn = document.querySelector('.btn-info');
+            if (backBtn) backBtn.click();
+        }
+
+        // START: MODIFIED SECTION - MOUSE SHORTCUTS
+        // منع القائمة السياقية (Context Menu) عند الضغط بالزر الأيمن
+        window.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+
+      
+        window.addEventListener('mousedown', function(e) {
+            // Button 0: Left Click
+            // Button 1: Middle Click -> Action Winner (Default)
+            // Button 2: Right Click -> Action Next
+            // Button 3: Back Button -> Tag 'L'
+            // Button 4: Forward Button -> Action Prev
+            
+            if (e.button === 1 || e.button === 2 || e.button === 3 || e.button === 4) {
+                e.preventDefault(); 
+                e.stopPropagation();
+
+                if (e.button === 1) { 
+                    actionWinner();
+                } else if (e.button === 2) {
+                    // Right Click -> Next
+                    actionNext();
+                } else if (e.button === 3) {
+                     // Back Button -> Tag L
+                     actionTag('l');
+                } else if (e.button === 4) {
+                     // Forward Button -> Prev
+                     actionPrev();
+                }
+            }
+        });
+        
+        window.addEventListener('mouseup', function(e) {
+            if (e.button === 1 || e.button === 2 || e.button === 3 || e.button === 4) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+        // END: MODIFIED SECTION
+
+        // Keyboard Listener
         document.addEventListener('keydown', function(event) {
-            // تجاهل الاختصارات إذا كان التركيز داخل حقل إدخال أو حقل الرهان
-            if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
-
+            const tagName = document.activeElement.tagName;
             const key = event.key.toLowerCase();
+
+            // الاستثناء: السماح لحرف q بالمرور حتى لو كنا داخل حقل إدخال
+            // START: MODIFIED - Added 'z', 'x', 'c', 'v' to allowed keys inside input for our new logic
+            if (['INPUT', 'TEXTAREA'].includes(tagName)) {
+                if (key === 'q' || key === 'enter') {
+                    // pass
+                } else if (['z','x','c','v'].includes(key) && document.activeElement.classList.contains('quick-bet-input')) {
+                     // نسمح بمرورها ليتم التقاطها بواسطة المستمع الخاص بالحقل نفسه لاحقاً
+                } else {
+                    return; 
+                }
+            }
+            // END: MODIFIED
+
             const isAlt = event.altKey;
+            const isImageFullscreen = document.getElementById('fullscreen-overlay').style.display === 'block';
+            const isVideoFullscreen = document.getElementById('video-fullscreen-overlay').style.display === 'flex';
+            const isAnyFullscreen = isImageFullscreen || isVideoFullscreen;
 
-            // 1. زر العودة للمسابقة (Z)
-            if (key === 'z') {
-                const backBtn = document.querySelector('.btn-info');
-                if (backBtn) {
-                    event.preventDefault();
-                    backBtn.click();
+            if (isAnyFullscreen) {
+                if (key === '1') { event.preventDefault(); actionNext(); }
+                if (key === '2') { event.preventDefault(); actionPrev(); }
+                if (key === 'w') { event.preventDefault(); actionWinner(); }
+                
+                if (key === 'd') actionTag('l');
+                if (key === 'b') actionTag('body');
+                if (key === 'f') actionTag('face');
+
+                if (key === 'z') { event.preventDefault(); goBackUrl(); }
+                if (key === 'escape') { event.preventDefault(); closeFullscreen(); }
+                
+                if (key === 'r') { event.preventDefault(); rotateAllVideos(); }
+                if (key === 's') { 
+                     if (isVideoFullscreen) {
+                         event.preventDefault();
+                         if (fullscreenVideo.paused) fullscreenVideo.play();
+                         else fullscreenVideo.pause();
+                     }
                 }
+                return; 
             }
 
-            // 2. اختيار الفائز (Alt + الرقم 1-9)
+            if (key === 'z' && !document.activeElement.classList.contains('quick-bet-input')) { event.preventDefault(); goBackUrl(); }
+            
             if (isAlt && !isNaN(key) && key >= '1' && key <= '9') {
-                if (rankingType === "winner_only") {
-                    event.preventDefault();
-                    const index = key;
-                    const labelBtn = document.querySelector(`label[for="winner-${index}"]`);
-                    
-                    if (labelBtn) {
-                        labelBtn.click();
-                    } else {
-                        const radioBtn = document.getElementById(`winner-${index}`);
-                        if (radioBtn) {
-                            radioBtn.checked = true;
-                            form.submit();
-                        }
-                    }
-                }
+                event.preventDefault();
+                const index = key;
+                const radioBtn = document.getElementById(`winner-${index}`);
+                if (radioBtn) { radioBtn.checked = true; form.submit(); }
             }
 
-            // 3. تشغيل الفيديو (الرقم 1-9 بدون Alt)
             if (!isAlt && !isNaN(key) && key >= '1' && key <= '9') {
                 const index = key;
                 const targetCard = document.getElementById(`video-card-${index}`);
@@ -1676,63 +2240,47 @@
                     if (video) {
                         event.preventDefault();
                         targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        document.querySelectorAll('video').forEach(v => {
-                             if (v !== video) v.pause();
-                        });
+                        document.querySelectorAll('video').forEach(v => { if (v !== video) v.pause(); });
                         video.play();
+                    } else {
+                        const img = targetCard.querySelector('.file-preview');
+                        if (img) {
+                             event.preventDefault();
+                             targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                     }
                 }
             }
 
-            // 4. تدوير الجميع (r)
-            if (key === 'r') {
-                event.preventDefault();
-                rotateAllVideos();
-            }
+            if (key === 'r') { event.preventDefault(); rotateAllVideos(); }
+            
+            if (key === 'd') actionTag('l');
+            if (key === 'b') actionTag('body');
+            if (key === 'f') actionTag('face');
+            if (key === 'w') actionTag('w'); 
 
-            // 5. التاجات (Tags) - تعمل على الفيديو الذي تحت الماوس (Hover)
-            // # START: MODIFIED FUNCTION FOR TAGS
-            const toggleTag = (type) => {
-                if (!currentHoveredIndex) return; // التأكد من أن الماوس فوق فيديو معين
-                
-                const checkboxId = `tag-${type}-${currentHoveredIndex}`;
-                const checkbox = document.getElementById(checkboxId); // جلب عنصر الـ Checkbox
-                const label = document.querySelector(`label[for="${checkboxId}"]`);
-
-                // التعديل: التحقق مما إذا كان التاج *غير* مفعل (!checkbox.checked)
-                // إذا كان (checkbox.checked) يساوي true، فهذا يعني أنه موجود بالفعل، لذا لا نفعل شيئاً
-                if (checkbox && label && !checkbox.checked) {
-                    label.click();
-                }
-            };
-            // # END: MODIFIED FUNCTION FOR TAGS
-
-            if (key === 'd') toggleTag('l');
-            if (key === 'w') toggleTag('w');
-            if (key === 'f') toggleTag('face');
-            if (key === 'b') toggleTag('body');
-
-            // 6. زر التالي (n)
             if (key === 'n') {
-                if (currentHoveredIndex) {
-                    const card = document.getElementById(`video-card-${currentHoveredIndex}`);
-                    const nextBtn = card ? card.querySelector('.next-button') : null;
-                    if (nextBtn) {
-                        event.preventDefault();
-                        nextBtn.click();
-                    }
-                }
+                 if (currentHoveredIndex) {
+                     event.preventDefault();
+                     actionNext();
+                 }
             }
 
-            // 7. ملء الشاشة (c)
-            if (key === 'c') {
+            if (key === 'c' && !document.activeElement.classList.contains('quick-bet-input')) {
                 if (currentHoveredIndex) {
                     event.preventDefault();
-                    openFullscreenVideo(parseInt(currentHoveredIndex) - 1);
+                    const card = document.getElementById(`video-card-${currentHoveredIndex}`);
+                    if (card) {
+                        const video = card.querySelector('video');
+                        if (video) openFullscreenVideo(parseInt(currentHoveredIndex) - 1);
+                        else {
+                            const img = card.querySelector('.file-preview');
+                            if (img) img.click();
+                        }
+                    }
                 }
             }
 
-            // 8. تشغيل/إيقاف (s)
             if (key === 's') {
                 let targetVideo = Array.from(document.querySelectorAll('video')).find(v => !v.paused);
                 if (!targetVideo && currentHoveredIndex) {
@@ -1745,33 +2293,165 @@
                     else targetVideo.pause();
                 }
             }
-
-           // 9. وضع رهان (p)
-            if (key === 'p') {
-                if (currentHoveredIndex) {
-                    event.preventDefault();
+            
+            if (key === 'q' && currentHoveredIndex) {
+                event.preventDefault();
+                
+                const formDiv = document.getElementById(`bet-form-${currentHoveredIndex}`);
+                const isFormOpen = formDiv && formDiv.style.display === 'inline-flex';
+                
+                if (isFormOpen) {
+                    const saveBtn = formDiv.querySelector('.btn-mini-save');
+                    if (saveBtn) {
+                        saveBtn.click();
+                    }
+                } else {
                     showInlineBet(currentHoveredIndex);
                 }
             }
         });
-        // # END: MODIFIED SECTION
-        // END: MODIFIED SHORTCUTS LOGIC
+        // # END: UNIFIED SHORTCUT LOGIC
+
+        if (globalRotation !== 0) {
+            applyGlobalRotation();
+        }
+
+        const shouldOpenFullscreen = localStorage.getItem('is_fullscreen_active') === 'true';
+        
+        if (shouldOpenFullscreen) {
+            setTimeout(() => {
+                const firstFsBtn = document.querySelector('.video-card[id="video-card-1"] .fullscreen-button');
+                
+                const firstImg = document.querySelector('.thumbnail[data-target="video-card-1"] img'); 
+                const firstImgPreview = document.querySelector('.video-card[id="video-card-1"] .file-preview'); 
+                
+                if (firstFsBtn) {
+                    console.log("Restoring fullscreen for Video...");
+                    firstFsBtn.click();
+                } else if (firstImgPreview) {
+                    console.log("Restoring fullscreen for Image...");
+                    firstImgPreview.click();
+                } else if (firstImg) {
+                    firstImg.click();
+                }
+                
+            }, 300); 
+        }
       });
     </script>
     
     <!-- Inline Betting Script -->
     <script>
+        // START: MODIFIED SECTION - Betting Logic for Z, X, C, V
+        
+        // متغيرات لتتبع حالة الضغطات المتتالية لكل مفتاح
+        // يتم إعادة تعيينها عند فتح حقل جديد
+        let betKeyCounters = {
+            z: 0,
+            x: 0,
+            c: 0,
+            v: 0
+        };
+
+        // دالة توليد رقم عشوائي
+        function getRandomInt(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
         // إظهار حقل الإدخال وإخفاء الرقم
         function showInlineBet(index) {
+            // إعادة تعيين العدادات عند فتح حقل جديد
+            betKeyCounters = { z: 0, x: 0, c: 0, v: 0 };
+
             document.getElementById('rank-display-' + index).style.display = 'none';
             const form = document.getElementById('bet-form-' + index);
             form.style.display = 'inline-flex';
             
-            // التركيز على الحقل وتحديد النص لتسهيل الكتابة
             const input = document.getElementById('bet-input-' + index);
             input.focus();
-            input.value = ''; // تفريغ الحقل
+            input.value = ''; 
+            
+            // إضافة مستمع حدث Keydown الخاص بهذا الحقل فقط (لتجنب التكرار نقوم بإزالته أولاً إذا كان موجوداً، أو استخدام خاصية onkeydown)
+            // بما أننا نستخدم input واحد لكل بطاقة، يمكننا إضافة المستمع مباشرة هنا إذا لم يكن مضافاً مسبقاً
+            // لكن الأفضل التعامل معه عبر المستمع العام الذي يتحقق من focus، أو إضافته هنا
+            
+            // لإبقاء الكود نظيفاً، سنقوم بإزالة أي مستمع سابق وإضافة جديد
+            // خدعة: استنساخ العنصر يزيل المستمعات، لكننا سنستخدم طريقة المتغير العام للعدادات ومستمع واحد عام في الأسفل
         }
+
+        // دالة مساعدة لمعالجة ضغطات المفاتيح داخل حقل الرهان
+        function handleBetInputKeydown(e, input) {
+            const key = e.key.toLowerCase();
+            
+            if (['z', 'x', 'c', 'v'].includes(key)) {
+                e.preventDefault(); // منع كتابة الحرف
+                
+                let min = 0;
+                let max = 0;
+                
+                if (key === 'z') {
+                    // تنازلي: 90-100, 80-90, ...
+                    // المعادلة: max = 100 - (10 * counter)
+                    max = 100 - (betKeyCounters.z * 10);
+                    min = max - 10;
+                    
+                    if (min < 0) { min = 0; max = 10; betKeyCounters.z = 0; } // إعادة تدوير إذا وصلنا للصفر
+                    else { betKeyCounters.z++; } // زيادة العداد للضغطة القادمة
+                    
+                    // تصفير العدادات الأخرى لبدء سلسلة جديدة إذا غير المستخدم المفتاح
+                    betKeyCounters.x = 0; betKeyCounters.c = 0; betKeyCounters.v = 0;
+                
+                } else if (key === 'x') {
+                    // تصاعدي: 100-200, 200-300... حتى 500
+                    // المعادلة: min = 100 + (100 * counter)
+                    min = 100 + (betKeyCounters.x * 100);
+                    max = min + 100;
+                    
+                    // الحد الأقصى 500 لهذه الفئة كما طلبت (400-500)
+                    if (max > 500) { min = 100; max = 200; betKeyCounters.x = 0; }
+                    else { betKeyCounters.x++; }
+                    
+                    betKeyCounters.z = 0; betKeyCounters.c = 0; betKeyCounters.v = 0;
+
+                } else if (key === 'c') {
+                    // تصاعدي: 500-600... حتى 1000
+                    min = 500 + (betKeyCounters.c * 100);
+                    max = min + 100;
+                    
+                    if (max > 1000) { min = 500; max = 600; betKeyCounters.c = 0; }
+                    else { betKeyCounters.c++; }
+                    
+                    betKeyCounters.z = 0; betKeyCounters.x = 0; betKeyCounters.v = 0;
+
+                } else if (key === 'v') {
+                    // تصاعدي: 1000-1100... حتى 1500
+                    min = 1000 + (betKeyCounters.v * 100);
+                    max = min + 100;
+                    
+                    if (max > 1500) { min = 1000; max = 1100; betKeyCounters.v = 0; }
+                    else { betKeyCounters.v++; }
+                    
+                    betKeyCounters.z = 0; betKeyCounters.x = 0; betKeyCounters.c = 0;
+                }
+                
+                // وضع القيمة العشوائية في الحقل
+                input.value = getRandomInt(min, max);
+            }
+        }
+        
+        // إضافة المستمع لكل حقول الإدخال عند التحميل
+        document.addEventListener("DOMContentLoaded", function () {
+            const betInputs = document.querySelectorAll('.quick-bet-input');
+            betInputs.forEach(input => {
+                input.addEventListener('keydown', function(e) {
+                    handleBetInputKeydown(e, this);
+                });
+            });
+        });
+        
+        // END: MODIFIED SECTION
 
         // إخفاء حقل الإدخال وإعادة الرقم
         function hideInlineBet(index) {
@@ -1781,16 +2461,14 @@
 
         // إرسال الرهان
         function submitInlineBet(index, videoName) {
-            // فك تشفير الاسم في حال وجود رموز خاصة
             const decodedName = decodeURIComponent(videoName);
             const targetRank = document.getElementById('bet-input-' + index).value;
 
             if (!targetRank) {
-                hideInlineBet(index); // إذا كان فارغاً، فقط أغلق
+                hideInlineBet(index); 
                 return;
             }
 
-            // إرسال البيانات (AJAX)
             fetch('/api/place_bet', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -1802,15 +2480,14 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // نجاح: غيّر لون الرقم للأخضر مؤقتاً كإشارة بصرية
                     const displaySpan = document.getElementById('rank-display-' + index);
                     const originalColor = displaySpan.style.color;
                     
-                    displaySpan.style.color = '#00ff00'; // أخضر فاقع
-                    displaySpan.innerText = targetRank + " 🎯"; // إضافة رمز صغير
+                    displaySpan.style.color = '#00ff00'; 
+                    displaySpan.innerText = targetRank + " 🎯"; 
                     
                     setTimeout(() => {
-                        displaySpan.style.color = originalColor; // عودة للون الأصلي
+                        displaySpan.style.color = originalColor; 
                     }, 1500);
                     
                     hideInlineBet(index);
@@ -1827,28 +2504,3 @@
     
   </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

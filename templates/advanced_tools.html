@@ -136,24 +136,38 @@
             </div>
         </div>
 
-        <!-- البطاقة الثالثة: المقارنة والتصحيح -->
+        <!-- START: MODIFIED SECTION (CARD 3) -->
+        <!-- البطاقة الثالثة: المقارنة والتصحيح (محدثة) -->
         <div class="col-lg-6 mb-4">
             <div class="card h-100">
                 <div class="card-header">
                     <h5 class="card-title mb-0"><i class="fas fa-check-double me-2"></i>3. المقارنة والتصحيح</h5>
                 </div>
                 <div class="card-body d-flex flex-column">
-                    <p class="card-text">اختر ملف بطولة لتصحيحه. سيتم تحديث بيانات الفيديوهات واستبدال المفقودة منها ببدائل مناسبة.</p>
+                    <p class="card-text">
+                        اختر ملف (أو ملفات) بطولة لتصحيحها. سيتم مطابقة الفيديوهات بالحجم أولاً، ثم بالرقم المتسلسل (ID) الموجود في الاسم.
+                    </p>
                     <form id="compare-correct-form" class="d-flex flex-column flex-grow-1">
                          <div class="mb-3">
-                            <label for="correction-target-file" class="form-label">ملف البطولة للتصحيح:</label>
-                            <select class="form-select" id="correction-target-file" name="target_file" required>
+                            <label for="correction-target-file" class="form-label">الملفات المستهدفة (يمكنك اختيار أكثر من واحد):</label>
+                            <!-- تمت إضافة خاصية multiple والسماح بارتفاع أكبر للقائمة -->
+                            <select class="form-select" id="correction-target-file" name="target_file" multiple size="5" required>
                                 {% for file in database_files %}
                                     <option value="{{ file }}">{{ file }}</option>
                                 {% else %}
                                     <option disabled>لا توجد ملفات JSON</option>
                                 {% endfor %}
                             </select>
+                            <small class="text-muted">اضغط Ctrl (أو Command) للنقر واختيار ملفات متعددة.</small>
+                        </div>
+
+                        <!-- خيار تحديث التقييم الجديد -->
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="update-ratings-check" name="update_ratings">
+                            <label class="form-check-label" for="update-ratings-check">
+                                <strong>تحديث التقييم (Elo Rating)</strong>
+                                <br><small class="text-muted">إذا تم تحديده، سيتم استبدال تقييم الملف بتقييم قاعدة البيانات الحالية.</small>
+                            </label>
                         </div>
 
                         <div class="mb-3">
@@ -161,13 +175,13 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="output_option" id="output-new-file" value="new_file" checked>
                                 <label class="form-check-label" for="output-new-file">
-                                    إنشاء ملف جديد (مثال: topcut_corrected_XXXX.json)
+                                    إنشاء ملفات جديدة (with _corrected suffix)
                                 </label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="output_option" id="output-overwrite" value="overwrite">
                                 <label class="form-check-label" for="output-overwrite">
-                                    الكتابة فوق الملف الأصلي (لا يمكن التراجع)
+                                    الكتابة فوق الملفات الأصلية (لا يمكن التراجع)
                                 </label>
                             </div>
                         </div>
@@ -175,15 +189,15 @@
                         <div class="mt-auto">
                             <button type="submit" class="btn btn-info w-100">
                                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                                <span class="button-text">بدء التصحيح</span>
+                                <span class="button-text">بدء التصحيح المتعدد</span>
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
+        <!-- END: MODIFIED SECTION -->
 
-        <!-- START: MODIFIED SECTION - تم تعديل هذه البطاقة بالكامل -->
         <!-- البطاقة الرابعة: معالجة الأوزان وإنشاء البطولة -->
         <div class="col-lg-6 mb-4">
             <div class="card h-100">
@@ -250,7 +264,6 @@
                 </div>
             </div>
         </div>
-        <!-- END: MODIFIED SECTION -->
     </div>
 </div>
 
@@ -374,10 +387,16 @@ document.addEventListener('DOMContentLoaded', function () {
         showLoading(button);
 
         const formData = new FormData(compareCorrectForm);
+        
+        // تجميع الملفات المختارة (لأنها multiple select)
+        const selectElement = document.getElementById('correction-target-file');
+        const selectedFiles = Array.from(selectElement.selectedOptions).map(option => option.value);
+
         const requestData = {
             action: 'compare_and_correct',
-            target_file: formData.get('target_file'),
-            output_option: formData.get('output_option')
+            target_file: selectedFiles, // نرسل القائمة كاملة
+            output_option: formData.get('output_option'),
+            update_ratings: document.getElementById('update-ratings-check').checked // حالة مربع التقييم
         };
         
         fetch("{{ url_for('run_tool') }}", {
@@ -391,7 +410,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .finally(() => { hideLoading(button, originalButtonText); });
     });
 
-    // START: MODIFIED SECTION - تمت إضافة هذا الجزء بالكامل
     // --- منطق الفورم الرابع (معالجة الأوزان) ---
     const processWeightsForm = document.getElementById('process-weights-form');
     const selectionMethodSelect = document.getElementById('selection-method');
@@ -444,7 +462,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(error => { showResult(false, 'حدث خطأ في الشبكة أو الاتصال بالخادم.'); })
         .finally(() => { hideLoading(button, originalButtonText); });
     });
-    // END: MODIFIED SECTION
 });
 </script>
 {% endblock %}

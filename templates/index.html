@@ -109,6 +109,12 @@
         border-color: #dc3545;
         color: white;
       }
+      
+      .btn-light {
+        background-color: #f8f9fa;
+        border-color: #f8f9fa;
+        color: #000;
+      }
 
       .btn:hover,
       .btn:focus {
@@ -234,10 +240,17 @@
            ><i class="fas fa-cogs"></i> <span class="shortcut-key">[E]</span> الأدوات المتقدمة</a
         >
         
-        <!-- F: Filter/Delete (Changed from D to F to avoid conflict) -->
+        <!-- F: Filter/Delete -->
         <a href="{{ url_for('filter_and_delete') }}" id="btn-filter" class="btn btn-danger"
            ><i class="fas fa-filter"></i> <span class="shortcut-key">[F]</span> فلترة وحذف الفيديوهات</a
         >
+
+        <!-- START: NEW REFRESH BUTTON -->
+        <!-- U: Refresh List (Update) -->
+        <a href="/manual_refresh_videos" id="btn-refresh" class="btn btn-light"
+           ><i class="fas fa-sync"></i> <span class="shortcut-key">[U]</span> تحديث القائمة</a
+        >
+        <!-- END: NEW REFRESH BUTTON -->
         
         <!-- END: BUTTONS WITH SHORTCUTS -->
       </div>
@@ -283,7 +296,7 @@
               case 'e': // Advanced Tools (Extra/Engine)
                   btnId = 'btn-tools';
                   break;
-              case 'f': // Filter/Delete (استخدمنا F بدلاً من D لحل التعارض)
+              case 'f': // Filter/Delete
                   btnId = 'btn-filter';
                   break;
               case 'n': // Names Analysis
@@ -294,6 +307,9 @@
                   break;
               case 'k': // Top Videos (Kings/Top)
                   btnId = 'btn-top';
+                  break;
+              case 'u': // Update/Refresh (New Shortcut)
+                  btnId = 'btn-refresh';
                   break;
           }
   

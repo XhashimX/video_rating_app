@@ -1,4 +1,3 @@
-
 import os
 import json
 from .data_manager import load_data
@@ -41,7 +40,7 @@ def add_bet(challenger_video, target_rank):
     if target_rank < 1 or target_rank > len(sorted_videos):
         return False, "الترتيب المستهدف غير صالح."
 
-    # نحفظ الخصم الحالي كمرجع فقط، لكن التحدي سيعتمد على المركز لاحقاً
+    # نحفظ الخصم الحالي كمرجع فقط
     defender_video = sorted_videos[target_rank - 1][0]
     
     if challenger_video == defender_video:
@@ -59,7 +58,7 @@ def add_bet(challenger_video, target_rank):
 
 def check_bet_status(challenger_video, current_data=None):
     """
-    التحقق مما إذا كان الرهان قد تحقق.
+    التحقق مما إذا كان الرهان قد تحقق (بناءً على الترتيب العام).
     """
     bets = load_bets()
     if challenger_video not in bets:
@@ -91,10 +90,12 @@ def check_bet_status(challenger_video, current_data=None):
     
     return bet
 
-# START: MODIFIED SECTION - جعل اختيار الخصم ديناميكياً
+
+# في ملف utilities/bet_manager.py
+
 def get_proposed_match(challenger_video):
     """
-    تجهيز بيانات المنافسة (JSON) بين المتحدي وصاحب المركز المستهدف *حالياً*.
+    تجهيز بيانات المنافسة وتحديث الخصم في ملف الرهانات ليطابق الواقع الحالي.
     """
     bets = load_bets()
     if challenger_video not in bets:
@@ -103,7 +104,7 @@ def get_proposed_match(challenger_video):
     bet = bets[challenger_video]
     target_rank = bet.get('target_rank')
     
-    # تحميل البيانات الحالية لتحديد من يجلس في المركز المستهدف الآن
+    # تحميل البيانات لمعرفة من يجلس في المركز حالياً
     data = load_data()
     sorted_videos = sorted(
         data.items(),
@@ -111,25 +112,25 @@ def get_proposed_match(challenger_video):
         reverse=True
     )
     
-    # التأكد من أن الترتيب صالح
+    # تحديد الخصم الحالي
+    current_defender = None
     if target_rank < 1 or target_rank > len(sorted_videos):
-        # إذا كان الترتيب خارج النطاق، نعود لاستخدام الخصم المسجل قديماً كإجراء احتياطي
-        defender = bet.get('defender_video')
+        # في حال وجود خطأ في الترتيب، نستخدم الخصم القديم
+        current_defender = bet.get('defender_video')
     else:
         # جلب اسم الفيديو الذي يحتل المركز المستهدف حالياً
-        # (target_rank - 1) لأن القائمة تبدأ من 0
-        defender = sorted_videos[target_rank - 1][0]
+        current_defender = sorted_videos[target_rank - 1][0]
     
-    # التأكد من أن المتحدي لا يواجه نفسه (إذا وصل للمركز بالفعل)
-    if defender == challenger_video:
-        # إذا كان المتحدي هو صاحب المركز، نجعله يواجه المركز الذي قبله (الأصعب) أو بعده
-        # هنا سنختار المركز الذي قبله (target_rank - 2) لزيادة التحدي، أو نلغي المباراة
-        # للتبسيط، سنبقيها كما هي، أو يمكنك إرجاع None
-        pass 
+    # --- التعديل الجوهري: تحديث ملف الرهانات الآن ---
+    # إذا كان الخصم الحالي مختلفاً عن المسجل، نقوم بتحديث السجل
+    if current_defender != bet.get('defender_video'):
+        bets[challenger_video]['defender_video'] = current_defender
+        save_bets(bets) # حفظ التغيير فوراً لضمان التطابق
+    # -----------------------------------------------
 
     # إنشاء هيكل المنافسة
     match_data = [{
-        "videos": [challenger_video, defender],
+        "videos": [challenger_video, current_defender],
         "rating": [0, 0], 
         "file_size": [0, 0],
         "mode": 1,
@@ -139,7 +140,7 @@ def get_proposed_match(challenger_video):
     }]
     
     return match_data
-# END: MODIFIED SECTION
+
 
 def remove_bet(challenger_video):
     """حذف الرهان"""
@@ -150,14 +151,8 @@ def remove_bet(challenger_video):
         return True
     return False
 
-
-# أضف هذا في نهاية ملف utilities/bet_manager.py
-
 def clear_bets_by_status(status_to_delete):
-    """
-    حذف جميع الرهانات التي تحمل حالة معينة.
-    status_to_delete: 'active' أو 'completed' أو 'all'
-    """
+    """حذف الرهانات حسب الحالة"""
     bets = load_bets()
     keys_to_delete = []
     
@@ -174,3 +169,83 @@ def clear_bets_by_status(status_to_delete):
         save_bets(bets)
         return True, len(keys_to_delete)
     return False, 0
+
+# في ملف utilities/bet_manager.py
+
+def process_bet_match_completion(videos_in_match):
+    """
+    إنهاء الرهان إذا كان المتحدي والخصم المسجل موجودين في المباراة.
+    """
+    if not videos_in_match:
+        return
+
+    bets = load_bets()
+    updated = False
+    
+    # نحول القائمة إلى set للبحث السريع
+    videos_set = set(videos_in_match)
+    
+    for challenger, bet_info in bets.items():
+        # نفحص فقط الرهانات النشطة
+        if bet_info.get('status') == 'active':
+            # هل المتحدي موجود في هذه المباراة؟
+            if challenger in videos_set:
+                # هل الخصم المسجل (الذي قمنا بتحديثه للتو) موجود أيضاً؟
+                defender = bet_info.get('defender_video')
+                
+                if defender in videos_set:
+                    # تطابق كامل -> إنهاء الرهان
+                    bets[challenger]['status'] = 'completed'
+                    bets[challenger]['completion_reason'] = 'match_played'
+                    updated = True
+                
+    if updated:
+        save_bets(bets)
+    """
+    تفحص المباراة الحالية وتنهي الرهان إذا:
+    1. واجه المتحدي الخصم المسجل باسمه.
+    2. أو واجه المتحدي صاحب المركز المستهدف حالياً (في حال تغيرت المراكز).
+    """
+    if not videos_in_match:
+        return
+
+    bets = load_bets()
+    data = load_data() 
+    updated = False
+    
+    videos_set = set(videos_in_match)
+    
+    # خريطة الترتيب الحالية
+    sorted_videos = sorted(
+        data.items(),
+        key=lambda item: item[1].get('rating', 1000),
+        reverse=True
+    )
+    rank_map = {name: i+1 for i, (name, _) in enumerate(sorted_videos)}
+
+    for challenger, bet_info in bets.items():
+        if bet_info.get('status') == 'active' and challenger in videos_set:
+            
+            # تحديد اسم الخصم
+            opponent_name = None
+            for vid in videos_in_match:
+                if vid != challenger:
+                    opponent_name = vid
+                    break
+            
+            if opponent_name:
+                # الشرط 1: الخصم الأصلي
+                is_original_defender = (opponent_name == bet_info.get('defender_video'))
+                
+                # الشرط 2: صاحب المركز المستهدف حالياً
+                target_rank = bet_info.get('target_rank')
+                current_opponent_rank = rank_map.get(opponent_name)
+                is_rank_target = (current_opponent_rank == target_rank)
+
+                if is_original_defender or is_rank_target:
+                    bets[challenger]['status'] = 'completed'
+                    bets[challenger]['completion_reason'] = 'match_played'
+                    updated = True
+                
+    if updated:
+        save_bets(bets)

@@ -1,206 +1,333 @@
-# --- START OF FILE app.py (MODIFIED) ---
 
-from flask import Flask, render_template, jsonify, request, send_file, redirect, url_for, flash
+from flask import Flask, render_template, jsonify, request, send_file, redirect, url_for
 import os
 import subprocess
 import json
 from pathlib import Path
+import math
+import random  # --- جديد: مطلوب للفرز العشوائي
+from collections import defaultdict
 
 app = Flask(__name__)
-app.secret_key = 'a_very_secret_key_change_this' 
 
-# --- إعدادات الملفات والمجلدات ---
+# --- إعدادات المسارات (PC Version) ---
+# المجلد الأساسي الذي سننطلق منه لقراءة الملفات
 BASE_DIR = Path("C:/Users/Stark").resolve()
-DOWNLOAD_FOLDER = BASE_DIR / "Downloads"
-TIKTOK_FOLDERS_BASE = BASE_DIR / "Download/myhome/video_rating_app/NS/TikTok/Elo tik"
 
-FAVORITES_FILE = Path(__file__).parent / "favorites.json"
-NOTES_FILE = Path(__file__).parent / "notes.txt"
-CACHE_FILE = Path(__file__).parent / "image_cache.json" 
+# مسار مجلد Dib (للتحقق من وجوده فقط)
+DIB_FOLDER_PATH = Path(r"C:\Users\Stark\Download\myhome\video_rating_app\NS\TikTok\ELO TIK\Dib")
 
-# START: MODIFIED SECTION - إصلاح منطق التحقق من المجلدات
-# 1. توحيد كل الأسماء لتكون بحالة أحرف صغيرة (lowercase) لمنع الأخطاء
-AI_IMAGE_FOLDERS = {'downloads', 'dib'}
-# END: MODIFIED SECTION
+# تحديد مكان ملفات الكاش (بجانب ملف app.py)
+SCRIPT_DIR = Path(__file__).parent
+MAIN_CACHE_FILE = SCRIPT_DIR / "image_cache.json"
+SUBFOLDER_CACHE_FILE = SCRIPT_DIR / "subfolder_cache.json"
+FAVORITES_FILE = SCRIPT_DIR / "favorites.json"
+NOTES_FILE = SCRIPT_DIR / "notes.txt"
 
-def load_favorites():
-    if not FAVORITES_FILE.exists(): return set()
+# --- دوال مساعدة (Helpers) ---
+
+def load_favorites_paths():
+    """تحميل قائمة مسارات الصور المميزة (relative paths)"""
+    if not os.path.exists(FAVORITES_FILE):
+        return set()
     try:
         with open(FAVORITES_FILE, 'r', encoding='utf-8') as f:
-            return {fav['relative_path'] for fav in json.load(f)}
+            favorites_data = json.load(f)
+            return {fav['relative_path'] for fav in favorites_data}
     except (json.JSONDecodeError, FileNotFoundError):
         return set()
 
-def load_image_cache_as_dict():
-    if not CACHE_FILE.exists(): return {}
+def get_images_from_cache(cache_file):
+    """قراءة الصور من ملف الكاش"""
+    if not os.path.exists(cache_file):
+        return []
     try:
-        with open(CACHE_FILE, 'r', encoding='utf-8') as f:
-            images = json.load(f)
-            return {img['relative_path']: img for img in images}
+        with open(cache_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
     except (json.JSONDecodeError, FileNotFoundError):
-        return {}
+        return []
 
-def get_images_from_download_cache():
-    cache_dict = load_image_cache_as_dict()
-    images = list(cache_dict.values())
-    favorite_paths = load_favorites()
+def add_favorite_status(images):
+    """إضافة علامة (is_favorite) لكل صورة إذا كانت في المفضلة"""
+    favorite_paths = load_favorites_paths()
     for img in images:
         img['is_favorite'] = img['relative_path'] in favorite_paths
     return images
 
 def get_tiktok_folders():
+    """جلب قائمة مجلدات تيك توك."""
     folders = []
-    if TIKTOK_FOLDERS_BASE.is_dir():
-        for item in os.listdir(TIKTOK_FOLDERS_BASE):
-            if (TIKTOK_FOLDERS_BASE / item).is_dir():
-                folders.append({'name': item})
-    return sorted(folders, key=lambda x: x['name'])
-
-# START: MODIFIED SECTION - إصلاح دالة جلب الصور وإضافة طباعة للمساعدة في التشخيص
-def get_images_from_folder(folder_path: Path, folder_name=None):
-    """
-    الحصول على جميع الصور من مجلد معين وإثرائها ببيانات من الكاش إذا لزم الأمر.
-    """
-    # إضافة طباعة لتتبع المسار الذي يتم فحصه
-    print(f"🔍 DEBUG: يتم الآن فحص المجلد: {folder_path}")
-
-    images = []
-    if not folder_path.is_dir(): 
-        print(f"❌ DEBUG: المجلد غير موجود أو ليس مجلداً: {folder_path}")
-        return images
+    if DIB_FOLDER_PATH.exists():
+        folders.append({'name': 'Dib'})
     
-    favorite_paths = load_favorites()
-    cache_dict = load_image_cache_as_dict()
+    if os.path.exists(SUBFOLDER_CACHE_FILE):
+        try:
+            with open(SUBFOLDER_CACHE_FILE, 'r', encoding='utf-8') as f:
+                subfolder_data = json.load(f)
+                for folder_name in sorted(subfolder_data.keys()):
+                    if folder_name != 'Dib':
+                        folders.append({'name': folder_name})
+        except:
+            pass
+    return folders
+
+def apply_sorting(images, sort_method):
+    """
+    (جديد) دالة لتطبيق الفرز على قائمة الصور
+    sort_method: 'newest', 'oldest', 'alpha_asc', 'alpha_desc', 'random'
+    """
+    if not images:
+        return []
+        
+    if sort_method == 'oldest':
+        # الفرز حسب التاريخ (تصاعدي)
+        return sorted(images, key=lambda x: x.get('mod_time', ''))
     
-    # 2. توسيع قائمة الامتدادات لتشمل صيغاً شائعة أخرى مثل jfif
-    allowed_extensions = {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.jfif'}
+    elif sort_method == 'alpha_asc':
+        # أبجدي (A-Z) حسب اسم الملف
+        return sorted(images, key=lambda x: x.get('name', '').lower())
+    
+    elif sort_method == 'alpha_desc':
+        # أبجدي (Z-A) حسب اسم الملف
+        return sorted(images, key=lambda x: x.get('name', '').lower(), reverse=True)
+    
+    elif sort_method == 'random':
+        # عشوائي (يتم إنشاء نسخة جديدة حتى لا نعدل القائمة الأصلية)
+        shuffled_list = images[:]
+        random.shuffle(shuffled_list)
+        return shuffled_list
+        
+    else: # 'newest' (الافتراضي)
+        # الفرز حسب التاريخ (تنازلي)
+        return sorted(images, key=lambda x: x.get('mod_time', ''), reverse=True)
 
-    for file in os.listdir(folder_path):
-        file_path = folder_path / file
-        # التأكد من أنه ملف وليس مجلداً فرعياً
-        if file_path.is_file() and file_path.suffix.lower() in allowed_extensions:
-            try:
-                relative_path = file_path.relative_to(BASE_DIR).as_posix()
-                
-                image_info = {
-                    'name': file,
-                    'relative_path': relative_path,
-                    'is_favorite': relative_path in favorite_paths,
-                    'model_name': 'غير معروف'
-                }
-                
-                # 3. التأكد من أن التحقق من اسم المجلد يستخدم حالة الأحرف الصغيرة
-                current_folder_name = folder_name.lower() if folder_name else ''
-                if current_folder_name in AI_IMAGE_FOLDERS:
-                    cached_data = cache_dict.get(image_info['relative_path'])
-                    if cached_data and 'model_name' in cached_data:
-                        image_info['model_name'] = cached_data['model_name']
-
-                images.append(image_info)
-            except ValueError:
-                # هذا يحدث إذا كان الملف خارج BASE_DIR، تجاهله بأمان
-                continue
-
-    # 4. التأكد من أن الفرز يتم بشكل صحيح حتى لو لم يتمكن من الوصول لوقت التعديل
-    try:
-        images.sort(key=lambda x: (BASE_DIR / x['relative_path']).stat().st_mtime, reverse=True)
-    except FileNotFoundError:
-        print("⚠️ DEBUG: حدث خطأ أثناء محاولة فرز الصور حسب التاريخ.")
-
-    print(f"👍 DEBUG: تم العثور على {len(images)} صورة في المجلد.")
-    return images
-# END: MODIFIED SECTION
-
+# --- المسارات (Routes) ---
 
 @app.route('/')
 def index():
-    download_images = get_images_from_download_cache()
-    tiktok_folders = get_tiktok_folders()
-    return render_template('index.html', 
-                         download_images=download_images,
-                         tiktok_folders=tiktok_folders)
+    """الصفحة الرئيسية"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 75, type=int)
+    sort_by = request.args.get('sort_by', 'newest')  # استلام معامل الفرز
 
-@app.route('/browse', methods=['POST'])
-def browse_folder():
-    custom_path_str = request.form.get('custom_path')
-    if not custom_path_str:
-        flash("الرجاء إدخال مسار للمجلد.", "error")
-        return redirect(url_for('index'))
+    all_images = get_images_from_cache(MAIN_CACHE_FILE)
     
-    custom_path = Path(custom_path_str).resolve()
+    # تطبيق الفرز قبل الترقيم
+    all_images = apply_sorting(all_images, sort_by)
     
-    if not custom_path.is_dir() or not custom_path.is_relative_to(BASE_DIR):
-        flash(f"خطأ: المسار '{custom_path_str}' غير صالح أو خارج النطاق المسموح به.", "error")
-        return redirect(url_for('index'))
-        
-    folder_name = custom_path.name
-    images = get_images_from_folder(custom_path, folder_name)
+    all_images = add_favorite_status(all_images)
     
-    show_classification = folder_name.lower() in AI_IMAGE_FOLDERS
+    total_images = len(all_images)
+    total_pages = math.ceil(total_images / per_page)
     
-    return render_template('folder.html', 
-                         folder_name=f"مسار مخصص: {folder_name}",
-                         images=images,
-                         show_classification=show_classification)
+    if page < 1: page = 1
+    if page > total_pages and total_pages > 0: page = total_pages
+    
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_images = all_images[start:end]
+
+    tiktok_folders = get_tiktok_folders()
+    
+    return render_template('index.html', 
+                         download_images=paginated_images,
+                         tiktok_folders=tiktok_folders,
+                         page=page,
+                         total_pages=total_pages,
+                         per_page=per_page,
+                         sort_by=sort_by, # نمرر قيمة الفرز الحالية للقالب
+                         total_images=total_images)
+
+@app.route('/models')
+def list_models():
+    """يعرض قائمة بكل الموديلات"""
+    main_images = get_images_from_cache(MAIN_CACHE_FILE)
+    
+    subfolder_data = get_images_from_cache(SUBFOLDER_CACHE_FILE)
+    all_subfolder_images = []
+    if isinstance(subfolder_data, dict):
+        for sublist in subfolder_data.values():
+            all_subfolder_images.extend(sublist)
+            
+    all_images = main_images + all_subfolder_images
+    
+    models_data = defaultdict(lambda: {'count': 0, 'preview_path': None})
+    
+    for img in all_images:
+        model_name = img.get('model_name', 'غير معروف')
+        models_data[model_name]['count'] += 1
+        if models_data[model_name]['preview_path'] is None:
+            models_data[model_name]['preview_path'] = img.get('relative_path')
+            
+    sorted_models = sorted(models_data.items(), key=lambda item: item[0])
+    
+    return render_template('models_list.html', models=sorted_models)
 
 
 @app.route('/folder/<path:folder_name>')
 def view_folder(folder_name):
-    folder_name_lower = folder_name.lower()
+    """عرض مجلد محدد"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 75, type=int)
+    sort_by = request.args.get('sort_by', 'newest') # استلام معامل الفرز
     
-    # START: MODIFIED SECTION - تبسيط وتصحيح المنطق
-    if folder_name_lower == 'downloads':
-        folder_path = DOWNLOAD_FOLDER
-        # هنا نعرض الصور من الكاش لأنها مفلترة كصور AI
-        images = get_images_from_download_cache()
+    images = []
+    
+    if folder_name == "Dib":
+        all_main_images = get_images_from_cache(MAIN_CACHE_FILE)
+        try:
+            dib_relative_start = str(DIB_FOLDER_PATH.relative_to(BASE_DIR)).replace('\\', '/')
+            images = [img for img in all_main_images if img['relative_path'].startswith(dib_relative_start)]
+        except ValueError:
+            images = []
     else:
-        folder_path = (TIKTOK_FOLDERS_BASE / folder_name).resolve()
-        images = get_images_from_folder(folder_path, folder_name)
+        if os.path.exists(SUBFOLDER_CACHE_FILE):
+            with open(SUBFOLDER_CACHE_FILE, 'r', encoding='utf-8') as f:
+                all_folders_data = json.load(f)
+            images = all_folders_data.get(folder_name, [])
+
+    # تطبيق الفرز
+    images = apply_sorting(images, sort_by)
     
-    show_classification = folder_name_lower in AI_IMAGE_FOLDERS
-    # END: MODIFIED SECTION
+    images = add_favorite_status(images)
+
+    total_images = len(images)
+    total_pages = math.ceil(total_images / per_page)
     
+    if page < 1: page = 1
+    if page > total_pages and total_pages > 0: page = total_pages
+
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_images = images[start:end]
+
     return render_template('folder.html', 
                          folder_name=folder_name,
-                         images=images,
-                         show_classification=show_classification)
-
-# ... (باقي المسارات مثل favorites, toggle_favorite, exif, image تبقى كما هي دون تغيير) ...
+                         images=paginated_images,
+                         page=page,
+                         total_pages=total_pages,
+                         per_page=per_page,
+                         sort_by=sort_by, # نمرر قيمة الفرز الحالية
+                         total_images=total_images)
 
 @app.route('/favorites')
 def view_favorites():
-    if not FAVORITES_FILE.exists():
-        images = []
-    else:
-        try:
-            with open(FAVORITES_FILE, 'r', encoding='utf-8') as f:
-                images = json.load(f)
-                for img in images: img['is_favorite'] = True
-        except json.JSONDecodeError:
-            images = []
-            
-    images.sort(key=lambda x: x.get('name', ''))
-    return render_template('favorites.html', favorite_images=images)
+    """عرض المفضلة"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 75, type=int)
+    # لا نطبق الفرز هنا عادة لأن المستخدم يريد ترتيب إضافته، لكن يمكن إضافتها لاحقاً إذا أردت
+    
+    images = get_images_from_cache(FAVORITES_FILE)
+    
+    for img in images:
+        img['is_favorite'] = True
+        if 'prompt_data' not in img: img['prompt_data'] = ''
 
+    images.reverse() # الافتراضي: آخر ما تم إضافته يظهر أولاً
+
+    total_images = len(images)
+    total_pages = math.ceil(total_images / per_page)
+    
+    if page < 1: page = 1
+    if page > total_pages and total_pages > 0: page = total_pages
+
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_images = images[start:end]
+
+    return render_template('favorites.html', 
+                           favorite_images=paginated_images,
+                           page=page,
+                           total_pages=total_pages,
+                           per_page=per_page,
+                           total_images=total_images)
+
+@app.route('/search')
+def search():
+    """البحث المطور"""
+    query = request.args.get('q', '').strip().lower()
+    if not query:
+        return redirect(url_for('index'))
+
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 75, type=int)
+    sort_by = request.args.get('sort_by', 'newest') # استلام معامل الفرز للبحث
+
+    main_images = get_images_from_cache(MAIN_CACHE_FILE)
+    subfolder_images_data = get_images_from_cache(SUBFOLDER_CACHE_FILE)
+    all_subfolder_images = []
+    if isinstance(subfolder_images_data, dict):
+        for folder_list in subfolder_images_data.values():
+            all_subfolder_images.extend(folder_list)
+
+    all_images = main_images + all_subfolder_images
+    
+    # --- منطق البحث المطور ---
+    # البحث في: البرومبت، اسم الموديل، اسم الملف، المسار
+    search_results = []
+    for img in all_images:
+        in_prompt = query in img.get('prompt_data', '').lower()
+        in_model = query in img.get('model_name', '').lower()
+        in_name = query in img.get('name', '').lower() # (جديد) البحث في الاسم
+        
+        # (جديد) البحث في اسم المجلد الأصلي (إذا كان جزءاً من المسار)
+        in_path = query in img.get('relative_path', '').lower()
+        
+        if in_prompt or in_model or in_name or in_path:
+            search_results.append(img)
+    
+    # تطبيق الفرز على النتائج
+    search_results = apply_sorting(search_results, sort_by)
+    
+    search_results = add_favorite_status(search_results)
+
+    total_images = len(search_results)
+    total_pages = math.ceil(total_images / per_page)
+    
+    if page < 1: page = 1
+    if page > total_pages and total_pages > 0: page = total_pages
+
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_results = search_results[start:end]
+
+    return render_template('search_results.html',
+                           query=query,
+                           images=paginated_results,
+                           page=page,
+                           total_pages=total_pages,
+                           per_page=per_page,
+                           sort_by=sort_by, # نمرر قيمة الفرز
+                           total_images=total_images)
 
 @app.route('/toggle_favorite', methods=['POST'])
 def toggle_favorite():
+    """إضافة/إزالة من المفضلة"""
     data = request.json
     image_to_toggle = {
         "relative_path": data.get("relative_path"),
         "name": data.get("name"),
-        "model_name": data.get("model_name", "غير معروف")
+        "model_name": data.get("model_name", "غير معروف"), 
+        "prompt_data": data.get("prompt_data", ""),
+        "source_group": data.get("source_group", "")
     }
+    
     if not image_to_toggle["relative_path"]:
         return jsonify({"status": "error", "message": "Missing image path"}), 400
+
     favorites = []
-    if FAVORITES_FILE.exists():
+    if os.path.exists(FAVORITES_FILE):
         try:
             with open(FAVORITES_FILE, 'r', encoding='utf-8') as f:
                 favorites = json.load(f)
-        except json.JSONDecodeError: pass
-    
-    found_index = next((i for i, fav in enumerate(favorites) if fav['relative_path'] == image_to_toggle['relative_path']), -1)
+        except json.JSONDecodeError:
+            favorites = []
+
+    found_index = -1
+    for i, fav in enumerate(favorites):
+        if fav['relative_path'] == image_to_toggle['relative_path']:
+            found_index = i
+            break
 
     if found_index != -1:
         favorites.pop(found_index)
@@ -208,35 +335,46 @@ def toggle_favorite():
     else:
         favorites.append(image_to_toggle)
         new_status = 'favorited'
+
     with open(FAVORITES_FILE, 'w', encoding='utf-8') as f:
         json.dump(favorites, f, ensure_ascii=False, indent=4)
+
     return jsonify({"status": new_status})
 
+@app.route('/notes', methods=['GET', 'POST'])
+def handle_notes():
+    """الملاحظات"""
+    if request.method == 'POST':
+        with open(NOTES_FILE, 'w', encoding='utf-8') as f:
+            f.write(request.data.decode('utf-8'))
+        return jsonify({"status": "success"})
+    else:
+        if not os.path.exists(NOTES_FILE):
+            return ""
+        with open(NOTES_FILE, 'r', encoding='utf-8') as f:
+            return f.read()
 
-def run_exiftool(image_path):
+@app.route('/exif/<path:image_path>')
+def get_exif_data(image_path):
+    """جلب بيانات EXIF"""
+    full_path = BASE_DIR / image_path
     try:
-        result = subprocess.run(['exiftool', '-json', str(image_path)], capture_output=True, text=True, check=True, encoding='utf-8')
-        return json.loads(result.stdout)[0] if result.stdout else {}
-    except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError):
-        return {}
+        result = subprocess.run(
+            ['exiftool', '-json', str(full_path)], 
+            capture_output=True, text=True, check=True, encoding='utf-8', errors='replace'
+        )
+        return jsonify(json.loads(result.stdout)[0] if result.stdout else {})
+    except Exception as e:
+        print(f"Error fetching EXIF: {e}")
+        return jsonify({})
 
-@app.route('/exif/<path:relative_path>')
-def get_exif_data(relative_path):
-    full_path = (BASE_DIR / relative_path).resolve()
-    if not full_path.is_relative_to(BASE_DIR):
-        return "Access Denied", 403
-    exif_data = run_exiftool(full_path)
-    return jsonify(exif_data)
-
-@app.route('/image/<path:relative_path>')
-def serve_image(relative_path):
-    full_path = (BASE_DIR / relative_path).resolve()
-    if full_path.exists() and full_path.is_relative_to(BASE_DIR):
-        return send_file(str(full_path))
+@app.route('/image/<path:image_path>')
+def serve_image(image_path):
+    """خدمة الصور"""
+    full_path = BASE_DIR / image_path
+    if full_path.exists() and full_path.is_file():
+        return send_file(full_path)
     return "Image not found", 404
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5002, debug=True)
-
-# --- END OF FILE app.py (MODIFIED) ---

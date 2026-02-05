@@ -9,9 +9,9 @@ base_dir = os.path.dirname(input_file)
 base_name = "topcut_elo_videos_A1000 elo tik_"
 
 # الإعدادات المطلوبة
-start_index = 7760          # رقم البداية
+start_index = 2100         # رقم البداية
 step = 4                    # مقدار الزيادة (القفزة) في التسمية
-competitions_per_file = 8   # كل ملف يحتوي 8 مسابقات
+competitions_per_file = 4   # كل ملف يحتوي 8 مسابقات
 
 # قراءة الملف الأصلي
 try:

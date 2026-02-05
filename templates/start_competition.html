@@ -1,3 +1,4 @@
+<!-- START OF FILE templates/start_competition.html -->
 <!doctype html>
 <html lang="ar">
   <head>
@@ -85,9 +86,37 @@
         opacity: 0.9;
       }
 
+      /* تنسيق لتمييز حرف الاختصار داخل الزر */
+      .shortcut-key {
+          font-weight: bold;
+          background-color: rgba(0,0,0,0.2);
+          padding: 0 5px;
+          border-radius: 3px;
+          margin-left: 5px;
+          font-family: monospace;
+          font-size: 1.1em;
+      }
+      
+      /* تنسيق خاص لاختصار القائمة */
+      .label-shortcut {
+          color: #FFC107;
+          font-family: monospace;
+          background-color: #333;
+          padding: 2px 6px;
+          border-radius: 4px;
+          margin-right: 5px;
+          font-size: 0.9em;
+      }
+
       .btn-success {
         background-color: #198754;
         border-color: #198754;
+        color: white;
+      }
+      
+      .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
         color: white;
       }
 
@@ -124,6 +153,46 @@
       textarea.form-control {
         min-height: 150px;
       }
+
+      /* تنسيق إضافي لعرض الاسم الكامل */
+      #selected-file-full-name {
+          color: #64ffda; /* لون مميز (أخضر فاتح) */
+          background-color: #212529;
+          padding: 8px;
+          border-radius: 4px;
+          margin-top: 5px;
+          font-family: monospace;
+          word-break: break-all; /* كسر الكلمات الطويلة */
+          display: none; /* مخفي افتراضياً */
+          border: 1px solid #495057;
+      }
+
+      /* Modal Styling copied from Manage Tournaments */
+      .modal-content {
+        background-color: #161b22;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+      }
+      .modal-header { border-bottom: 1px solid #30363d; }
+      .modal-footer { border-top: 1px solid #30363d; }
+      .competitor-item, .competition-select-item {
+        background-color: #21262d;
+        border: 1px solid #30363d;
+        padding: 8px 12px;
+        margin-bottom: 6px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .competition-select-item.selected {
+          background-color: #1f6feb;
+          color: white;
+          border-color: #1f6feb;
+      }
+      .competitor-item:hover, .competition-select-item:hover {
+        border-color: #58a6ff;
+      }
+      .step-hidden { display: none; }
+
     </style>
   </head>
   <body>
@@ -155,7 +224,9 @@
       <form method="post" action="{{ url_for('competition') }}">
 
         <div class="mb-3">
-            <label for="tournament_file" class="form-label">اختر ملف بطولة:</label>
+            <label for="tournament_file" class="form-label">
+                اختر ملف بطولة: <span class="label-shortcut">[`]</span> <span class="label-shortcut">[1/2 للتنقل]</span>
+            </label>
             <div class="input-group">
                 <select class="form-select" id="tournament_file" name="tournament_file">
                     <option value="">-- اختر ملف بطولة --</option>
@@ -163,32 +234,41 @@
                     <option value="{{ file }}" {% if file == last_selected_file %}selected{% endif %}>{{ file }}</option>
                     {% endfor %}
                 </select>
+                <!-- START: BUTTONS -->
                 <button type="button" class="btn btn-warning" id="filter-unplayed-btn" style="display: none;" title="متابعة المباريات غير المكتملة">
-                    <i class="fas fa-filter"></i> متابعة
+                    <i class="fas fa-filter"></i> <span class="shortcut-key">[C]</span> متابعة
                 </button>
                 <button type="button" class="btn btn-info" id="regroup-btn" style="display: none;" title="إعادة تجميع المتنافسين">
-                    <i class="fas fa-random"></i> تجميع
+                    <i class="fas fa-random"></i> <span class="shortcut-key">[A]</span> تجميع
                 </button>
                 <button type="button" class="btn btn-danger" id="delete-tournament-btn" style="display: none;" title="حذف الملف نهائياً">
-                    <i class="fas fa-trash"></i> حذف
+                    <i class="fas fa-trash"></i> <span class="shortcut-key">[D]</span> حذف
                 </button>
                 
                 <button type="button" class="btn btn-secondary" id="rename-file-btn" style="display: none;" title="إعادة تسمية الملف الفعلي فقط">
                     <i class="fas fa-file-signature"></i> اسم الملف
                 </button>
                 <button type="button" class="btn btn-primary" id="rename-archive-btn" style="display: none;" title="إعادة تسمية السجل في الأرشيف فقط">
-                    <i class="fas fa-book"></i> اسم الأرشيف
+                    <i class="fas fa-book"></i> <span class="shortcut-key">[R]</span> اسم الأرشيف
                 </button>
                  <button type="button" class="btn btn-success" id="create-archive-btn" style="display: none;" title="إنشاء سجل جديد في الأرشيف لهذا الملف">
                     <i class="fas fa-plus-square"></i> + أرشيف
                 </button>
+                <!-- الزر المخفي لفتح مودال التبديل -->
+                <button type="button" id="open-swap-modal-btn" style="display: none;"></button>
+                <!-- END: BUTTONS -->
             </div>
+            
+            <!-- START: MODIFIED SECTION - مكان عرض الاسم الكامل -->
+            <div id="selected-file-full-name"></div>
+            <!-- END: MODIFIED SECTION -->
+
             <span id="competition-count" class="form-text text-muted"></span>
         </div>
 
         <div class="mb-3">
           <label for="json_data" class="form-label"
-            >بيانات JSON للمنافسات:</label
+            >بيانات JSON للمنافسات (Q للتبديل السريع):</label
           >
           <textarea
             class="form-control"
@@ -387,16 +467,68 @@
             <option value="ring">حلبة</option>
           </select>
         </div>
-        <button type="submit" class="btn btn-success">
-          <i class="fas fa-play"></i> بدء المسابقة
+        
+        <!-- START: MODIFIED BUTTONS GROUP -->
+        <button type="submit" id="btn-start" class="btn btn-success">
+          <i class="fas fa-play"></i> <span class="shortcut-key">[S]</span> بدء المسابقة
         </button>
 
-        <a href="{{ url_for('index') }}" class="btn btn-secondary"
-          ><i class="fas fa-arrow-left"></i> العودة إلى الصفحة الرئيسية</a
+        <a href="{{ url_for('tour_page') }}" id="btn-tour" class="btn btn-primary"
+          ><i class="fas fa-road"></i> <span class="shortcut-key">[T]</span> المسابقة (Tour)</a
         >
+
+        <a href="{{ url_for('index') }}" id="btn-home" class="btn btn-secondary"
+          ><i class="fas fa-arrow-left"></i> <span class="shortcut-key">[I]</span> العودة إلى الصفحة الرئيسية</a
+        >
+        <!-- END: MODIFIED BUTTONS GROUP -->
 
       </form>
     </div>
+
+    <!-- START: SWAP MODAL -->
+    <div class="modal fade" id="quickSwapModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="fas fa-exchange-alt"></i> تبديل المتنافسين (Q)</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            
+            <!-- Step 1: Select Competitions -->
+            <div id="swap-step-1">
+                <h6>المرحلة 1: اختر مسابقتين للتبديل بينهما <span class="shortcut-badge">[Alt+رقم]</span></h6>
+                <p class="text-muted small">اختر مسابقتين ثم اضغط Q للمتابعة.</p>
+                <div id="modal-competitions-list" style="max-height: 400px; overflow-y: auto;">
+                    <!-- سيتم تعبئتها بواسطة JS -->
+                </div>
+            </div>
+
+            <!-- Step 2: Select Competitors -->
+            <div id="swap-step-2" class="step-hidden">
+                <h6>المرحلة 2: اختر المتنافسين <span class="shortcut-badge">[1.. يمين] [Alt+1.. يسار]</span></h6>
+                <p class="text-muted small">اضغط Q لتنفيذ التبديل.</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 id="step2-title-1">المسابقة الأولى</h6>
+                        <div id="step2-list-1"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 id="step2-title-2">المسابقة الثانية</h6>
+                        <div id="step2-list-2"></div>
+                    </div>
+                </div>
+            </div>
+
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="button" class="btn btn-primary" id="btn-modal-action">التالي (Q)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- END: SWAP MODAL -->
 
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -412,19 +544,44 @@
     const tournamentFileSelect = document.getElementById("tournament_file");
     const jsonDataTextarea = document.getElementById("json_data");
     const competitionCountSpan = document.getElementById("competition-count");
+    // START: MODIFIED SECTION - عنصر عرض الاسم الكامل
+    const selectedFileFullNameDiv = document.getElementById("selected-file-full-name");
+    // END: MODIFIED SECTION
 
     const filterBtn = document.getElementById("filter-unplayed-btn");
     const deleteBtn = document.getElementById("delete-tournament-btn");
     const regroupBtn = document.getElementById("regroup-btn");
 
-    // تعريف الأزرار الجديدة
     const renameFileBtn = document.getElementById("rename-file-btn");
     const renameArchiveBtn = document.getElementById("rename-archive-btn");
     const createArchiveBtn = document.getElementById("create-archive-btn");
 
+    // Modal elements
+    const quickSwapModal = new bootstrap.Modal(document.getElementById('quickSwapModal'));
+    const modalEl = document.getElementById('quickSwapModal');
+    let currentSwapStep = 1;
+    let selectedCompetitions = []; // Indices of selected competitions
+    let selectedCompetitors = { c1: null, c2: null }; // Indices of selected competitors inside comps
+    let currentParsedData = null;
+
+    // START: MODIFIED SECTION - دالة لتحديث عرض الاسم الكامل
+    function updateFullFileNameDisplay() {
+        const selectedOption = tournamentFileSelect.options[tournamentFileSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            selectedFileFullNameDiv.textContent = selectedOption.text;
+            selectedFileFullNameDiv.style.display = 'block';
+        } else {
+            selectedFileFullNameDiv.style.display = 'none';
+        }
+    }
+    // END: MODIFIED SECTION
+
     function updateFileContent(selectedFile) {
+      // START: MODIFIED SECTION - تحديث الاسم عند تغيير المحتوى
+      updateFullFileNameDisplay();
+      // END: MODIFIED SECTION
+      
       if (selectedFile) {
-        // إظهار الأزرار عند اختيار ملف
         filterBtn.style.display = "inline-block";
         deleteBtn.style.display = "inline-block";
         regroupBtn.style.display = "inline-block";
@@ -443,6 +600,7 @@
                   null,
                   4
                 );
+                currentParsedData = parsedJson; // Store for modal
                 if (Array.isArray(parsedJson)) {
                   document.getElementById(
                     "competition-count"
@@ -468,7 +626,6 @@
             competitionCountSpan.textContent = "";
           });
       } else {
-        // إخفاء الأزرار
         filterBtn.style.display = "none";
         deleteBtn.style.display = "none";
         regroupBtn.style.display = "none";
@@ -489,10 +646,10 @@
       updateFileContent(tournamentFileSelect.value);
     }
 
-    // --- زر الفلترة (تم حذف الـ alerts) ---
+    // --- زر الفلترة ---
     filterBtn.addEventListener("click", function () {
       const selectedFile = tournamentFileSelect.value;
-      if (!selectedFile) return; // Silent return
+      if (!selectedFile) return;
 
       this.disabled = true;
       this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جار الفلترة...';
@@ -500,42 +657,36 @@
       fetch("/filter_unplayed/" + encodeURIComponent(selectedFile))
         .then((response) => {
           if (!response.ok) {
-            return response.json().then((err) => {
-              throw new Error(err.error || err.message || "حدث خطأ.");
-            });
+             return response.json().then((err) => { throw new Error(err.error || err.message); });
           }
           return response.json();
         })
         .then((result) => {
-          if (result.error) {
-            throw new Error(result.error);
-          }
-
           if (result.status === "completed") {
             updateFileContent(selectedFile);
-          } else if (result.status === "completion_failed") {
-            throw new Error(result.message);
           } else if (typeof result.data !== "undefined") {
             const filteredData = result.data;
             jsonDataTextarea.value = JSON.stringify(filteredData, null, 4);
+            currentParsedData = filteredData;
             competitionCountSpan.textContent = `المسابقات المتبقية: ${filteredData.length}`;
           }
         })
-        .catch((error) => {
-          console.error("خطأ أثناء الفلترة:", error);
-        })
+        .catch((error) => console.error(error))
         .finally(() => {
           this.disabled = false;
-          this.innerHTML = '<i class="fas fa-filter"></i> متابعة';
+          this.innerHTML = '<i class="fas fa-filter"></i> <span class="shortcut-key">[C]</span> متابعة';
         });
     });
 
-    // --- زر الحذف (تم حذف confirm و alert النجاح) ---
+    // --- زر الحذف (المعدل) ---
     deleteBtn.addEventListener("click", function () {
       const selectedFile = tournamentFileSelect.value;
       if (!selectedFile) return;
 
       this.disabled = true;
+      // حفظ الاندكس الحالي قبل الحذف
+      const currentIndex = tournamentFileSelect.selectedIndex;
+
       fetch("/api/manage_tournament_file", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -544,256 +695,371 @@
         .then((response) => response.json())
         .then((data) => {
           if (data.success) {
-            location.reload();
+            // حذف العنصر من القائمة
+            tournamentFileSelect.remove(currentIndex);
+            
+            // تحديد العنصر التالي (أو الأخير إذا كنا في النهاية)
+            let nextIndex = currentIndex;
+            if (nextIndex >= tournamentFileSelect.options.length) {
+                nextIndex = tournamentFileSelect.options.length - 1;
+            }
+            
+            // إذا بقي عناصر، اختر التالي وحدث المحتوى
+            if (nextIndex > 0) {
+                tournamentFileSelect.selectedIndex = nextIndex;
+                updateFileContent(tournamentFileSelect.value);
+            } else {
+                // لم يبق شيء
+                updateFileContent("");
+            }
           } else {
-            alert("فشل الحذف: " + data.message); // نبقي رسالة الخطأ فقط
-            this.disabled = false;
+            alert("فشل الحذف: " + data.message);
           }
         })
-        .catch((error) => {
-          console.error("Error:", error);
-          this.disabled = false;
-        });
+        .catch((error) => console.error(error))
+        .finally(() => { this.disabled = false; });
     });
 
-    // --- زر إعادة التجميع (تم حذف confirm و alert النجاح) ---
+    // --- زر إعادة التجميع ---
     regroupBtn.addEventListener("click", function () {
       const selectedFile = tournamentFileSelect.value;
       if (!selectedFile) return;
-
-      const newSizeStr = prompt(
-        "أدخل العدد الجديد للفيديوهات في كل مسابقة (2 أو أكثر):",
-        "2"
-      );
-      if (newSizeStr === null) return;
-
-      const newSize = parseInt(newSizeStr, 10);
-      if (isNaN(newSize) || newSize < 2) return; // Silent return on invalid input
-
-      this.disabled = true;
+      const newSize = prompt("أدخل العدد الجديد:", "2");
+      if (!newSize) return;
 
       fetch("/regroup_competitions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: selectedFile,
-          new_num_videos: newSize,
-        }),
+        body: JSON.stringify({ filename: selectedFile, new_num_videos: parseInt(newSize) }),
       })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.success) {
-            updateFileContent(selectedFile);
-          } else {
-            alert("فشل إعادة التجميع: " + data.message); // نبقي رسالة الخطأ
-          }
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        })
-        .finally(() => {
-          this.disabled = false;
-        });
+      .then(r => r.json())
+      .then(d => { if(d.success) updateFileContent(selectedFile); });
     });
 
-    // --- 1. زر إعادة تسمية الملف (تم حذف confirm و alert النجاح) ---
+    // --- 1. زر إعادة تسمية الملف ---
     renameFileBtn.addEventListener("click", function () {
       const selectedFile = tournamentFileSelect.value;
       if (!selectedFile) return;
-
-      const newName = prompt(
-        "أدخل الاسم الجديد للملف (بدون .json):",
-        selectedFile.replace(".json", "")
-      );
-      if (
-        newName &&
-        newName.trim() !== "" &&
-        newName + ".json" !== selectedFile
-      ) {
-
+      const newName = prompt("اسم جديد للملف:", selectedFile.replace(".json", ""));
+      if (newName) {
         fetch("/rename_tournament_file_action", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            old_filename: selectedFile,
-            new_filename: newName + ".json",
-          }),
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            if (data.success) location.reload();
-          })
-          .catch((error) => {
-            console.error("Error renaming file:", error);
-          });
+          body: JSON.stringify({ old_filename: selectedFile, new_filename: newName + ".json" }),
+        }).then(r => r.json()).then(d => { if(d.success) location.reload(); });
       }
     });
 
-    // --- 2. زر إعادة تسمية الأرشيف (تم حذف confirm و alert النجاح) ---
+    // --- 2. زر إعادة تسمية الأرشيف (المعدل) ---
     renameArchiveBtn.addEventListener("click", function () {
       const selectedFile = tournamentFileSelect.value;
       if (!selectedFile) return;
-
       const currentKey = selectedFile.replace(".json", "");
-
-      const newName = prompt("أدخل الاسم الجديد لسجل الأرشيف:", currentKey);
-      if (newName && newName.trim() !== "" && newName !== currentKey) {
-
+      
+      // التعديل: النص الافتراضي يبدأ بـ 10.
+      const defaultName = "10." + currentKey;
+      
+      const newName = prompt("أدخل الاسم الجديد لسجل الأرشيف:", defaultName);
+      if (newName) {
         fetch("/rename_archive_entry_action", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            filename: selectedFile,
-            new_name: newName.trim(),
-          }),
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            // لا نحتاج لأي شيء آخر، العملية تمت في الخلفية
-          })
-          .catch((error) => {
-            console.error("Error renaming archive entry:", error);
-          });
+          body: JSON.stringify({ filename: selectedFile, new_name: newName.trim() }),
+        });
       }
     });
 
-    // --- 3. زر إنشاء سجل أرشيف (تم حذف confirm و alert النجاح) ---
+    // --- 3. زر إنشاء أرشيف ---
     createArchiveBtn.addEventListener("click", function () {
       const selectedFile = tournamentFileSelect.value;
       if (!selectedFile) return;
-
-      const participantsStr = prompt("أدخل عدد المشاركين الأولي:", "32");
-      if (participantsStr === null) return;
-
-      const participants = parseInt(participantsStr, 10);
-      if (isNaN(participants) || participants <= 0) return;
-
-      fetch("/create_archive_entry_action", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: selectedFile,
-          participants: participants,
-        }),
-      })
-        .then((r) => r.json())
-        .then((data) => {
-        })
-        .catch((error) => {
-          console.error("Error creating archive entry:", error);
+      const p = prompt("عدد المشاركين:", "32");
+      if(p) {
+        fetch("/create_archive_entry_action", {
+          method: "POST", headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({filename: selectedFile, participants: parseInt(p)})
         });
+      }
     });
 
     modeSelect.addEventListener("change", function () {
-      valueInput.style.display = "none";
-      minMaxInput.style.display = "none";
-      rangeInputs.style.display = "none";
-      timesShownInput.style.display = "none";
-      tagsModeInput.style.display = "none";
-      const allValueInputs = document.querySelectorAll(
-        "#valueInput input, #min-max-input input, #range-inputs input, #times-shown-input input, #tags-mode-input input"
-      );
-      allValueInputs.forEach((input) => {
-        input.required = false;
-      });
-      if (this.value === "3" || this.value === "4") {
-        valueInput.style.display = "block";
-        document.getElementById("value").required = true;
-      } else if (this.value === "5" || this.value === "6") {
-        minMaxInput.style.display = "block";
-        document.getElementById("min_value").required = true;
-        document.getElementById("max_value").required = true;
-      } else if (this.value === "8") {
-        rangeInputs.style.display = "block";
-        document.getElementById("min_value1").required = true;
-        document.getElementById("max_value1").required = true;
-        document.getElementById("min_value2").required = true;
-        document.getElementById("max_value2").required = true;
-      } else if (this.value === "9") {
-        timesShownInput.style.display = "block";
-        document.getElementById("min_times_shown").required = true;
-        document.getElementById("max_times_shown").required = true;
-      } else if (this.value === "10") {
-        tagsModeInput.style.display = "block";
-        document.getElementById("tags_value_mode_input").required = true;
-      }
+      // إخفاء واظهار الحقول حسب المود (كما في الكود الأصلي)
+      valueInput.style.display = "none"; minMaxInput.style.display = "none"; rangeInputs.style.display = "none"; timesShownInput.style.display = "none"; tagsModeInput.style.display = "none";
+      document.querySelectorAll("#valueInput input, #min-max-input input, #range-inputs input, #times-shown-input input, #tags-mode-input input").forEach(i => i.required = false);
+      if (this.value === "3" || this.value === "4") { valueInput.style.display = "block"; document.getElementById("value").required = true; }
+      else if (this.value === "5" || this.value === "6") { minMaxInput.style.display = "block"; document.getElementById("min_value").required = true; document.getElementById("max_value").required = true; }
+      else if (this.value === "8") { rangeInputs.style.display = "block"; document.getElementById("min_value1").required = true; }
+      else if (this.value === "9") { timesShownInput.style.display = "block"; document.getElementById("min_times_shown").required = true; }
+      else if (this.value === "10") { tagsModeInput.style.display = "block"; document.getElementById("tags_value_mode_input").required = true; }
     });
     modeSelect.dispatchEvent(new Event("change"));
 
-    <!-- START: MODIFIED SECTION - Keyboard Shortcuts for Competition Page -->
+    // ==========================================
+    //  MODAL LOGIC FOR SWAP (Q)
+    // ==========================================
+    
+    function openSwapModal() {
+        // Parse current JSON content
+        try {
+            const raw = jsonDataTextarea.value;
+            if(!raw) return;
+            currentParsedData = JSON.parse(raw);
+        } catch(e) { return; }
+
+        if(!Array.isArray(currentParsedData)) return;
+
+        currentSwapStep = 1;
+        selectedCompetitions = [];
+        selectedCompetitors = { c1: null, c2: null };
+        
+        renderStep1();
+        quickSwapModal.show();
+    }
+
+    function renderStep1() {
+        document.getElementById('swap-step-1').classList.remove('step-hidden');
+        document.getElementById('swap-step-2').classList.add('step-hidden');
+        document.getElementById('btn-modal-action').textContent = "التالي (Q)";
+        
+        const list = document.getElementById('modal-competitions-list');
+        list.innerHTML = '';
+        currentParsedData.forEach((comp, idx) => {
+            const div = document.createElement('div');
+            div.className = 'competition-select-item';
+            div.innerText = `مسابقة ${idx + 1} (${comp.videos.length} فيديوهات)`;
+            div.dataset.index = idx;
+            div.onclick = () => toggleCompetitionSelect(idx);
+            list.appendChild(div);
+        });
+        updateStep1UI();
+    }
+
+    function toggleCompetitionSelect(idx) {
+        const i = selectedCompetitions.indexOf(idx);
+        if (i > -1) {
+            selectedCompetitions.splice(i, 1);
+        } else {
+            if (selectedCompetitions.length < 2) {
+                selectedCompetitions.push(idx);
+            } else {
+                // If 2 selected, replace the last one
+                selectedCompetitions.pop();
+                selectedCompetitions.push(idx);
+            }
+        }
+        updateStep1UI();
+    }
+
+    function updateStep1UI() {
+        const items = document.querySelectorAll('.competition-select-item');
+        items.forEach(item => {
+            const idx = parseInt(item.dataset.index);
+            if(selectedCompetitions.includes(idx)) item.classList.add('selected');
+            else item.classList.remove('selected');
+        });
+    }
+
+    function goToStep2() {
+        if(selectedCompetitions.length !== 2) return;
+        currentSwapStep = 2;
+        document.getElementById('swap-step-1').classList.add('step-hidden');
+        document.getElementById('swap-step-2').classList.remove('step-hidden');
+        document.getElementById('btn-modal-action').textContent = "تنفيذ التبديل (Q)";
+        
+        const c1Idx = selectedCompetitions[0];
+        const c2Idx = selectedCompetitions[1];
+        
+        document.getElementById('step2-title-1').innerText = `المسابقة ${c1Idx + 1}`;
+        document.getElementById('step2-title-2').innerText = `المسابقة ${c2Idx + 1}`;
+        
+        renderCompetitorsList(c1Idx, 'step2-list-1', 'c1');
+        renderCompetitorsList(c2Idx, 'step2-list-2', 'c2');
+    }
+
+    function renderCompetitorsList(compIdx, containerId, key) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        const videos = currentParsedData[compIdx].videos;
+        videos.forEach((v, vIdx) => {
+            const div = document.createElement('div');
+            div.className = 'competitor-item';
+            div.innerHTML = `<strong>${vIdx+1}:</strong> <small>${v.substring(0, 30)}...</small>`;
+            div.onclick = () => {
+                selectedCompetitors[key] = vIdx;
+                updateStep2UI();
+            };
+            if(selectedCompetitors[key] === vIdx) div.style.backgroundColor = '#1f6feb';
+            container.appendChild(div);
+        });
+    }
+
+    function updateStep2UI() {
+        // Redraw highlights
+        ['c1', 'c2'].forEach(key => {
+            const container = document.getElementById(key === 'c1' ? 'step2-list-1' : 'step2-list-2');
+            Array.from(container.children).forEach((div, idx) => {
+                div.style.backgroundColor = (selectedCompetitors[key] === idx) ? '#1f6feb' : '#21262d';
+            });
+        });
+    }
+
+    function executeSwap() {
+        if(selectedCompetitors.c1 === null || selectedCompetitors.c2 === null) return;
+        
+        const c1Idx = selectedCompetitions[0];
+        const c2Idx = selectedCompetitions[1];
+        const v1Idx = selectedCompetitors.c1;
+        const v2Idx = selectedCompetitors.c2;
+        
+        const payload = {
+            selected_file: tournamentFileSelect.value,
+            action: 'swap',
+            swap_comp1_index: c1Idx,
+            swap_comp1_competitor_index: v1Idx,
+            swap_comp2_index: c2Idx,
+            swap_comp2_competitor_index: v2Idx
+        };
+        
+        const formData = new FormData();
+        for(const k in payload) formData.append(k, payload[k]);
+        
+        fetch("{{ url_for('manage_tournaments_actions') }}", {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            if(response.ok) {
+                quickSwapModal.hide();
+                updateFileContent(tournamentFileSelect.value); // تحديث الواجهة
+            }
+        });
+    }
+    
+    document.getElementById('btn-modal-action').onclick = function() {
+        if(currentSwapStep === 1) goToStep2();
+        else executeSwap();
+    };
+
+    // ==========================================
+    //  KEYBOARD SHORTCUTS
+    // ==========================================
     document.addEventListener('keydown', function(event) {
-        // منع الاختصارات إذا كان المستخدم يكتب في حقل نصي أو يختار من قائمة
-        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+        
+        const activeTag = document.activeElement.tagName;
+        const key = event.key.toLowerCase();
+        const tournamentSelect = document.getElementById("tournament_file");
+
+        // 1. Q Shortcut logic
+        if (key === 'q') {
+            const isModalOpen = modalEl.classList.contains('show');
+            
+            if (isModalOpen) {
+                event.preventDefault();
+                document.getElementById('btn-modal-action').click();
+                return;
+            } else if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+                event.preventDefault();
+                openSwapModal();
+                return;
+            }
+        }
+
+        // Logic INSIDE Modal
+        if (modalEl.classList.contains('show')) {
+            const isDigit = /^[0-9]$/.test(key);
+            if (isDigit) {
+                event.preventDefault();
+                let num = parseInt(key);
+                if (num === 0) num = 10;
+                const idx = num - 1;
+
+                if (currentSwapStep === 1) {
+                    if (event.altKey) {
+                         toggleCompetitionSelect(idx);
+                    } else {
+                        toggleCompetitionSelect(idx);
+                    }
+                } else if (currentSwapStep === 2) {
+                    if (event.altKey) {
+                        selectedCompetitors.c2 = idx;
+                    } else {
+                        selectedCompetitors.c1 = idx;
+                    }
+                    updateStep2UI();
+                }
+            }
             return;
         }
 
-        // منع الاختصارات إذا كانت نافذة prompt أو alert مفتوحة
-        // (هذا ليس مثالياً ولكنه يمنع بعض التضاربات)
+        // ---------------------------------------------------------
+        // Standard Shortcuts (Outside Modal)
+        // ---------------------------------------------------------
+        
+        if (key === '`' || key === 'ذ') {
+            event.preventDefault();
+            if (tournamentSelect) tournamentSelect.focus();
+            return;
+        }
+
+        if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+            if (key === '1') {
+                event.preventDefault();
+                if (tournamentSelect && tournamentSelect.selectedIndex > 0) {
+                    tournamentSelect.selectedIndex--;
+                    tournamentSelect.dispatchEvent(new Event('change'));
+                }
+                return;
+            }
+            if (key === '2') {
+                event.preventDefault();
+                if (tournamentSelect && tournamentSelect.selectedIndex < tournamentSelect.options.length - 1) {
+                    tournamentSelect.selectedIndex++;
+                    tournamentSelect.dispatchEvent(new Event('change'));
+                }
+                return;
+            }
+        }
+
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag)) return;
         if(document.body.classList.contains('modal-open')) return;
 
-        const key = event.key.toLowerCase();
-
-        // استخدام switch لتنظيم الكود
         switch (key) {
             case 'c': // متابعة
                 event.preventDefault();
-                const filterBtn = document.getElementById('filter-unplayed-btn');
-                if (filterBtn && filterBtn.style.display !== 'none') {
-                    filterBtn.click();
-                }
+                filterBtn.click();
                 break;
-            
             case 's': // بدء المسابقة
                 event.preventDefault();
-                const startBtn = document.querySelector('form button.btn-success[type="submit"]');
-                if (startBtn) {
-                    startBtn.click();
-                }
+                document.getElementById('btn-start').click();
                 break;
-
             case 'a': // تجميع
                 event.preventDefault();
-                const regroupBtn = document.getElementById('regroup-btn');
-                if (regroupBtn && regroupBtn.style.display !== 'none') {
-                    regroupBtn.click();
-                }
+                regroupBtn.click();
                 break;
             
-            case 'd': // حذف
+            case 'd': // حذف (المعدل)
                 event.preventDefault();
-                const deleteBtn = document.getElementById('delete-tournament-btn');
-                if (deleteBtn && deleteBtn.style.display !== 'none') {
-                    deleteBtn.click();
-                }
+                if (deleteBtn && deleteBtn.style.display !== 'none') deleteBtn.click();
                 break;
 
-            case 'h': // العودة للرئيسية
+            case 'z': // الرئيسية
                 event.preventDefault();
-                const homeBtn = document.querySelector('a.btn-secondary');
-                if (homeBtn) {
-                    homeBtn.click();
-                }
+                document.getElementById('btn-home').click();
                 break;
 
-            case 'r': // إعادة تسمية الملف
+            case 't': // Tour
                 event.preventDefault();
-                const renameFileBtn = document.getElementById('rename-file-btn');
-                if (renameFileBtn && renameFileBtn.style.display !== 'none') {
-                    renameFileBtn.click();
-                }
+                document.getElementById('btn-tour').click();
                 break;
-            
-            case 't': // إعادة تسمية الأرشيف
+
+            // R: الآن مخصص لزر الأرشيف حسب الطلب
+            case 'r': 
                 event.preventDefault();
-                const renameArchiveBtn = document.getElementById('rename-archive-btn');
                 if (renameArchiveBtn && renameArchiveBtn.style.display !== 'none') {
                     renameArchiveBtn.click();
                 }
                 break;
         }
     });
-    <!-- END: MODIFIED SECTION -->
-
   });
 </script>
   </body>

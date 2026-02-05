@@ -1,5 +1,6 @@
-<!doctype html>
+<!-- START OF FILE templates/tour.html -->
 
+<!doctype html>
 <html lang="ar">
   <head>
     <meta charset="utf-8" />
@@ -177,49 +178,47 @@
     font-weight: 900;
   }
   
-  /* تعديلات الأزرار لتكون أكثر داكنة وصغيرة */
   .btn-custom-rename,
   .btn-custom-delete {
-    padding: 0.25rem 0.6rem; /* أصغر Padding */
-    font-size: 0.8rem; /* خط أصغر */
-    border-radius: 6px; /* حواف أكثر استدارة بقليل */
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
     font-weight: 500;
     transition: all 0.2s ease-in-out;
-    display: inline-flex; /* لجعل الأيقونة والنص متجاورين */
-    align-items: center; /* لمحاذاة عمودية */
-    white-space: nowrap; /* لمنع الكلمات من الالتفاف */
-    margin-right: 5px; /* مسافة بين الأزرار إذا كانت متجاورة */
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    margin-right: 5px;
   }
 
   .btn-custom-rename {
-    background-color: #4a4a4a; /* لون رمادي داكن للخلفية */
-    border-color: #555; /* حدود أغمق */
-    color: #e0e0e0; /* لون نص فاتح */
+    background-color: #4a4a4a;
+    border-color: #555;
+    color: #e0e0e0;
   }
 
   .btn-custom-rename:hover {
-    background-color: #5a5a5a; /* لون أفتح عند التحويم */
+    background-color: #5a5a5a;
     border-color: #666;
     color: #fff;
   }
 
   .btn-custom-delete {
-    background-color: #8b0000; /* أحمر داكن للحذف */
-    border-color: #a00000; /* حدود أغمق */
+    background-color: #8b0000;
+    border-color: #a00000;
     color: #e0e0e0;
   }
 
   .btn-custom-delete:hover {
-    background-color: #a00000; /* أحمر أفتح عند التحويم */
+    background-color: #a00000;
     border-color: #b00000;
     color: #fff;
   }
 
-  /* أيقونات الأزرار الجديدة */
   .btn-custom-rename .fas,
   .btn-custom-delete .fas {
-    margin-right: 0.3rem; /* مسافة أقل للأيقونة */
-    font-size: 0.7rem; /* حجم أيقونة أصغر قليلا */
+    margin-right: 0.3rem;
+    font-size: 0.7rem;
   }
 
   .tournament-name {
@@ -236,8 +235,8 @@
     flex-wrap: wrap; 
   }
   .tournament-name form {
-      margin-left: 10px; /* مسافة بين الاسم والأزرار */
-      margin-top: 5px; /* مسافة بسيطة للأزرار إذا نزلت لأسفل */
+      margin-left: 10px;
+      margin-top: 5px;
       white-space: nowrap; 
   }
 
@@ -376,13 +375,22 @@
                       </div>
                   </div>
 
-                  <!-- قائمة الرهانات اليدوية -->
+                  <!-- قائمة الرهانات اليدوية مع خيار تحديد الكل -->
                   <div id="manual_bet_list" style="display: none; max-height: 150px; overflow-y: auto; background: #222; padding: 5px; border-radius: 4px;">
                       <label class="form-label text-muted small mb-1">اختر الرهانات:</label>
                       {% if active_bets %}
+                          <!-- خيار تحديد الكل -->
+                          <div class="form-check border-bottom border-secondary mb-2 pb-1">
+                              <input class="form-check-input" type="checkbox" id="check_all_bets" onchange="toggleAllBets(this)">
+                              <label class="form-check-label small text-warning fw-bold" for="check_all_bets">
+                                  تحديد الكل
+                              </label>
+                          </div>
+
                           {% for bet in active_bets %}
                           <div class="form-check">
-                              <input class="form-check-input" type="checkbox" name="selected_bets" value="{{ bet.challenger }}" id="bet_check_{{ loop.index }}">
+                              <!-- تمت إضافة كلاس bet-checkbox لسهولة التحديد -->
+                              <input class="form-check-input bet-checkbox" type="checkbox" name="selected_bets" value="{{ bet.challenger }}" id="bet_check_{{ loop.index }}">
                               <label class="form-check-label small text-light" for="bet_check_{{ loop.index }}" style="font-size: 0.8em;">
                                   {{ bet.challenger }} <span class="text-warning">VS</span> {{ bet.defender }} ({{ bet.target }})
                               </label>
@@ -645,13 +653,12 @@
 </script>
 
 <script>
-  // 1. نفصل منطق التحميل في دالة ليمكن استدعائها عند الحاجة
   function startLoading(placeholders) {
     let idx = 0;
-    const batchSize = 4; // عدد الفيديوهات المراد تحميلها في كل دفعة
+    const batchSize = 4;
 
     function loadNextBatch() {
-      let cnt = 0; // عداد للفيديوهات التي تم تحميلها في الدفعة الحالية
+      let cnt = 0;
 
       while (
         cnt < batchSize &&
@@ -660,16 +667,14 @@
         const ph = placeholders[idx];
         const videoSrc = ph.dataset.videoSrc;
 
-        // إنشاء عنصر <video> كما كان موجوداً
         const video = document.createElement("video");
         video.className = "small-video";
         video.controls = true;
-        video.muted = true; // يبدأ كتم الصوت
-        video.autoplay = false; // لا يتم التشغيل التلقائي
-        video.playsInline = true; // لتشغيل الفيديو في نفس المكان على iOS Safari
-        video.preload = "metadata"; // يحمل فقط البيانات الوصفية في البداية
+        video.muted = true;
+        video.autoplay = false;
+        video.playsInline = true;
+        video.preload = "metadata";
 
-        // إضافة مستمع للأحداث لتشغيل الفيديو لثانية ثم إيقافه
         video.onloadeddata = function () {
           this.play();
           setTimeout(() => this.pause(), 1000);
@@ -680,44 +685,37 @@
         source.type = "video/mp4";
         video.appendChild(source);
 
-        ph.replaceWith(video); // استبدال العنصر النائب بالفيديو
+        ph.replaceWith(video);
 
         idx++;
         cnt++;
       }
 
-      // جدولة الدفعة التالية فقط إن كان هناك المزيد من الفيديوهات للتحميل
       if (idx < placeholders.length) {
-        setTimeout(loadNextBatch, 1000); // تحميل الدفعة التالية بعد ثانية واحدة
+        setTimeout(loadNextBatch, 1000);
       }
     }
 
-    loadNextBatch(); // بدء تحميل الدفعة الأولى
+    loadNextBatch();
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    // 2. نشغل التحميل فقط عند النقر على اسم البطولة (tournament-name)
     document.querySelectorAll(".tournament-name").forEach(function (nameEl) {
-      // متغير لتتبع ما إذا كانت هذه البطولة قد تم تحميل فيديوهاتها بالفعل
       let loaded = false; 
       
-      nameEl.addEventListener("click", function (event) { // إضافة event كباراميتر
-        // التأكد من أن النقر ليس على الأزرار داخل الـ tournament-name
+      nameEl.addEventListener("click", function (event) {
         if (event.target.closest('form')) {
           return;
         }
 
-        if (loaded) { // إذا كانت الفيديوهات قد حملت بالفعل، لا تفعل شيئاً
+        if (loaded) {
           return;
         }
 
-        // نجمع كل الـ placeholders التابعة لهذه البطولة
         const placeholders = [];
-        let el = nameEl.nextElementSibling; // نبدأ من العنصر التالي لـ tournament-name
+        let el = nameEl.nextElementSibling;
 
-        // نمر على العناصر حتى نصل إلى اسم بطولة أخرى أو نهاية الأرشيف
         while (el && !el.classList.contains("tournament-name")) {
-          // نبحث عن أي .loading-placeholder داخل الـ .video-card
           const ph = el.querySelector(".loading-placeholder");
           if (ph) {
             placeholders.push(ph);
@@ -725,15 +723,13 @@
           el = el.nextElementSibling;
         }
 
-        // 3. نبدأ التحميل عند أول نقرة
         if (placeholders.length) {
           startLoading(placeholders);
-          loaded = true; // نعين إلى true لمنع التحميل مرة أخرى لهذه البطولة
+          loaded = true;
         }
       });
     });
 
-    // تشغيل التحميل للفيديوهات الفردية مباشرة عند تحميل الصفحة (إذا كان العرض فيديوهات فردية)
     const currentView = document.getElementById('view_type') ? document.getElementById('view_type').value : null;
     if (currentView === 'videos') {
         const videoPlaceholders = document.querySelectorAll('#videoContainer .loading-placeholder');
@@ -745,61 +741,51 @@
 </script>
 
 <script>
-  // دالة التعامل مع إعادة التسمية
   function handleRename(tournamentId, form) {
       const newName = prompt("أدخل الاسم الجديد للبطولة:", tournamentId);
       if (newName && newName.trim() !== "" && newName !== tournamentId) {
           form.querySelector('input[name="new_name"]').value = newName.trim();
-          return true; // إرسال النموذج إذا تم إدخال اسم جديد
+          return true;
       }
-      return false; // إلغاء إرسال النموذج
+      return false;
   }
 
-  // دالة تأكيد الحذف
   function confirmDelete(tournamentId) {
       return confirm("هل أنت متأكد أنك تريد حذف البطولة " + tournamentId + "؟");
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    // التعامل مع قائمة ملفات JSON الخاصة بإنشاء مسابقة جديدة
     const jsonSelect = document.getElementById("json_file");
     if (jsonSelect) {
       const optionsArray = Array.from(jsonSelect.options);
-      // عكس الترتيب بحيث يصبح أحدث ملف أولاً
       optionsArray.reverse();
       jsonSelect.innerHTML = "";
       optionsArray.forEach((option) => {
         jsonSelect.add(option);
       });
-      // استرجاع الملف المختار سابقًا من localStorage إن وُجد
       const storedJsonFile = localStorage.getItem("selected_json_file");
       if (storedJsonFile) {
         jsonSelect.value = storedJsonFile;
       }
-      // عند تغيير الاختيار، حفظ القيمة في localStorage
       jsonSelect.addEventListener("change", function () {
         localStorage.setItem("selected_json_file", jsonSelect.value);
       });
     }
 
-    // التعامل مع قائمة ملفات JSON الخاصة بمتابعة مسابقة موجودة
     const tournamentSelect = document.getElementById("tournament_file");
     if (tournamentSelect) {
       const optionsArray = Array.from(tournamentSelect.options);
-      // عكس الترتيب بحيث يصبح أحدث ملف أولاً
       optionsArray.reverse();
       tournamentSelect.innerHTML = "";
       optionsArray.forEach((option) => {
         tournamentSelect.add(option);
       });
-      // استرجاع الملف المختار سابقًا من localStorage إن وُجد
       const storedTournamentFile = localStorage.getItem(
         "selected_tournament_file",
       );
       if (storedTournamentFile) {
         tournamentSelect.value = storedTournamentFile;
       }
-      // عند تغيير الاختيار، حفظ القيمة في localStorage
       tournamentSelect.addEventListener("change", function () {
         localStorage.setItem(
           "selected_tournament_file",
@@ -809,7 +795,7 @@
     }
   });
 
-  // START: MODIFIED SECTION - Bet Options Toggle Script
+  // START: MODIFIED SECTION - Bet Options Toggle Scripts
   function toggleBetOptions() {
       const isChecked = document.getElementById('include_bets').checked;
       document.getElementById('bet_options').style.display = isChecked ? 'block' : 'none';
@@ -818,6 +804,14 @@
   function toggleBetList() {
       const isManual = document.getElementById('bet_mode_manual').checked;
       document.getElementById('manual_bet_list').style.display = isManual ? 'block' : 'none';
+  }
+
+  // دالة تحديد الكل
+  function toggleAllBets(source) {
+      const checkboxes = document.querySelectorAll('.bet-checkbox');
+      for(let i=0; i < checkboxes.length; i++) {
+          checkboxes[i].checked = source.checked;
+      }
   }
   // END: MODIFIED SECTION
 </script>

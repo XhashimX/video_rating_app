@@ -1,3 +1,4 @@
+<!-- START OF FILE templates/select_folder.html -->
 <!doctype html>
 <html lang="ar">
   <head>
@@ -22,34 +23,22 @@
     <style>
       body {
         font-family: "Cairo", sans-serif;
-
         background-color: #121212; 
-
         color: #e0e0e0; 
-
         padding-top: 20px;
       }
       .container {
         max-width: 960px;
-
         margin: auto;
-
         background-color: #1e1e1e; 
-
         padding: 30px;
-
         border-radius: 8px;
-
         box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1); 
       }
-
       h1 {
         color: #20c997; 
-
         margin-bottom: 1rem;
-
         font-size: 2.5rem;
-
         text-align: center;
       }
       .form-label {
@@ -58,70 +47,42 @@
       .form-text {
         color: #a0a0a0;
       }
-
       .btn {
         padding: 0.3rem 0.6rem; 
-
         margin: 4px; 
-
         border-radius: 5px;
-
-        transition:
-          background-color 0.3s ease,
-          border-color 0.3s ease; 
-
+        transition: background-color 0.3s ease, border-color 0.3s ease; 
         text-decoration: none;
-
         font-size: 0.9rem; 
       }
-
       .btn-primary {
         background-color: #0056b3; 
-
         border-color: #0056b3;
-
         color: white;
       }
-
       .btn-success {
         background-color: #198754; 
-
         border-color: #198754;
-
         color: white;
       }
-
       .btn-secondary {
         background-color: #6c757d;
-
         border-color: #6c757d;
-
         color: white;
       } 
-
-      
-
       .btn-warning {
         background-color: #ffc107;
-
         border-color: #ffc107;
-
         color: #212529;
       } 
-
       .btn-info {
         background-color: #17a2b8;
-
         border-color: #17a2b8;
-
         color: white;
       }
-
       .btn-danger {
         background-color: #dc3545;
-
         border-color: #dc3545;
-
         color: white;
       }
       .btn:hover,
@@ -138,9 +99,10 @@
       <h1 class="text-center mb-4">
         <i class="fas fa-folder-open"></i> اختر المجلد لإدارة المنافسة
       </h1>
-      <form method="post" action="{{ url_for('select_folder') }}">
+      <!-- قمنا بإضافة ID للنموذج لسهولة الوصول إليه برمجياً -->
+      <form method="post" action="{{ url_for('select_folder') }}" id="folderForm">
         <div class="mb-3">
-          <label for="folder_path" class="form-label">مسار المجلد:</label>
+          <label for="folder_path" class="form-label">مسار المجلد (اضغط A للصور أو S للتيك توك):</label>
           <input
             type="text"
             class="form-control"
@@ -150,7 +112,7 @@
             required
           />
           <div class="form-text">
-            C:/Users/Stark/Download/myhome/video_rating_app/NS/TikTok/Elo tik/A1000 elo tik
+            الاختصارات تعمل تلقائياً عند الضغط (لا تضغط داخل مربع النص أثناء استخدام الاختصار).
           </div>
         </div>
         <button type="submit" class="btn btn-success">
@@ -163,5 +125,36 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- START: MODIFIED SECTION (Auto-Submit Shortcuts) -->
+    <script>
+      document.addEventListener('keydown', function(event) {
+          const inputField = document.getElementById('folder_path');
+          const form = document.getElementById('folderForm'); // الحصول على النموذج
+          
+          // شرط الأمان: إذا كان المستخدم يكتب داخل الحقل، لا ننفذ الاختصار
+          if (document.activeElement === inputField) {
+              return;
+          }
+
+          // عند ضغط A (أو a)
+          if (event.key.toLowerCase() === 'a') {
+              // تعيين المسار الأول
+              inputField.value = "C:\\Users\\Stark\\Download\\myhome\\video_rating_app\\NS\\TikTok\\ELO TIK\\A1000 elo pic";
+              // إرسال النموذج فوراً
+              form.submit();
+          }
+
+          // عند ضغط S (أو s)
+          if (event.key.toLowerCase() === 's') {
+              // تعيين المسار الثاني
+              inputField.value = "C:\\Users\\Stark\\Download\\myhome\\video_rating_app\\NS\\TikTok\\ELO TIK\\A1000 elo tik";
+              // إرسال النموذج فوراً
+              form.submit();
+          }
+      });
+    </script>
+    <!-- END: MODIFIED SECTION -->
+
   </body>
 </html>

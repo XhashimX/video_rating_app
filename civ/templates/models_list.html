@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}قائمة الموديلات{% endblock %}
+
+{% block content %}
+<a href="/" class="back-button">← العودة للصفحة الرئيسية</a>
+
+<div class="section">
+    <div class="section-header">
+        <h1>🎨 قائمة الموديلات</h1>
+    </div>
+
+    {% if models %}
+        <!-- استخدام الشبكة الجديدة لعرض البطاقات كما عرفناها في base.html -->
+        <div class="models-grid">
+            <!-- models الآن هي قائمة من (model_name, data) -->
+            {% for model_name, data in models %}
+            <div class="model-card">
+                <!-- الرابط يؤدي إلى صفحة البحث لتصفية الصور بهذا الموديل -->
+                <a href="{{ url_for('search', q=model_name) }}">
+                    <!-- عرض الصورة المصغرة -->
+                    <img src="/image/{{ data.preview_path }}" 
+                         alt="Preview for {{ model_name }}" 
+                         class="model-preview-img"
+                         loading="lazy">
+                    
+                    <!-- معلومات الموديل -->
+                    <div class="model-card-info">
+                        <div class="model-card-name">{{ model_name }}</div>
+                        <div class="model-card-count">{{ data.count }} صورة</div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-images">لم يتم العثور على موديلات. قم بتشغيل `scan.py`.</div>
+    {% endif %}
+</div>
+{% endblock %}

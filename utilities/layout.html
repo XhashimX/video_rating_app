@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ==========================================
+           GLOBAL STYLES
+           ========================================== */
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+        
+        .navbar {
+            background-color: #1e1e1e;
+            border-bottom: 1px solid #343a40;
+        }
+        
+        .main-content {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+        }
+        
+        .alert {
+            color: #000;
+        }
+
+        /* ==========================================
+           HIDE ALL SCROLLBARS (PERSISTENT)
+           ========================================== */
+        
+        /* Firefox */
+        * {
+            scrollbar-width: none !important;
+            scrollbar-color: transparent transparent !important;
+        }
+        
+        html {
+            scrollbar-width: none !important;
+        }
+        
+        body {
+            scrollbar-width: none !important;
+        }
+        
+        /* Chrome, Safari, Edge, Opera */
+        *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
+        }
+        
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+        
+        /* IE and Edge Legacy */
+        * {
+            -ms-overflow-style: none !important;
+        }
+        
+        /* Ensure content is still scrollable */
+        html, body {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+        
+        /* ==========================================
+           PREVENT TEXT SELECTION ARTIFACTS
+           ========================================== */
+        ::selection {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: inherit;
+        }
+        
+        ::-moz-selection {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: inherit;
+        }
+    </style>
+
+    <title>{% block title %}مدير مسابقات الفيديو{% endblock %}</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-md navbar-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-home"></i> الصفحة الرئيسية
+            </a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% block main %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ==========================================
+         PERSISTENT KEYBOARD SHORTCUTS & ZOOM
+         This script runs on EVERY page load
+         ========================================== -->
+    <script>
+        (function() {
+            'use strict';
+            
+            // ==========================================
+            // ZOOM MANAGEMENT
+            // ==========================================
+            let currentZoom = parseFloat(localStorage.getItem('appZoom')) || 1.0;
+            
+            // Apply saved zoom on page load
+            function applyZoom(zoom) {
+                currentZoom = zoom;
+                document.body.style.zoom = currentZoom;
+                localStorage.setItem('appZoom', currentZoom);
+            }
+            
+            // Initialize zoom
+            applyZoom(currentZoom);
+            
+            // ==========================================
+            // KEYBOARD SHORTCUTS HANDLER
+            // ==========================================
+            function handleKeyboardShortcuts(event) {
+                
+                // 1. BACK BUTTON - Press ']' (bracket)
+                if (event.key === ']') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    }
+                    return false;
+                }
+                
+                // 2. FULLSCREEN TOGGLE - Press F11
+                if (event.key === 'F11') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    // Call Python API if available
+                    if (window.pywebview && window.pywebview.api && window.pywebview.api.toggle_fullscreen) {
+                        window.pywebview.api.toggle_fullscreen();
+                    }
+                    return false;
+                }
+                
+                // 3. ZOOM SHORTCUTS - Ctrl + (Plus/Minus/Zero)
+                if (event.ctrlKey || event.metaKey) {
+                    
+                    // Zoom In: Ctrl + '+' or Ctrl + '='
+                    if (event.key === '+' || event.key === '=') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        currentZoom = Math.min(currentZoom + 0.1, 3.0); // Max 300%
+                        applyZoom(currentZoom);
+                        return false;
+                    }
+                    
+                    // Zoom Out: Ctrl + '-'
+                    if (event.key === '-') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        currentZoom = Math.max(currentZoom - 0.1, 0.3); // Min 30%
+                        applyZoom(currentZoom);
+                        return false;
+                    }
+                    
+                    // Reset Zoom: Ctrl + '0'
+                    if (event.key === '0') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        currentZoom = 1.0;
+                        applyZoom(currentZoom);
+                        return false;
+                    }
+                }
+            }
+            
+            // ==========================================
+            // ATTACH EVENT LISTENERS
+            // ==========================================
+            
+            // Use capture phase to intercept events before they reach other handlers
+            document.addEventListener('keydown', handleKeyboardShortcuts, true);
+            
+            // Also listen on window for redundancy
+            window.addEventListener('keydown', handleKeyboardShortcuts, true);
+            
+            // ==========================================
+            // PREVENT DEFAULT ZOOM BEHAVIOR
+            // ==========================================
+            
+            // Prevent browser's native zoom
+            window.addEventListener('wheel', function(event) {
+                if (event.ctrlKey) {
+                    event.preventDefault();
+                }
+            }, { passive: false });
+            
+            // ==========================================
+            // DEBUG INFO (Optional - Remove in production)
+            // ==========================================
+            /*
+            console.log('✅ Keyboard shortcuts initialized');
+            console.log('📊 Current zoom:', currentZoom);
+            console.log('🔑 Active shortcuts:');
+            console.log('  - ] : Go Back');
+            console.log('  - F11 : Toggle Fullscreen');
+            console.log('  - Ctrl + Plus : Zoom In');
+            console.log('  - Ctrl + Minus : Zoom Out');
+            console.log('  - Ctrl + 0 : Reset Zoom');
+            */
+            
+        })();
+    </script>
+
+    <!-- ==========================================
+         ADDITIONAL PAGE-SPECIFIC SCRIPTS
+         ========================================== -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>
