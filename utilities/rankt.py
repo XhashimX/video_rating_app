@@ -9,7 +9,7 @@ base_dir = os.path.dirname(input_file)
 base_name = "topcut_elo_videos_A1000 elo tik_"
 
 # الإعدادات المطلوبة
-start_index = 2100         # رقم البداية
+start_index = 5132         # رقم البداية
 step = 4                    # مقدار الزيادة (القفزة) في التسمية
 competitions_per_file = 4   # كل ملف يحتوي 8 مسابقات
 

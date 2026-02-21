@@ -225,6 +225,13 @@
           ><i class="fas fa-chart-bar"></i> <span class="shortcut-key">[N]</span> تحليل الأسماء</a
         >
         
+        <!-- START: NEW LONE WOLF BUTTON -->
+        <!-- L: Lone Wolf -->
+        <a href="{{ url_for('lone_wolf_page') }}" id="btn-lone-wolf" class="btn btn-warning text-dark"
+          ><i class="fas fa-dog"></i> <span class="shortcut-key">[L]</span> </a
+        >
+        <!-- END: NEW LONE WOLF BUTTON -->
+
         <!-- T: Tour Page -->
         <a href="{{ url_for('tour_page') }}" id="btn-tour" class="btn btn-primary"
           ><i class="fas fa-road"></i> <span class="shortcut-key">[T]</span> المسابقة (Tour)</a
@@ -245,12 +252,10 @@
            ><i class="fas fa-filter"></i> <span class="shortcut-key">[F]</span> فلترة وحذف الفيديوهات</a
         >
 
-        <!-- START: NEW REFRESH BUTTON -->
         <!-- U: Refresh List (Update) -->
         <a href="/manual_refresh_videos" id="btn-refresh" class="btn btn-light"
            ><i class="fas fa-sync"></i> <span class="shortcut-key">[U]</span> تحديث القائمة</a
         >
-        <!-- END: NEW REFRESH BUTTON -->
         
         <!-- END: BUTTONS WITH SHORTCUTS -->
       </div>
@@ -302,6 +307,9 @@
               case 'n': // Names Analysis
                   btnId = 'btn-names';
                   break;
+              case 'l': // Lone Wolf (New)
+                  btnId = 'btn-lone-wolf';
+                  break;
               case 'j': // JSON Analysis
                   btnId = 'btn-json';
                   break;
@@ -316,7 +324,7 @@
           if (btnId) {
               const btn = document.getElementById(btnId);
               if (btn) {
-                  event.preventDefault(); // منع السلوك الافتراضي للمتصفح إذا لزم الأمر
+                  event.preventDefault(); // منع السلوك الاftراضي للمتصفح إذا لزم الأمر
                   btn.click();
               }
           }

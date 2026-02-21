@@ -297,15 +297,22 @@ def filter_and_delete():
 
 
 
+# START: MODIFIED SECTION (in app.py)
 @app.route('/names_analysis')
 def names_analysis_page():
-    # هنا يتم استدعاء دالة analyze_names_data لتحضير البيانات للعرض
-    # لم نعد نمرر main_data هنا لأن analyze_names_data ستقوم بتحميلها بنفسها
-    analysis_results = analyze_names_data()
-    # main_data لم تعد ضرورية لـ names_analysis_page مباشرة، يمكن إزالتها إذا لم تستخدم في القالب
-    # main_data = load_data() # هذه لم تعد ضرورية هنا لـ names_analysis_page
-    return render_template('names_analysis.html', analysis_results=analysis_results)
-
+    # الآن الدالة ترجع قاموساً يحتوي على الإحصائيات والأزواج المتنافسة
+    analysis_data = analyze_names_data()
+    
+    # فصل البيانات
+    analysis_results = analysis_data.get('stats', {})
+    rival_pairs = analysis_data.get('rival_pairs', [])
+    
+    return render_template(
+        'names_analysis.html', 
+        analysis_results=analysis_results,
+        rival_pairs=rival_pairs
+    )
+# END: MODIFIED SECTION
 # --- استبدل الدالة الحالية بهذه النسخة المعدلة في app.py ---
 
 # START: MODIFIED SECTION
@@ -2663,7 +2670,68 @@ def delete_bet_action():
         
     return redirect(url_for('dashboard', filter=return_filter, search=return_search))
 
+# --- ADD THESE ROUTES TO app.py ---
 
+# استيراد الدالة الجديدة
+from utilities.video_analyzer import find_lone_wolves
+
+# START: ADDED SECTION - LONE WOLF FEATURE
+# تأكد من استيراد الدالة الجديدة في أعلى الملف أو هنا
+from utilities.video_analyzer import find_lone_wolves
+
+@app.route('/lone_wolf')
+def lone_wolf_page():
+    """
+    يعرض صفحة الذئب الوحيد (الفيديوهات القوية لأصحاب الأداء الضعيف).
+    """
+    if not session.get('selected_folder'):
+        flash("يرجى اختيار مجلد أولاً.", "warning")
+        return redirect(url_for('select_folder'))
+    
+    # استدعاء دالة التحليل
+    wolves_list = find_lone_wolves()
+    
+    return render_template('lone_wolf.html', wolves=wolves_list)
+
+@app.route('/add_tag_re', methods=['POST'])
+def add_tag_re():
+    """
+    API لإضافة التاج 'Re' للفيديو عند الضغط على الزر.
+    """
+    try:
+        data_req = request.get_json()
+        video_name = data_req.get('video_name')
+        
+        if not video_name:
+            return jsonify({'success': False, 'message': 'اسم الفيديو مفقود'})
+            
+        main_data = load_data()
+        
+        if video_name in main_data:
+            current_tags = main_data[video_name].get('tags', '')
+            # تحويل التاجات إلى قائمة لتسهيل الفحص
+            if current_tags:
+                tag_list = [t.strip() for t in current_tags.split(',')]
+            else:
+                tag_list = []
+            
+            # التحقق من عدم وجود التاج مسبقاً
+            if 'Re' not in tag_list:
+                tag_list.append('Re')
+                # إعادة تجميع التاجات كنص
+                new_tags_str = ','.join(tag_list)
+                main_data[video_name]['tags'] = new_tags_str
+                save_data(main_data)
+                return jsonify({'success': True, 'message': 'تمت إضافة التاج بنجاح', 'new_tags': new_tags_str})
+            else:
+                return jsonify({'success': False, 'message': 'التاج موجود بالفعل'})
+        else:
+            return jsonify({'success': False, 'message': 'الفيديو غير موجود في البيانات'})
+            
+    except Exception as e:
+        print(f"Error adding tag: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+# END: ADDED SECTION
 def get_tournament_priority(filename):
     """
     دالة مساعدة لترتيب ملفات البطولة حسب الأولويات المطلوبة.

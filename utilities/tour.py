@@ -80,6 +80,8 @@ def create_tournament_web(selected_file, num_participants, num_videos, ranking_t
 # استيراد مدير الرهانات
 from .bet_manager import load_bets
 
+# --- START OF FILE tour.py (Modified Function Only) ---
+
 def create_mixed_tournament(selected_file, num_matches, num_videos_per_match, ranking_type, bet_settings):
     """
     إنشاء بطولة مختلطة تحتوي على رهانات محددة (ضد أصحاب المراكز الحالية) + مباريات عشوائية.
@@ -109,7 +111,6 @@ def create_mixed_tournament(selected_file, num_matches, num_videos_per_match, ra
     active_bets = load_bets()
     
     # تصفية الرهانات النشطة التي يوجد فيها المتحدي في البيانات
-    # ملاحظة: لم نعد نتحقق من وجود defender_video القديم لأنه سيتغير
     valid_active_bets_info = []
     for challenger, info in active_bets.items():
         if info['status'] == 'active' and challenger in original_data:
@@ -129,9 +130,12 @@ def create_mixed_tournament(selected_file, num_matches, num_videos_per_match, ra
             count = min(len(valid_active_bets_info), bet_settings['count'])
             bets_to_process = random.sample(valid_active_bets_info, count)
     
-    # تقليص العدد إذا لزم الأمر
+    # --- START: MODIFIED SECTION ---
+    # التعديل: بدلاً من تقليص الرهانات، نقوم بتوسيع البطولة
     if len(bets_to_process) > num_matches:
-        bets_to_process = bets_to_process[:num_matches]
+        # إذا كان عدد الرهانات أكبر من عدد المباريات المطلوب، نزيد عدد المباريات
+        num_matches = len(bets_to_process)
+    # --- END: MODIFIED SECTION ---
 
     # 3. إنشاء مباريات الرهانات (الحقن الديناميكي)
     for challenger, info in bets_to_process:
@@ -142,13 +146,11 @@ def create_mixed_tournament(selected_file, num_matches, num_videos_per_match, ra
         if 1 <= target_rank <= len(sorted_video_names):
             current_defender = sorted_video_names[target_rank - 1]
         
-        # إذا لم نجد خصم (ترتيب خارج النطاق) أو كان الخصم هو نفسه المتحدي، نستخدم الخصم المسجل
-        # أو نتجاوز الرهان إذا أردنا الصرامة. هنا سنستخدم المسجل كاحتياط.
+        # إذا لم نجد خصم أو كان الخصم هو نفسه المتحدي، نستخدم الخصم المسجل
         if not current_defender or current_defender == challenger:
              current_defender = info.get('defender_video')
-             # التأكد مرة أخرى أن الخصم القديم موجود
              if current_defender not in original_data:
-                 continue # تخطي هذا الرهان إذا لا يوجد خصم صالح
+                 continue 
 
         match_videos = [challenger, current_defender]
         
@@ -177,24 +179,27 @@ def create_mixed_tournament(selected_file, num_matches, num_videos_per_match, ra
         matches.append(match)
 
     # 4. ملء باقي المباريات (عشوائي بالكامل)
+    # إذا كانت الرهانات قد غطت كل العدد أو زادت عنه، لن يتم تنفيذ هذا الجزء
     remaining_matches_count = num_matches - len(matches)
     
-    for _ in range(remaining_matches_count):
-        candidates = [(v, original_data[v]) for v in all_video_keys]
-        selected_items = _select_unique_by_name(candidates, num_videos_per_match)
-        selected_videos = [item[0] for item in selected_items]
-        
-        match = {
-            "videos": selected_videos,
-            "rating": [original_data[v].get("rating", 1000) for v in selected_videos],
-            "file_size": [original_data[v].get("file_size", 0) for v in selected_videos],
-            "mode": 1,
-            "num_videos": num_videos_per_match,
-            "ranking_type": ranking_type,
-            "competition_type": "random"
-        }
-        matches.append(match)
+    if remaining_matches_count > 0:
+        for _ in range(remaining_matches_count):
+            candidates = [(v, original_data[v]) for v in all_video_keys]
+            selected_items = _select_unique_by_name(candidates, num_videos_per_match)
+            selected_videos = [item[0] for item in selected_items]
+            
+            match = {
+                "videos": selected_videos,
+                "rating": [original_data[v].get("rating", 1000) for v in selected_videos],
+                "file_size": [original_data[v].get("file_size", 0) for v in selected_videos],
+                "mode": 1,
+                "num_videos": num_videos_per_match,
+                "ranking_type": ranking_type,
+                "competition_type": "random"
+            }
+            matches.append(match)
 
+    # خلط المباريات لكي لا تكون الرهانات كلها في البداية (اختياري)
     random.shuffle(matches)
 
     # 5. الحفظ
@@ -213,8 +218,6 @@ def create_mixed_tournament(selected_file, num_matches, num_videos_per_match, ra
         return {'success': False, 'message': f"Error saving tournament file: {e}"}
 
     return {'success': True, 'message': f"تم إنشاء البطولة ({len(bets_to_process)} رهان ديناميكي، {remaining_matches_count} عشوائي) وحفظها باسم {new_filename}"}
-# END: MODIFIED SECTION
-
 # ... (باقي الملف) ...
 
 # ... (باقي الدوال في الملف: continue_tournament_web, update_tournament_archive... تبقى كما هي) ...

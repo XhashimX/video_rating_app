@@ -1,10 +1,28 @@
-# START OF FILE utilities/advanced_tools.py
 
 import json
 import re
 import os
 import random
 from datetime import datetime
+
+# --- Constants Definitions ---
+# تعريف الثوابت المفقودة التي تسببت في الخطأ
+RELEVANT_RANKS = ["top1", "top2", "top3", "top4"]
+
+VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv']
+IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff']
+
+TWO_ITEM_WEIGHT_RULES = {
+    "top1": 0.60,
+    "top2": 0.40
+}
+
+STANDARD_WEIGHT_RULES = {
+    "top1": {"base_percent": 0.50, "bonus_percent": 0.10},
+    "top2": {"base_percent": 0.30, "bonus_percent": 0.05},
+    "top3": {"base_percent": 0.10, "bonus_percent": 0.00},
+    "top4": {"base_percent": 0.10, "bonus_percent": 0.00}
+}
 
 # --- دوال مساعدة للتحميل والحفظ ---
 
@@ -48,7 +66,7 @@ def _sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
 
 
-# --- الدالة الأولى: الاستخراج حسب الحجم (مُعاد كتابتها بالكامل) ---
+# --- الدالة الأولى: الاستخراج حسب الحجم ---
 
 def _extract_sizes_from_content(content):
     """
@@ -82,7 +100,6 @@ def _extract_sizes_from_content(content):
 def function_extract_by_size(input_content, database_files, base_output_path, original_filename="content"):
     """
     تبحث عن فيديوهات مطابقة للأحجام المستخرجة من المحتوى وتبني ملفًا جديدًا.
-    هذه النسخة لا تستخدم input() وتقبل الوسائط مباشرة.
     """
     try:
         if not input_content or not input_content.strip():
@@ -127,7 +144,7 @@ def function_extract_by_size(input_content, database_files, base_output_path, or
         return {'success': False, 'message': f"حدث خطأ غير متوقع: {e}"}
 
 
-# --- الدالة الثانية: صنع المسابقات (مُعاد كتابتها بالكامل) ---
+# --- الدالة الثانية: صنع المسابقات ---
 
 def _parse_range_list(input_str, value_type=int):
     """
@@ -156,10 +173,17 @@ def _parse_range_list(input_str, value_type=int):
                 continue
     return ranges
 
+def _parse_string_list(input_str):
+    """
+    تحلل سلسلة نصية مفصولة بفواصل مثل 'face, body' إلى قائمة.
+    """
+    if not input_str or not input_str.strip():
+        return []
+    return [item.strip().lower() for item in input_str.split(',') if item.strip()]
+
 def _filter_videos_non_interactive(videos_data, filters):
     """
     تطبق الفلاتر على بيانات الفيديو بناءً على قاموس الفلاتر.
-    هذه النسخة لا تستخدم input().
     """
     rating_ranges = _parse_range_list(filters.get('rating', ''), int)
     ts_ranges = _parse_range_list(filters.get('times_shown', ''), int)
@@ -200,7 +224,6 @@ def _filter_videos_non_interactive(videos_data, filters):
 def function_make_competition(input_json_path, base_output_path, settings):
     """
     تنشئ ملف مسابقات مخصص بناءً على الإعدادات المقدمة.
-    تدعم الآن الفلاتر المتوازنة للتقييم، مرات الظهور، الوسوم، والأسماء.
     """
     try:
         if not os.path.exists(input_json_path):
@@ -220,7 +243,7 @@ def function_make_competition(input_json_path, base_output_path, settings):
         num_videos = settings.get('num_videos', 2)
         competitions = []
         
-        # --- المنطق الجديد: التحقق من وجود فلاتر متوازنة وتحديد أيها نشط ---
+        # التحقق من وجود فلاتر متوازنة
         active_balanced_filters = {
             'rating': filters.get('balanced_rating', '').strip(),
             'times_shown': filters.get('balanced_times_shown', '').strip(),
@@ -238,7 +261,7 @@ def function_make_competition(input_json_path, base_output_path, settings):
             filter_type = active_filters_list[0]
             filter_value = active_balanced_filters[filter_type]
             
-            # الخطوة 2: تقسيم الفيديوهات إلى مجموعات بناءً على نوع الفلتر
+            # الخطوة 2: تقسيم الفيديوهات إلى مجموعات
             groups_defs = [p.strip() for p in filter_value.split(',') if p.strip()]
             
             if filter_type in ['rating', 'times_shown', 'tags'] and len(groups_defs) != 2:
@@ -339,7 +362,6 @@ def function_make_competition(input_json_path, base_output_path, settings):
                     }
                     competitions.append(competition_entry)
         
-        # الجزء المتبقي من الدالة لم يتغير
         limit = settings.get('limit')
         if limit and limit > 0 and len(competitions) > limit:
             competitions = competitions[:limit]
@@ -366,15 +388,7 @@ def function_make_competition(input_json_path, base_output_path, settings):
         traceback.print_exc()
         return {'success': False, 'message': f"حدث خطأ غير متوقع: {e}"}
 
-def _parse_string_list(input_str):
-    """
-    تحلل سلسلة نصية مفصولة بفواصل مثل 'face, body' إلى قائمة.
-    """
-    if not input_str or not input_str.strip():
-        return []
-    return [item.strip().lower() for item in input_str.split(',') if item.strip()]
-
-# START: MODIFIED FUNCTION in utilities/advanced_tools.py
+# --- الدالة الثالثة: المقارنة والتصحيح ---
 
 def _extract_first_long_number(text):
     """
@@ -390,10 +404,6 @@ def _extract_first_long_number(text):
 def function_compare_and_correct(target_file_paths, master_db_paths, output_option, base_output_path, update_ratings=False):
     """
     تقارن وتصحح قائمة من ملفات البطولات بناءً على قواعد البيانات الرئيسية.
-    المميزات الجديدة:
-    1. دعم تصحيح عدة ملفات دفعة واحدة.
-    2. خيار لتحديث التقييم (اختياري).
-    3. البحث عن طريق ID (10 أرقام متتالية) إذا فشل البحث بالحجم.
     """
     print(f"\n--- بدء عملية التصحيح المتقدمة ---")
     
@@ -406,7 +416,6 @@ def function_compare_and_correct(target_file_paths, master_db_paths, output_opti
 
     try:
         # 1. بناء قواميس البحث السريع من قواعد البيانات الرئيسية
-        # سنحتاج قاموسين: واحد للحجم (الأدق)، وواحد للـ ID (الاحتياطي)
         master_lookup_size = {}
         master_lookup_id = {}
         loaded_dbs_count = 0
@@ -503,7 +512,6 @@ def function_compare_and_correct(target_file_paths, master_db_paths, output_opti
                             stats['name_fixed'] += 1
                         
                         # 2. تصحيح التقييم (فقط إذا تم تفعيل الخيار)
-                        # ملاحظة: للمطابقة بالـ ID، لن يتم تحديث الحجم كما طلبت، وسيتم تحديث التقييم فقط إذا كان الخيار مفعلاً
                         if update_ratings:
                             if abs(float(competition['rating'][i]) - float(master_entry['rating'])) > 0.01:
                                 competition['rating'][i] = master_entry['rating']
@@ -545,7 +553,9 @@ def function_compare_and_correct(target_file_paths, master_db_paths, output_opti
         traceback.print_exc()
         return {'success': False, 'message': f"Critical Error: {e}"}
 
-# END: MODIFIED FUNCTION
+
+# --- الدالة الرابعة: معالجة الأوزان وإنشاء البطولة ---
+
 def _build_master_lookup(master_db_paths):
     """يبني قاموس بحث سريع من قواعد البيانات الموثوقة."""
     master_lookup = {}
@@ -556,7 +566,7 @@ def _build_master_lookup(master_db_paths):
                 if 'file_size' in details:
                     master_lookup[details['file_size']] = {
                         'video_name': vid_name,
-                        'name': details.get('name', ''), # اسم العرض
+                        'name': details.get('name', ''), 
                         'rating': details.get('rating', 1000),
                         'file_size': details['file_size']
                     }
@@ -636,6 +646,7 @@ def function_process_weights_and_create_tournament(settings, base_utilities_path
             except (ValueError, IndexError):
                 continue
 
+            # استخدام الثابت المعرف الآن RELEVANT_RANKS
             present_ranks = [r for r in RELEVANT_RANKS if r in tour_data]
             is_two_item = (len(present_ranks) == 2 and "top1" in present_ranks and "top2" in present_ranks)
 
@@ -661,6 +672,7 @@ def function_process_weights_and_create_tournament(settings, base_utilities_path
                 _, ext = os.path.splitext(item_name)
                 
                 weight = 0
+                # استخدام الثوابت المعرفة الآن
                 if is_two_item and rank_key in TWO_ITEM_WEIGHT_RULES:
                     weight = TWO_ITEM_WEIGHT_RULES[rank_key] * base_weight
                 elif rank_key in STANDARD_WEIGHT_RULES:
@@ -677,11 +689,11 @@ def function_process_weights_and_create_tournament(settings, base_utilities_path
                     }
                 else:
                     archive_items_by_size[file_size]["total_weight"] += weight
-                    archive_items_by_size[file_size]["latest_rating"] = latest_rating # تحديث التقييم لآخر ظهور
+                    archive_items_by_size[file_size]["latest_rating"] = latest_rating 
 
         # --- 4. دمج البيانات وحفظها ---
         for fs, data in archive_items_by_size.items():
-             existing_items_by_size[fs] = data # الكتابة فوق البيانات القديمة ببيانات الأرشيف المحدثة
+             existing_items_by_size[fs] = data 
 
         processed_list = sorted(existing_items_by_size.values(), key=lambda x: x.get('total_weight', 0), reverse=True)
         _save_json_file(processed_list, PROCESSED_ITEMS_FILE)
@@ -693,7 +705,6 @@ def function_process_weights_and_create_tournament(settings, base_utilities_path
         
         items_with_weight = [item for item in processed_list if item.get("total_weight", 0) > 0]
         
-        # فلترة أولية حسب النوع
         filtered_items_for_selection = _filter_items_by_type(items_with_weight, item_type)
         
         selected_items = []
@@ -736,7 +747,6 @@ def function_process_weights_and_create_tournament(settings, base_utilities_path
             manual_not_found = []
 
             for size in manual_sizes:
-                # البحث في القائمة المعالجة أولاً، ثم في قاعدة البيانات الموثوقة
                 if size in existing_items_by_size:
                     manual_items.append(existing_items_by_size[size])
                     manual_found_count +=1
@@ -751,7 +761,6 @@ def function_process_weights_and_create_tournament(settings, base_utilities_path
                 else:
                     manual_not_found.append(str(size))
             
-            # إزالة العناصر المضافة يدوياً من المجمع لتجنب التكرار
             manual_sizes_set = set(manual_sizes)
             range_pool = [item for item in range_pool if item['file_size'] not in manual_sizes_set]
             
@@ -781,16 +790,12 @@ def function_process_weights_and_create_tournament(settings, base_utilities_path
                 "mode": 1, "num_videos": 2, "ranking_type": "winner_only", "competition_type": "random"
             })
 
-# START: MODIFIED SECTION
         # --- 7. حساب الوزن وتجهيز اسم الملف والرسالة النهائية ---
 
-        # حساب الوزن الإجمالي للمشاركين في البطولة
         total_tournament_weight = sum(item.get('total_weight', 0) for item in selected_items)
         
-        # إنشاء اسم الملف الجديد
         input_basename = "unknown_source"
         if master_db_names:
-            # استخدام اسم أول ملف قاعدة بيانات موثوق كأساس
             input_basename = _sanitize_filename(os.path.splitext(master_db_names[0])[0])
             
         random_suffix = random.randint(100, 999)
@@ -799,7 +804,6 @@ def function_process_weights_and_create_tournament(settings, base_utilities_path
         
         _save_json_file(tournament, output_filepath)
 
-        # إعداد رسالة النتيجة النهائية
         final_message = (
             f"اكتملت المعالجة بنجاح!<br>"
             f"- تم تحديث <strong>{corrections_in_processed}</strong> عنصر في `processed_videos.json`.<br>"
@@ -812,7 +816,6 @@ def function_process_weights_and_create_tournament(settings, base_utilities_path
              final_message += f"<br>- <span class='text-danger'>تحذير: لم يتم العثور على الأحجام التالية: {', '.join(manual_not_found)}.</span>"
 
         return {'success': True, 'message': final_message}
-# END: MODIFIED SECTION
 
     except Exception as e:
         print(f"Error in function_process_weights_and_create_tournament: {e}")
