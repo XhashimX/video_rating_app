@@ -400,11 +400,16 @@ def _extract_first_long_number(text):
     if match:
         return match.group(1)
     return None
-
 def function_compare_and_correct(target_file_paths, master_db_paths, output_option, base_output_path, update_ratings=False):
     """
     تقارن وتصحح قائمة من ملفات البطولات بناءً على قواعد البيانات الرئيسية.
+    تم التحديث: تجاهل أحجام الصفر، واستبدال العناصر المفقودة عشوائياً بذكاء حسب نوع الملف السائد.
     """
+    import random # نضمن وجود مكتبة العشوائية
+    import os
+    import json
+    from datetime import datetime
+
     print(f"\n--- بدء عملية التصحيح المتقدمة ---")
     
     # التأكد من أن المدخل قائمة
@@ -415,43 +420,54 @@ def function_compare_and_correct(target_file_paths, master_db_paths, output_opti
         return {'success': False, 'message': 'لم يتم تحديد أي ملفات للتصحيح.'}
 
     try:
-        # 1. بناء قواميس البحث السريع من قواعد البيانات الرئيسية
+        # 1. بناء قواميس البحث السريع وبنوك الاستبدال العشوائي
         master_lookup_size = {}
         master_lookup_id = {}
+        
+        # بنوك (Pools) مخصصة للاستبدال العشوائي الآمن
+        master_video_pool = []
+        master_image_pool = []
+        
         loaded_dbs_count = 0
         
-        print("جاري تحميل وبناء فهارس البحث...")
+        print("جاري تحميل وبناء فهارس البحث وبنوك الاستبدال...")
         for db_path in master_db_paths:
             db_data = _load_json_file(db_path)
             if db_data and isinstance(db_data, dict):
                 loaded_dbs_count += 1
                 for vid_name, details in db_data.items():
-                    # فهرس الحجم
-                    if 'file_size' in details and details['file_size'] is not None:
-                        try:
-                            f_size = int(details['file_size'])
-                            entry_data = {
-                                'name': vid_name,
-                                'rating': details.get('rating', 1000),
-                                'file_size': f_size
-                            }
-                            master_lookup_size[f_size] = entry_data
-                        except ValueError:
-                            pass
+                    try:
+                        f_size = int(details.get('file_size', 0))
+                    except (ValueError, TypeError):
+                        f_size = 0
+                        
+                    entry_data = {
+                        'name': vid_name,
+                        'rating': details.get('rating', 1000),
+                        'file_size': f_size
+                    }
+
+                    # أ. فهرس الحجم (فقط إذا كان الحجم أكبر من صفر لتجنب مطابقة الأخطاء)
+                    if f_size > 0:
+                        master_lookup_size[f_size] = entry_data
+                        
+                        # إضافة العنصر السليم لبنك الاستبدال حسب نوعه
+                        ext = os.path.splitext(vid_name)[1].lower()
+                        if ext in VIDEO_EXTENSIONS:
+                            master_video_pool.append(entry_data)
+                        elif ext in IMAGE_EXTENSIONS:
+                            master_image_pool.append(entry_data)
                     
-                    # فهرس الـ ID (استخراج الـ ID من اسم الفيديو في القاعدة الموثوقة)
+                    # ب. فهرس الـ ID (يعمل كخطة بديلة)
                     vid_id = _extract_first_long_number(vid_name)
                     if vid_id:
-                        # ملاحظة: إذا تكرر الـ ID، سيتم اعتماد آخر واحد تمت قراءته
-                        master_lookup_id[vid_id] = {
-                            'name': vid_name,
-                            'rating': details.get('rating', 1000),
-                            'file_size': details.get('file_size', 0)
-                        }
+                        master_lookup_id[vid_id] = entry_data
 
         print(f"تم تحميل {loaded_dbs_count} قاعدة بيانات.")
         print(f"- عناصر مفهرسة بالحجم: {len(master_lookup_size)}")
         print(f"- عناصر مفهرسة بالـ ID: {len(master_lookup_id)}")
+        print(f"- بنك الفيديوهات السليمة للاستبدال: {len(master_video_pool)}")
+        print(f"- بنك الصور السليمة للاستبدال: {len(master_image_pool)}")
         
         if not master_lookup_size:
             return {'success': False, 'message': 'فشل تحميل البيانات الرئيسية أو أنها فارغة.'}
@@ -469,8 +485,20 @@ def function_compare_and_correct(target_file_paths, master_db_paths, output_opti
                 results_log.append(f"{target_filename}: فشل (الملف غير صالح)")
                 continue
 
+            # --- الخطوة الذكية: تحديد "الغالبية" (Majority Type) لهذا الملف ---
+            v_count = 0
+            i_count = 0
+            for comp in target_data:
+                for v_name in comp.get('videos', []):
+                    ext = os.path.splitext(v_name)[1].lower()
+                    if ext in VIDEO_EXTENSIONS: v_count += 1
+                    elif ext in IMAGE_EXTENSIONS: i_count += 1
+            
+            target_majority_type = 'image' if i_count > v_count else 'video'
+            print(f"   -> الامتداد الغالب في هذا الملف هو: {target_majority_type} (فيديو: {v_count}, صور: {i_count})")
+
             # عدادات للملف الحالي
-            stats = {'size_match': 0, 'id_match': 0, 'name_fixed': 0, 'rating_updated': 0, 'missing': 0}
+            stats = {'size_match': 0, 'id_match': 0, 'name_fixed': 0, 'rating_updated': 0, 'missing': 0, 'random_replaced': 0}
             
             # نسخ البيانات للتعديل
             corrected_competitions = json.loads(json.dumps(target_data))
@@ -479,7 +507,7 @@ def function_compare_and_correct(target_file_paths, master_db_paths, output_opti
                 if not all(k in competition for k in ['file_size', 'videos', 'rating']):
                     continue
                 
-                # المرور على الفيديوهات داخل المسابقة (عادة 2)
+                # المرور على الفيديوهات داخل المسابقة
                 for i in range(len(competition['file_size'])):
                     try:
                         current_size = int(competition['file_size'][i])
@@ -488,37 +516,53 @@ def function_compare_and_correct(target_file_paths, master_db_paths, output_opti
                     
                     current_name = competition['videos'][i]
                     master_entry = None
-                    found_method = None # 'size' or 'id'
 
-                    # أ) المحاولة الأولى: المطابقة بالحجم (الأدق)
-                    if current_size in master_lookup_size:
+                    # أ) المحاولة الأولى: المطابقة بالحجم (يجب أن يكون الحجم أكبر من الصفر)
+                    if current_size > 0 and current_size in master_lookup_size:
                         master_entry = master_lookup_size[current_size]
-                        found_method = 'size'
                         stats['size_match'] += 1
                     
-                    # ب) المحاولة الثانية: المطابقة بالـ ID (إذا فشل الحجم)
+                    # ب) المحاولة الثانية: المطابقة بالـ ID (الخطة البديلة)
                     else:
                         current_id = _extract_first_long_number(current_name)
                         if current_id and current_id in master_lookup_id:
                             master_entry = master_lookup_id[current_id]
-                            found_method = 'id'
                             stats['id_match'] += 1
                     
                     # ج) تطبيق التصحيح إذا وجدنا تطابقاً
                     if master_entry:
-                        # 1. تصحيح الاسم (دائماً)
+                        # 1. تصحيح الاسم
                         if current_name != master_entry['name']:
                             competition['videos'][i] = master_entry['name']
                             stats['name_fixed'] += 1
                         
-                        # 2. تصحيح التقييم (فقط إذا تم تفعيل الخيار)
+                        # 2. تحديث الحجم (مهم جداً إذا كان التطابق تم عبر الـ ID وكان الحجم القديم صفر)
+                        competition['file_size'][i] = master_entry['file_size']
+                        
+                        # 3. تصحيح التقييم
                         if update_ratings:
                             if abs(float(competition['rating'][i]) - float(master_entry['rating'])) > 0.01:
                                 competition['rating'][i] = master_entry['rating']
                                 stats['rating_updated'] += 1
+                    
+                    # د) الخطة النهائية: الاستبدال العشوائي الذكي (إذا فشل كل شيء)
                     else:
-                        stats['missing'] += 1
-                        print(f"   -> [MISSING] لم يتم العثور على: {current_name} (Size: {current_size})")
+                        pool = master_image_pool if target_majority_type == 'image' else master_video_pool
+                        
+                        if pool: # نتأكد أن البنك ليس فارغاً
+                            random_entry = random.choice(pool)
+                            
+                            competition['videos'][i] = random_entry['name']
+                            competition['file_size'][i] = random_entry['file_size']
+                            # نعطيه التقييم الحقيقي الخاص به لكي لا تنهار حسابات Elo
+                            competition['rating'][i] = random_entry['rating'] 
+                            
+                            stats['random_replaced'] += 1
+                            print(f"   -> [REPLACED] تم استبدال العنصر المفقود ({current_name}) بعنصر سليم ({random_entry['name']})")
+                        else:
+                            # حالة نادرة جداً: لا يوجد شيء في البنك لاستبداله
+                            stats['missing'] += 1
+                            print(f"   -> [MISSING] لم يتم العثور ولم نتمكن من الاستبدال: {current_name}")
 
             # 3. حفظ الملف المصحح
             if output_option == 'overwrite':
@@ -538,7 +582,8 @@ def function_compare_and_correct(target_file_paths, master_db_paths, output_opti
                     f"<strong>{target_filename}</strong>:<br>"
                     f"&nbsp;&nbsp;- مطابقة بالحجم: {stats['size_match']}, بالـ ID: {stats['id_match']}<br>"
                     f"&nbsp;&nbsp;- تصحيح أسماء: {stats['name_fixed']}, تحديث تقييم: {stats['rating_updated']}<br>"
-                    f"&nbsp;&nbsp;- غير موجود: {stats['missing']}"
+                    f"&nbsp;&nbsp;- <strong>استبدال عشوائي (إنقاذ): {stats['random_replaced']}</strong><br>"
+                    f"&nbsp;&nbsp;- مفقود تماماً: {stats['missing']}"
                 )
                 results_log.append(log_entry)
             else:
@@ -552,7 +597,6 @@ def function_compare_and_correct(target_file_paths, master_db_paths, output_opti
         import traceback
         traceback.print_exc()
         return {'success': False, 'message': f"Critical Error: {e}"}
-
 
 # --- الدالة الرابعة: معالجة الأوزان وإنشاء البطولة ---
 
