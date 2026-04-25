@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>أدوات أرشيف البطولات</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-base:       #0e0e14;
+      --bg-surface:    #16161f;
+      --bg-elevated:   #1e1e2a;
+      --bg-hover:      #24243a;
+      --bg-selected:   #1a2a50;
+      --accent:        #5b8dee;
+      --accent-dim:    #1a3060;
+      --accent-glow:   rgba(91,141,238,0.12);
+      --green:         #3ec97e;
+      --green-dim:     #1a4a30;
+      --orange:        #f0a050;
+      --border:        #252535;
+      --border-accent: #2a4070;
+      --text-primary:  #e8e8f0;
+      --text-secondary:#9090b0;
+      --text-muted:    #505068;
+      --radius-sm:     6px;
+      --radius-md:     10px;
+      --radius-lg:     14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding-bottom: 280px;
+    }
+
+    /* ─── HEADER ─────────────────────── */
+    .site-header {
+      background: linear-gradient(160deg, #12122a 0%, #0e1a30 100%);
+      border-bottom: 1px solid var(--border-accent);
+      padding: 0.9rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left { display:flex; align-items:center; gap:1rem; }
+    .back-btn {
+      display:inline-flex; align-items:center; gap:0.45rem;
+      padding:0.38rem 0.9rem;
+      border:1px solid var(--border); border-radius:var(--radius-sm);
+      background:transparent; color:var(--text-secondary);
+      text-decoration:none; font-size:0.82rem;
+      transition:all .2s;
+    }
+    .back-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+    .site-title {
+      display:flex; align-items:center; gap:0.65rem;
+      font-size:1.25rem; font-weight:700; color:var(--text-primary); margin:0;
+    }
+    .title-icon {
+      width:32px; height:32px; border-radius:var(--radius-sm);
+      background:var(--accent-dim); display:flex; align-items:center; justify-content:center;
+      color:var(--accent); font-size:0.85rem; flex-shrink:0;
+    }
+    .floating-badge {
+      display:none; align-items:center; gap:0.4rem;
+      background:var(--accent); color:#fff;
+      border-radius:20px; padding:0.28em 0.9em;
+      font-size:0.8rem; font-weight:700;
+      animation: popIn .2s ease;
+    }
+    @keyframes popIn { from{transform:scale(.8);opacity:0} to{transform:scale(1);opacity:1} }
+
+    /* ─── FLASH ──────────────────────── */
+    .flash-area {
+      position:fixed; top:72px; left:50%; transform:translateX(-50%);
+      z-index:400; width:520px; max-width:92vw;
+    }
+    .flash-area .alert { border-radius:var(--radius-md); font-size:.86rem; box-shadow:0 4px 20px rgba(0,0,0,.5); }
+
+    /* ─── PAGE BODY ──────────────────── */
+    .page-body { max-width:1080px; margin:0 auto; padding:1.5rem 1.5rem 0; }
+
+    /* ─── DIVIDER TITLE ─────────────── */
+    .div-title {
+      display:flex; align-items:center; gap:.5rem;
+      font-size:.7rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.08em; color:var(--text-muted); margin-bottom:.75rem;
+    }
+    .div-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    /* ─── FILTER CARD ────────────────── */
+    .filter-card {
+      background:var(--bg-surface);
+      border:1px solid var(--border-accent);
+      border-radius:var(--radius-lg);
+      padding:1.25rem 1.5rem;
+      margin-bottom:1.5rem;
+    }
+    .filter-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
+    @media(max-width:600px){ .filter-grid{grid-template-columns:1fr;} }
+
+    .filter-label {
+      display:flex; align-items:center; gap:.4rem;
+      font-size:.78rem; color:var(--text-secondary); margin-bottom:.45rem;
+    }
+    .filter-hint { font-size:.68rem; color:var(--text-muted); }
+
+    .filter-row { display:flex; gap:.4rem; }
+    .filter-row input {
+      flex:1; background:var(--bg-elevated); border:1px solid var(--border);
+      border-radius:var(--radius-sm); color:var(--text-primary);
+      padding:.48rem .8rem; font-size:.84rem; transition:border-color .2s;
+    }
+    .filter-row input:focus { outline:none; border-color:var(--accent); background:var(--bg-hover); }
+    .filter-row input::placeholder { color:var(--text-muted); }
+
+    .fbtn {
+      display:inline-flex; align-items:center; padding:.48rem .85rem;
+      border-radius:var(--radius-sm); border:1px solid var(--border);
+      background:var(--bg-elevated); color:var(--text-secondary);
+      font-size:.82rem; cursor:pointer; text-decoration:none; transition:all .2s;
+    }
+    .fbtn.blue { background:var(--accent-dim); color:var(--accent); border-color:var(--accent-dim); }
+    .fbtn.blue:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .fbtn.amber { background:#3a2a10; color:var(--orange); border-color:#4a3a20; }
+    .fbtn.amber:hover { background:var(--orange); color:#000; }
+    .fbtn.clear:hover { color:#e07070; border-color:#703030; }
+
+    /* ─── TOOLBAR ────────────────────── */
+    .toolbar {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:.75rem; flex-wrap:wrap; margin-bottom:.8rem;
+    }
+    .stat-chips { display:flex; gap:.5rem; flex-wrap:wrap; }
+    .chip {
+      display:flex; align-items:center; gap:.4rem;
+      background:var(--bg-elevated); border:1px solid var(--border);
+      border-radius:20px; padding:.28em .8em;
+      font-size:.76rem; color:var(--text-secondary);
+    }
+    .chip strong { font-weight:700; color:var(--text-primary); }
+    .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .dot-b{background:var(--accent)} .dot-g{background:var(--green)} .dot-o{background:var(--orange)}
+
+    .bulk-row { display:flex; gap:.45rem; }
+    .ibtn {
+      display:inline-flex; align-items:center; gap:.38rem;
+      padding:.32rem .8rem; border-radius:var(--radius-sm);
+      border:1px solid var(--border); background:var(--bg-elevated);
+      color:var(--text-secondary); font-size:.76rem; cursor:pointer; transition:all .2s;
+    }
+    .ibtn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+
+    /* ─── LIST ───────────────────────── */
+    .list-card {
+      background:var(--bg-surface); border:1px solid var(--border);
+      border-radius:var(--radius-lg); overflow:hidden;
+    }
+    .tournament-list { max-height:54vh; overflow-y:auto; }
+    .tournament-list::-webkit-scrollbar { width:4px; }
+    .tournament-list::-webkit-scrollbar-track { background:transparent; }
+    .tournament-list::-webkit-scrollbar-thumb { background:#303050; border-radius:2px; }
+
+    .tournament-item {
+      display:flex; align-items:center; gap:1rem;
+      padding:.72rem 1.3rem; border-bottom:1px solid var(--border);
+      cursor:pointer; transition:background .12s; user-select:none;
+    }
+    .tournament-item:last-child { border-bottom:none; }
+    .tournament-item:hover { background:var(--bg-hover); }
+    .tournament-item.selected {
+      background:var(--bg-selected);
+      border-bottom-color:#253560;
+    }
+    .tournament-item.selected .t-name { color:#aac8ff; }
+
+    .t-checkbox { width:1.05em; height:1.05em; flex-shrink:0; cursor:pointer; accent-color:var(--accent); }
+    .t-name { flex:1; font-size:.86rem; color:var(--text-secondary); word-break:break-all; line-height:1.4; }
+    .t-badge {
+      flex-shrink:0; font-size:.68rem; font-weight:700;
+      padding:.18em .65em; border-radius:20px;
+      background:var(--accent-dim); color:var(--accent);
+    }
+    .t-top1 {
+      flex-shrink:0; font-size:.7rem; color:var(--text-muted);
+      max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .no-results { padding:3.5rem 2rem; text-align:center; color:var(--text-muted); }
+    .no-results i { font-size:1.8rem; margin-bottom:.6rem; display:block; }
+
+    /* ─── ACTION PANEL ───────────────── */
+    .action-panel {
+      position:fixed; bottom:0; left:0; right:0;
+      background:#0b0b18; border-top:2px solid var(--accent-dim);
+      box-shadow:0 -8px 40px rgba(0,0,0,.7);
+      z-index:200; transition:transform .3s cubic-bezier(.4,0,.2,1);
+    }
+    .action-panel.hidden { transform:translateY(100%); }
+
+    .panel-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:.65rem 1.5rem; border-bottom:1px solid var(--border);
+      background:#0d0d1e;
+    }
+    .panel-header-left { display:flex; align-items:center; gap:.75rem; }
+    .sel-badge {
+      background:var(--accent); color:#fff; border-radius:20px;
+      padding:.22em .85em; font-size:.78rem; font-weight:700;
+    }
+    .panel-hint { font-size:.75rem; color:var(--text-muted); }
+
+    /* ─── LIVE COUNTER ─── */
+    .live-counter {
+      display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;
+      padding:.5rem 1.5rem; background:#090912;
+      border-top:1px solid var(--border);
+    }
+    .counter-label { font-size:.72rem; color:var(--text-muted); white-space:nowrap; }
+    .counter-chips { display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; }
+    .counter-chip {
+      display:inline-flex; align-items:center; gap:.28rem;
+      padding:.2em .65em; border-radius:20px; font-size:.72rem; font-weight:700;
+      border:1px solid;
+    }
+    .cc-total  { background:#1a3060; color:#8ab4f8; border-color:#2a4070; font-size:.82rem; padding:.25em .9em; }
+    .cc-top1   { background:#2a1a00; color:#f0a050; border-color:#4a3000; }
+    .cc-top2   { background:#001a2a; color:#60b8f0; border-color:#003050; }
+    .cc-top3   { background:#001a10; color:#50d080; border-color:#003020; }
+    .cc-top4   { background:#1a001a; color:#d080d0; border-color:#300030; }
+    .cc-loading { color:var(--text-muted); font-size:.72rem; font-style:italic; }
+    .diag-toggle {
+      font-size:.7rem; color:var(--text-muted); cursor:pointer;
+      text-decoration:underline; margin-right:.5rem;
+    }
+    .diag-toggle:hover { color:var(--text-primary); }
+    .diag-wrap {
+      display:none; margin:.6rem 1.5rem .2rem;
+      overflow:auto; max-height:150px;
+      border:1px solid var(--border); border-radius:var(--radius-sm);
+    }
+    .diag-wrap.open { display:block; }
+    .diag-table { width:100%; border-collapse:collapse; font-size:.7rem; }
+    .diag-table th {
+      background:#0d0d20; color:var(--text-muted);
+      padding:.3rem .65rem; text-align:right; font-weight:600;
+      position:sticky; top:0; border-bottom:1px solid var(--border);
+    }
+    .diag-table td { padding:.28rem .65rem; border-bottom:1px solid #14141e; color:var(--text-secondary); }
+    .diag-table tr:last-child td { border-bottom:none; }
+    .diag-table tr.row-missing td { background:#150808; }
+    .has-v { color:var(--green); font-weight:700; }
+    .no-v  { color:#502020; }
+    .collapse-btn {
+      width:28px; height:28px; border-radius:var(--radius-sm);
+      background:var(--bg-elevated); border:1px solid var(--border);
+      color:var(--text-muted); cursor:pointer;
+      display:flex; align-items:center; justify-content:center; font-size:.78rem;
+      transition:all .2s;
+    }
+    .collapse-btn:hover { color:var(--text-primary); border-color:var(--accent); }
+
+    .panel-body {
+      padding:1.1rem 1.5rem 1.3rem;
+      max-height:56vh; overflow-y:auto;
+    }
+
+    /* Panel two-col grid */
+    .pgrid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem 2.5rem; margin-bottom:1.1rem; }
+    @media(max-width:680px){ .pgrid{grid-template-columns:1fr;} }
+
+    /* Top level pills */
+    .pill-row { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.5rem; }
+    .pill {
+      display:inline-flex; align-items:center; gap:.32rem;
+      padding:.38rem .85rem; border-radius:var(--radius-sm);
+      border:1px solid var(--border); background:var(--bg-elevated);
+      color:var(--text-secondary); font-size:.78rem; cursor:pointer; transition:all .2s;
+    }
+    .pill:has(input:checked) { background:var(--accent-dim); border-color:var(--accent); color:#aac8ff; }
+    .pill input { cursor:pointer; accent-color:var(--accent); }
+
+    /* Smart toggle */
+    .smart-toggle {
+      display:inline-flex; align-items:center; gap:.55rem;
+      padding:.5rem 1rem; border-radius:var(--radius-sm);
+      border:1px solid var(--green-dim); background:#0e1f0e;
+      color:var(--green); font-size:.8rem; cursor:pointer; transition:all .2s; margin-top:.5rem;
+    }
+    .smart-toggle:has(input:checked) { background:#122012; border-color:var(--green); box-shadow:0 0 10px rgba(62,201,126,.12); }
+    .smart-toggle input { cursor:pointer; accent-color:var(--green); }
+    .smart-hint { font-size:.68rem; color:var(--text-muted); margin-top:.35rem; padding-right:.2rem; }
+
+    /* Tabs */
+    .ptabs { display:flex; gap:.45rem; margin-bottom:.9rem; border-bottom:1px solid var(--border); padding-bottom:.7rem; }
+    .ptab {
+      display:inline-flex; align-items:center; gap:.38rem;
+      padding:.42rem 1.05rem; border-radius:var(--radius-sm);
+      border:1px solid transparent; background:transparent;
+      color:var(--text-muted); font-size:.82rem; font-weight:500; cursor:pointer; transition:all .2s;
+    }
+    .ptab:hover { color:var(--text-secondary); background:var(--bg-elevated); }
+    .ptab.active { background:var(--accent-dim); border-color:var(--accent); color:#aac8ff; }
+
+    .action-tab-pane { display:none; }
+    .action-tab-pane.active { display:block; }
+
+    /* Create grid */
+    .create-grid {
+      display:grid;
+      grid-template-columns: 2.5fr 1fr 1fr 1fr 1fr 1fr;
+      gap:.7rem; align-items:end; margin-bottom:.8rem;
+    }
+    @media(max-width:860px){ .create-grid{grid-template-columns:repeat(3,1fr);} }
+    @media(max-width:480px){ .create-grid{grid-template-columns:1fr 1fr;} }
+
+    .fblock label { display:block; font-size:.68rem; color:var(--text-muted); margin-bottom:.28rem; }
+    .fblock input, .fblock select {
+      width:100%; background:var(--bg-elevated); border:1px solid var(--border);
+      border-radius:var(--radius-sm); color:var(--text-primary);
+      padding:.42rem .68rem; font-size:.82rem; transition:border-color .2s;
+    }
+    .fblock input:focus, .fblock select:focus { outline:none; border-color:var(--accent); background:var(--bg-hover); }
+    .fblock select option { background:#1a1a2a; }
+
+    /* Preview */
+    .fname-preview {
+      background:#090912; border:1px dashed #252545;
+      border-radius:var(--radius-sm); padding:.6rem 1rem;
+      margin-bottom:.8rem; font-family:'Consolas','Courier New',monospace;
+      font-size:.73rem; color:#6090c8; min-height:34px; line-height:1.75;
+    }
+    .fname-preview span { display:block; }
+
+    /* Foot */
+    .pfooter { display:flex; justify-content:flex-end; }
+    .action-btn {
+      display:inline-flex; align-items:center; gap:.48rem;
+      padding:.52rem 1.6rem; border-radius:var(--radius-sm); border:none;
+      font-size:.86rem; font-weight:600; cursor:pointer; transition:all .2s;
+    }
+    .action-btn:hover { transform:translateY(-1px); filter:brightness(1.15); }
+    .action-btn.create { background:linear-gradient(135deg,#1a4a9a,#3a70e8); color:#fff; }
+    .action-btn.export { background:linear-gradient(135deg,#1a6a40,#28a86a); color:#fff; }
+
+    /* Export */
+    .export-note {
+      font-size:.81rem; color:var(--text-secondary);
+      background:var(--bg-elevated); border-radius:var(--radius-sm);
+      padding:.7rem 1rem; margin-bottom:.85rem;
+      border-right:3px solid var(--green-dim);
+    }
+    .export-row { display:flex; align-items:flex-end; gap:.75rem; }
+    .export-row .fblock { flex:1; max-width:360px; }
+  </style>
+</head>
+<body>
+
+  <!-- FLASH -->
+  <div class="flash-area">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-left">
+      <a href="{{ url_for('tour_page') }}" class="back-btn">
+        <i class="fas fa-arrow-right"></i> رجوع
+      </a>
+      <h1 class="site-title">
+        <span class="title-icon"><i class="fas fa-archive"></i></span>
+        أدوات أرشيف البطولات
+      </h1>
+    </div>
+    <div id="floatingSelBadge" class="floating-badge">
+      <i class="fas fa-check-circle"></i>
+      <span id="floatingSelCount">0</span> محدد
+    </div>
+  </header>
+
+  <!-- MAIN FORM -->
+  <form method="POST" action="{{ url_for('archive_tools_action') }}" id="mainForm">
+    <input type="hidden" name="name_query"   value="{{ name_query }}">
+    <input type="hidden" name="rating_query" value="{{ rating_query }}">
+    <input type="hidden" name="action"       id="actionField" value="">
+
+    <div class="page-body">
+
+      <!-- FILTERS -->
+      <div class="filter-card">
+        <div class="div-title">
+          <i class="fas fa-filter" style="color:var(--accent)"></i> فلترة البطولات
+        </div>
+        <div class="filter-grid">
+
+          <!-- Name -->
+          <div>
+            <label class="filter-label">
+              <i class="fas fa-search" style="color:var(--accent)"></i>
+              فلتر بالاسم
+              <span class="filter-hint">— حرف "x" يستبدل أي حرف أو رقم</span>
+            </label>
+            <div class="filter-row">
+              <input type="text" form="frmName" name="name_query"
+                     id="nameQueryInput" value="{{ name_query }}"
+                     placeholder="مثال: elo tik_117x أو elo pic_10x0">
+              <button class="fbtn blue" form="frmName" type="submit">
+                <i class="fas fa-search"></i>
+              </button>
+              {% if name_query %}
+              <a href="{{ url_for('archive_tools_page', rating_query=rating_query) }}"
+                 class="fbtn clear"><i class="fas fa-times"></i></a>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Rating -->
+          <div>
+            <label class="filter-label">
+              <i class="fas fa-hashtag" style="color:var(--orange)"></i>
+              فلتر بالرقم
+              <span class="filter-hint">— 1000 أو 1000-1050 أو 1000-1050,2000</span>
+            </label>
+            <div class="filter-row">
+              <input type="text" form="frmRating" name="rating_query"
+                     id="ratingQueryInput" value="{{ rating_query }}"
+                     placeholder="مثال: 1172 أو 1000-1100 أو 1000-1050,2000-2010">
+              <button class="fbtn amber" form="frmRating" type="submit">
+                <i class="fas fa-filter"></i>
+              </button>
+              {% if rating_query %}
+              <a href="{{ url_for('archive_tools_page', name_query=name_query) }}"
+                 class="fbtn clear"><i class="fas fa-times"></i></a>
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TOOLBAR -->
+      <div class="toolbar">
+        <div class="stat-chips">
+          <div class="chip"><span class="dot dot-b"></span> الكل <strong>{{ total_count }}</strong></div>
+          <div class="chip"><span class="dot dot-g"></span> يُعرض <strong>{{ filtered_count }}</strong></div>
+          <div class="chip"><span class="dot dot-o"></span> محدد <strong id="selCount">0</strong></div>
+        </div>
+        <div class="bulk-row">
+          <button type="button" class="ibtn" onclick="selectAll()">
+            <i class="fas fa-check-double"></i> تحديد الكل
+          </button>
+          <button type="button" class="ibtn" onclick="deselectAll()">
+            <i class="fas fa-times"></i> إلغاء الكل
+          </button>
+        </div>
+      </div>
+
+      <!-- LIST -->
+      <div class="list-card">
+        <div class="tournament-list" id="tournamentList">
+          {% if tournament_archive %}
+            {% for tournament_id, tournament_data in tournament_archive %}
+            <div class="tournament-item" onclick="toggleItem(this)">
+              <input type="checkbox" class="t-checkbox"
+                     name="selected_tournaments" value="{{ tournament_id }}"
+                     onclick="event.stopPropagation(); updateSelection()">
+              <span class="t-name">{{ tournament_id }}</span>
+              {% set w = get_tournament_weight(tournament_id) %}
+              {% if w %}<span class="t-badge">{{ w }}</span>{% endif %}
+              <span class="t-top1">
+                {% if tournament_data.get('top1') and tournament_data['top1'].get('video') %}
+                  🏆 {{ tournament_data['top1']['video'][:30] }}{% if tournament_data['top1']['video']|length > 30 %}…{% endif %}
+                {% endif %}
+              </span>
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="no-results">
+            <i class="fas fa-search"></i>
+            <p style="margin:0">لا توجد بطولات تطابق الفلتر المحدد.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div><!-- /page-body -->
+
+    <!-- ACTION PANEL -->
+    <div class="action-panel hidden" id="actionPanel">
+
+      <div class="panel-header">
+        <div class="panel-header-left">
+          <span class="sel-badge">
+            <i class="fas fa-check me-1"></i>
+            <span id="panelSelCount">0</span> بطولة محددة
+          </span>
+          <span class="panel-hint">اختر المراكز والعملية أدناه</span>
+        </div>
+        <button type="button" class="collapse-btn" onclick="togglePanelCollapse()">
+          <i class="fas fa-chevron-down" id="panelToggleIcon"></i>
+        </button>
+      </div>
+
+      <!-- ── LIVE COUNTER ── -->
+      <div class="live-counter" id="liveCounterBar">
+        <span class="counter-label"><i class="fas fa-calculator me-1"></i>الفيديوهات التي ستُستخرج:</span>
+        <div class="counter-chips" id="counterChips">
+          <span class="cc-loading">حدد بطولات لرؤية العدد...</span>
+        </div>
+        <span class="diag-toggle" id="diagToggle" style="display:none"
+              onclick="toggleDiag()">تفاصيل ▾</span>
+      </div>
+
+      <!-- ── DIAGNOSTIC TABLE ── -->
+      <div class="diag-wrap" id="diagWrap">
+        <table class="diag-table">
+          <thead>
+            <tr>
+              <th>البطولة</th>
+              <th>TOP 1</th>
+              <th>TOP 2</th>
+              <th>TOP 3</th>
+              <th>TOP 4</th>
+              <th>سيُستخرج</th>
+            </tr>
+          </thead>
+          <tbody id="diagBody"></tbody>
+        </table>
+      </div>
+
+      <div class="panel-body" id="panelBody">
+
+        <!-- TOP LEVELS + SMART MATCH -->
+        <div class="pgrid">
+          <div>
+            <div class="div-title" style="margin-bottom:.4rem;">
+              <i class="fas fa-trophy" style="color:var(--accent)"></i> المراكز المطلوب استخراجها
+            </div>
+            <div class="pill-row">
+              <label class="pill"><input type="checkbox" name="top_levels" value="1" checked id="chkTop1"> 🏆 TOP 1</label>
+              <label class="pill"><input type="checkbox" name="top_levels" value="2" id="chkTop2"> 🥈 TOP 2</label>
+              <label class="pill"><input type="checkbox" name="top_levels" value="3" id="chkTop3"> 🥉 TOP 3</label>
+              <label class="pill"><input type="checkbox" name="top_levels" value="4" id="chkTop4"> TOP 4</label>
+              <label class="pill"><input type="checkbox" name="top_levels" value="all" id="chkAll" onchange="handleAllToggle(this)"> 📋 الكل</label>
+            </div>
+          </div>
+          <div>
+            <div class="div-title" style="margin-bottom:.4rem;">
+              <i class="fas fa-brain" style="color:var(--green)"></i> مطابقة ذكية للاسم
+            </div>
+            <label class="smart-toggle">
+              <input type="checkbox" name="smart_match" id="smartMatchChk">
+              <i class="fas fa-brain"></i>
+              تفعيل المطابقة الذكية
+            </label>
+            <p class="smart-hint">إذا كان TOP 1 و TOP 2 بنفس الاسم، يتم تضمين الاثنين تلقائياً</p>
+          </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="ptabs">
+          <button type="button" class="ptab active" id="tabBtnCreate" onclick="switchTab('create')">
+            <i class="fas fa-plus-circle"></i> إنشاء بطولة
+          </button>
+          <button type="button" class="ptab" id="tabBtnExport" onclick="switchTab('export')">
+            <i class="fas fa-file-export"></i> تصدير الأحجام
+          </button>
+        </div>
+
+        <!-- TAB: CREATE -->
+        <div class="action-tab-pane active" id="tabCreate">
+          <div class="create-grid">
+            <div class="fblock">
+              <label>بادئة اسم الملف</label>
+              <input type="text" name="file_prefix" id="filePrefixInput"
+                     value="topcut_elo_videos_A1000 elo tik_" oninput="updatePreview()">
+            </div>
+            <div class="fblock">
+              <label>رقم البداية</label>
+              <input type="number" name="start_num" id="startNumInput" value="1000" min="1" oninput="updatePreview()">
+            </div>
+            <div class="fblock">
+              <label>القفز بين الأرقام</label>
+              <input type="number" name="step" id="stepInput" value="1" min="1" oninput="updatePreview()">
+            </div>
+            <div class="fblock">
+              <label>عدد الملفات</label>
+              <input type="number" name="num_files" id="numFilesInput" value="1" min="1" max="50" oninput="updatePreview()">
+            </div>
+            <div class="fblock">
+              <label>فيديو / مباراة</label>
+              <input type="number" name="num_videos_per_match" value="4" min="2" max="8">
+            </div>
+            <div class="fblock">
+              <label>نوع التصنيف</label>
+              <select name="ranking_type">
+                <option value="winner_only">Winner Only</option>
+                <option value="ranked_type">Ranked Type</option>
+              </select>
+            </div>
+          </div>
+          <div class="fname-preview" id="filenamePreview">
+            <span style="color:var(--text-muted);font-style:italic;">معاينة أسماء الملفات...</span>
+          </div>
+          <div class="pfooter">
+            <button type="button" class="action-btn create" onclick="submitAction('create_tournament')">
+              <i class="fas fa-plus-circle"></i> إنشاء الملفات
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB: EXPORT -->
+        <div class="action-tab-pane" id="tabExport">
+          <p class="export-note">
+            <i class="fas fa-info-circle me-1"></i>
+            سيتم كتابة حجم كل ملف في سطر منفصل داخل ملف نصي في مجلد
+            <code style="color:var(--green);background:#0a1a0a;padding:0 .3em;border-radius:3px;">utilities/</code>
+          </p>
+          <div class="export-row">
+            <div class="fblock">
+              <label>اسم ملف الإخراج</label>
+              <input type="text" name="output_filename" value="exported_sizes.txt" placeholder="exported_sizes.txt">
+            </div>
+            <div class="pfooter">
+              <button type="button" class="action-btn export" onclick="submitAction('export_sizes')">
+                <i class="fas fa-file-export"></i> تصدير الأحجام
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panel-body -->
+    </div><!-- /action-panel -->
+
+  </form>
+
+  <!-- Helper forms for filter buttons — must be OUTSIDE mainForm -->
+  <form method="GET" action="{{ url_for('archive_tools_page') }}" id="frmName" style="display:none">
+    <input type="hidden" name="rating_query" value="{{ rating_query }}">
+  </form>
+  <form method="GET" action="{{ url_for('archive_tools_page') }}" id="frmRating" style="display:none">
+    <input type="hidden" name="name_query" value="{{ name_query }}">
+  </form>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ── SELECTION ──────────────────────────────────────────
+    let lastCheckedIndex = -1;
+
+    function updateSelection() {
+      const cbs = document.querySelectorAll('.t-checkbox');
+      let count = 0;
+      cbs.forEach(cb => {
+        const item = cb.closest('.tournament-item');
+        if (cb.checked) { count++; item.classList.add('selected'); }
+        else             { item.classList.remove('selected'); }
+      });
+      document.getElementById('selCount').textContent         = count;
+      document.getElementById('panelSelCount').textContent    = count;
+      document.getElementById('floatingSelCount').textContent = count;
+      const badge = document.getElementById('floatingSelBadge');
+      const panel = document.getElementById('actionPanel');
+      if (count > 0) {
+        panel.classList.remove('hidden');
+        badge.style.display = 'inline-flex';
+      } else {
+        panel.classList.add('hidden');
+        badge.style.display = 'none';
+      }
+      scheduleCounterUpdate();
+    }
+
+    function toggleItem(itemEl) {
+      const cb    = itemEl.querySelector('.t-checkbox');
+      const items = Array.from(document.querySelectorAll('.tournament-item'));
+      cb.checked       = !cb.checked;
+      lastCheckedIndex = items.indexOf(itemEl);
+      updateSelection();
+    }
+
+    function selectAll()   { document.querySelectorAll('.t-checkbox').forEach(cb => cb.checked = true);  updateSelection(); }
+    function deselectAll() { document.querySelectorAll('.t-checkbox').forEach(cb => cb.checked = false); updateSelection(); }
+
+    // ── SHIFT + CLICK ──────────────────────────────────────
+    function initShiftClick() {
+      const items = Array.from(document.querySelectorAll('.tournament-item'));
+      items.forEach((item, index) => {
+        item.querySelector('.t-checkbox').addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (e.shiftKey && lastCheckedIndex !== -1) {
+            const s = Math.min(lastCheckedIndex, index);
+            const en = Math.max(lastCheckedIndex, index);
+            const state = this.checked;
+            for (let i = s; i <= en; i++) items[i].querySelector('.t-checkbox').checked = state;
+          }
+          lastCheckedIndex = index;
+          updateSelection();
+        });
+      });
+    }
+
+    // ── PANEL COLLAPSE ─────────────────────────────────────
+    let panelCollapsed = false;
+    function togglePanelCollapse() {
+      panelCollapsed = !panelCollapsed;
+      document.getElementById('panelBody').style.display   = panelCollapsed ? 'none' : 'block';
+      document.getElementById('panelToggleIcon').className = panelCollapsed ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+    }
+
+    // ── TABS ───────────────────────────────────────────────
+    function switchTab(name) {
+      document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.action-tab-pane').forEach(p => p.classList.remove('active'));
+      const cap = name.charAt(0).toUpperCase() + name.slice(1);
+      document.getElementById('tabBtn' + cap).classList.add('active');
+      document.getElementById('tab'    + cap).classList.add('active');
+    }
+
+    // ── "الكل" TOGGLE ─────────────────────────────────────
+    function handleAllToggle(allChk) {
+      ['chkTop1','chkTop2','chkTop3','chkTop4'].forEach(id => {
+        const el = document.getElementById(id);
+        el.checked = false; el.disabled = allChk.checked;
+      });
+      if (!allChk.checked) document.getElementById('chkTop1').checked = true;
+    }
+
+    // ── FILENAME PREVIEW ───────────────────────────────────
+    function updatePreview() {
+      const prefix   = document.getElementById('filePrefixInput').value;
+      const startNum = parseInt(document.getElementById('startNumInput').value) || 1000;
+      const step     = parseInt(document.getElementById('stepInput').value)     || 1;
+      const numFiles = parseInt(document.getElementById('numFilesInput').value) || 1;
+      const el = document.getElementById('filenamePreview');
+      el.innerHTML = '';
+      const show = Math.min(numFiles, 6);
+      for (let i = 0; i < show; i++) {
+        const s = document.createElement('span');
+        s.textContent = prefix + (startNum + i * step) + '.json';
+        el.appendChild(s);
+      }
+      if (numFiles > show) {
+        const s = document.createElement('span');
+        s.style.color = 'var(--text-muted)';
+        s.textContent = '… و ' + (numFiles - show) + ' ملف إضافي';
+        el.appendChild(s);
+      }
+    }
+
+    // ── SUBMIT ─────────────────────────────────────────────
+    function submitAction(actionType) {
+      if (parseInt(document.getElementById('selCount').textContent) === 0) {
+        alert('يرجى تحديد بطولة واحدة على الأقل.'); return;
+      }
+      if (!document.getElementById('chkAll').checked) {
+        const any = ['chkTop1','chkTop2','chkTop3','chkTop4'].some(id => document.getElementById(id).checked);
+        if (!any) { alert('يرجى تحديد مركز واحد على الأقل أو اختيار "الكل".'); return; }
+      }
+      document.getElementById('actionField').value = actionType;
+      document.getElementById('mainForm').submit();
+    }
+
+    // ── LIVE COUNTER ───────────────────────────────────────
+    let counterTimer = null;
+
+    function getSelectedTopLevels() {
+      if (document.getElementById('chkAll').checked) return ['all'];
+      const vals = [];
+      ['1','2','3','4'].forEach(n => {
+        const el = document.getElementById('chkTop' + n);
+        if (el && el.checked) vals.push(n);
+      });
+      return vals.length ? vals : ['1'];
+    }
+
+    function scheduleCounterUpdate() {
+      clearTimeout(counterTimer);
+      counterTimer = setTimeout(fetchCounterData, 300);
+    }
+
+    async function fetchCounterData() {
+      const selected = Array.from(document.querySelectorAll('.t-checkbox:checked'))
+                            .map(cb => cb.value);
+      if (selected.length === 0) {
+        document.getElementById('counterChips').innerHTML =
+          '<span class="cc-loading">حدد بطولات لرؤية العدد...</span>';
+        document.getElementById('diagToggle').style.display = 'none';
+        document.getElementById('diagWrap').classList.remove('open');
+        return;
+      }
+
+      document.getElementById('counterChips').innerHTML =
+        '<span class="cc-loading"><i class="fas fa-spinner fa-spin me-1"></i>جاري الحساب...</span>';
+
+      try {
+        const resp = await fetch('/archive_tools/count', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ selected_ids: selected, top_levels: getSelectedTopLevels() })
+        });
+        const data = await resp.json();
+        renderCounter(data);
+      } catch(e) {
+        document.getElementById('counterChips').innerHTML =
+          '<span class="cc-loading">خطأ في الاتصال</span>';
+      }
+    }
+
+    function renderCounter(data) {
+      const bp = data.by_position;
+      const sel = data.selected_positions;
+
+      let html = `<span class="counter-chip cc-total">
+                    <i class="fas fa-film"></i> ${data.total} فيديو
+                  </span>`;
+
+      const labels = { top1:'🏆 TOP 1', top2:'🥈 TOP 2', top3:'🥉 TOP 3', top4:'TOP 4' };
+      const cls    = { top1:'cc-top1', top2:'cc-top2', top3:'cc-top3', top4:'cc-top4' };
+
+      for (const pos of ['top1','top2','top3','top4']) {
+        if (sel.includes(pos) || sel.includes('all')) {
+          html += `<span class="counter-chip ${cls[pos]}">${labels[pos]}: ${bp[pos]}</span>`;
+        }
+      }
+
+      document.getElementById('counterChips').innerHTML = html;
+      document.getElementById('diagToggle').style.display = 'inline';
+      renderDiag(data);
+    }
+
+    function renderDiag(data) {
+      const body = document.getElementById('diagBody');
+      const sel  = data.selected_positions;
+      body.innerHTML = '';
+      for (const row of data.per_tournament) {
+        const hasMissing = sel.some(p => !row[p]);
+        const tr = document.createElement('tr');
+        if (hasMissing) tr.className = 'row-missing';
+        const shortId = row.id.length > 45 ? '…' + row.id.slice(-42) : row.id;
+        tr.innerHTML = `
+          <td title="${row.id}">${shortId}</td>
+          <td class="${row.top1 ? 'has-v':'no-v'}">${row.top1 ? '✔':'✘'}</td>
+          <td class="${row.top2 ? 'has-v':'no-v'}">${row.top2 ? '✔':'✘'}</td>
+          <td class="${row.top3 ? 'has-v':'no-v'}">${row.top3 ? '✔':'✘'}</td>
+          <td class="${row.top4 ? 'has-v':'no-v'}">${row.top4 ? '✔':'✘'}</td>
+          <td style="color:var(--accent);font-weight:700;">${row.count}</td>`;
+        body.appendChild(tr);
+      }
+    }
+
+    function toggleDiag() {
+      const wrap = document.getElementById('diagWrap');
+      const btn  = document.getElementById('diagToggle');
+      wrap.classList.toggle('open');
+      btn.textContent = wrap.classList.contains('open') ? 'إخفاء ▴' : 'تفاصيل ▾';
+    }
+
+    // ── INIT ───────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+      updatePreview();
+      updateSelection();
+      initShiftClick();
+
+      // Re-run counter when top-level selection changes
+      document.querySelectorAll('[name="top_levels"]').forEach(el => {
+        el.addEventListener('change', scheduleCounterUpdate);
+      });
+
+      setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(a => bootstrap.Alert.getOrCreateInstance(a).close());
+      }, 5000);
+    });
+  </script>
+</body>
+</html>

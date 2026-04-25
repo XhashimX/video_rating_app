@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Translator · EN ↔ AR</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0E0E0E;
+      --panel:    #161616;
+      --surface:  #1C1C1C;
+      --card:     #212121;
+      --card-h:   #2A2A2A;
+      --div:      #2C2C2C;
+      --t1:       #EBEBEB;
+      --t2:       #787878;
+      --t3:       #3C3C3C;
+      --sel:      #353535;
+      --ok:       #5CB87A;
+      --warn:     #C8A840;
+      --err:      #C06060;
+      --hl-bg:    #38300E;
+      --hl-fg:    #E8C96A;
+      --del:      #7A2222;
+      --del-h:    #9A2C2C;
+      --r:        5px;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--t1); }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      overflow: hidden;
+    }
+
+    /* ── Topbar ───────────────────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      height: 52px;
+      padding: 0 22px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--div);
+      flex-shrink: 0;
+      gap: 10px;
+      user-select: none;
+    }
+
+    .app-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--t1);
+      letter-spacing: -0.01em;
+    }
+
+    .app-sub {
+      font-size: 12px;
+      color: var(--t3);
+      margin-top: 1px;
+    }
+
+    .topbar-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+    .btn {
+      background: var(--card);
+      color: var(--t2);
+      border: 1px solid var(--div);
+      border-radius: var(--r);
+      padding: 6px 16px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--card-h); color: var(--t1); border-color: #404040; }
+    .btn.active { color: var(--t1); border-color: #484848; }
+
+    /* ── Status bar ───────────────────────────────────────────────────── */
+    .statusbar {
+      display: flex;
+      align-items: center;
+      height: 30px;
+      padding: 0 22px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--div);
+      flex-shrink: 0;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--t3);
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+    .dot.ok   { background: var(--ok); box-shadow: 0 0 5px var(--ok)55; }
+    .dot.warn { background: var(--warn); }
+    .dot.err  { background: var(--err); }
+
+    #status-msg { font-size: 11px; color: var(--t2); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block;
+      width: 9px; height: 9px;
+      border: 1.5px solid var(--t3);
+      border-top-color: var(--warn);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── Main ─────────────────────────────────────────────────────────── */
+    .main { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+
+    /* ── Editors ──────────────────────────────────────────────────────── */
+    .editors {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-width: 0;
+    }
+
+    .ecol {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .ecol + .ecol { border-left: 1px solid var(--div); }
+
+    .ecol-head {
+      display: flex;
+      align-items: center;
+      height: 42px;
+      padding: 0 16px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--div);
+      flex-shrink: 0;
+      gap: 8px;
+      user-select: none;
+    }
+
+    .lang-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--t3);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .ml-auto { margin-left: auto; }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      color: var(--t3);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 3px 7px;
+      border-radius: 4px;
+      font-family: inherit;
+      transition: background .12s, color .12s;
+      line-height: 1;
+    }
+    .btn-icon:hover { background: var(--card); color: var(--t1); }
+
+    /* translating pulse on the target box header */
+    .ecol-head.pulsing .lang-label {
+      animation: pulse 1s ease-in-out infinite alternate;
+    }
+    @keyframes pulse {
+      from { opacity: 1; }
+      to   { opacity: .4; }
+    }
+
+    /* ── Content-editable box ─────────────────────────────────────────── */
+    .ebox {
+      flex: 1;
+      padding: 22px 24px;
+      outline: none;
+      font-size: 15px;
+      font-family: inherit;
+      line-height: 1.8;
+      background: var(--surface);
+      color: var(--t1);
+      overflow-y: auto;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      caret-color: var(--t2);
+      transition: opacity .18s;
+    }
+
+    .ebox:empty::before {
+      content: attr(data-ph);
+      color: var(--t3);
+      pointer-events: none;
+    }
+
+    .ebox[data-rtl] {
+      direction: rtl;
+      text-align: right;
+    }
+
+    .ebox.dimmed { opacity: .35; pointer-events: none; }
+
+    /* Scrollbars */
+    .ebox::-webkit-scrollbar { width: 4px; }
+    .ebox::-webkit-scrollbar-track { background: transparent; }
+    .ebox::-webkit-scrollbar-thumb { background: var(--div); border-radius: 2px; }
+
+    /* ── Word spans ───────────────────────────────────────────────────── */
+    .w {
+      display: inline;
+      border-radius: 3px;
+      transition: background .07s, color .07s;
+      cursor: default;
+    }
+    .w.hl {
+      background: var(--hl-bg);
+      color: var(--hl-fg);
+    }
+
+    /* ── History panel ────────────────────────────────────────────────── */
+    .hist {
+      width: 0;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: var(--panel);
+      border-left: 1px solid transparent;
+      display: flex;
+      flex-direction: column;
+      transition: width .22s cubic-bezier(.4,0,.2,1),
+                  border-color .22s;
+    }
+    .hist.open {
+      width: 350px;
+      border-left-color: var(--div);
+    }
+
+    .hist-inner {
+      width: 350px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .hist-head {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--div);
+      flex-shrink: 0;
+    }
+
+    .hist-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--t1);
+    }
+
+    .hist-cnt {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--t3);
+      background: var(--card);
+      border-radius: 10px;
+      padding: 1px 8px;
+    }
+
+    .hist-search {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--div);
+      flex-shrink: 0;
+    }
+
+    .hist-search input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--div);
+      outline: none;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--t1);
+      border-radius: var(--r);
+      transition: border-color .15s;
+    }
+    .hist-search input:focus { border-color: #484848; }
+    .hist-search input::placeholder { color: var(--t3); }
+
+    .hist-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .hist-list::-webkit-scrollbar { width: 3px; }
+    .hist-list::-webkit-scrollbar-track { background: transparent; }
+    .hist-list::-webkit-scrollbar-thumb { background: var(--div); border-radius: 2px; }
+
+    .hcard {
+      margin: 0 10px 6px;
+      padding: 10px 12px;
+      background: var(--card);
+      border: 1px solid var(--div);
+      border-radius: var(--r);
+      cursor: pointer;
+      transition: background .12s, border-color .12s;
+    }
+    .hcard:hover { background: var(--card-h); border-color: #3A3A3A; }
+
+    .hcard-meta {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .hdir {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--t2);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .hts {
+      margin-left: auto;
+      font-size: 9px;
+      color: var(--t3);
+    }
+
+    .hsrc {
+      font-size: 11px;
+      color: var(--t3);
+      margin-bottom: 4px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .htgt {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--t1);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .htgt[data-rtl] { direction: rtl; text-align: right; }
+
+    .hist-del {
+      padding: 10px 12px;
+      border-top: 1px solid var(--div);
+      flex-shrink: 0;
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hist-del label { font-size: 11px; color: var(--t2); white-space: nowrap; }
+
+    .del-n-input {
+      width: 50px;
+      background: var(--surface);
+      border: 1px solid var(--div);
+      outline: none;
+      padding: 5px 6px;
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--t1);
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .btn-del {
+      margin-left: auto;
+      background: var(--del);
+      color: #f0f0f0;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-del:hover { background: var(--del-h); }
+
+    /* ── Empty state ──────────────────────────────────────────────────── */
+    .empty-state {
+      padding: 30px 0;
+      text-align: center;
+      font-size: 12px;
+      color: var(--t3);
+    }
+
+    /* ── Toast ────────────────────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--card);
+      border: 1px solid var(--div);
+      color: var(--t1);
+      padding: 9px 20px;
+      border-radius: 6px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Topbar ──────────────────────────────────────────────────────────── -->
+<div class="topbar">
+  <span class="app-name">Translator</span>
+  <span class="app-sub">EN ↔ AR</span>
+  <div class="topbar-right">
+    <button class="btn" id="btn-hist">History ▸</button>
+  </div>
+</div>
+
+<!-- ── Status bar ──────────────────────────────────────────────────────── -->
+<div class="statusbar">
+  <div class="dot" id="dot"></div>
+  <span id="status-msg">Starting…</span>
+</div>
+
+<!-- ── Main ────────────────────────────────────────────────────────────── -->
+<div class="main">
+
+  <!-- Editors -->
+  <div class="editors">
+
+    <!-- English column -->
+    <div class="ecol">
+      <div class="ecol-head" id="en-head">
+        <span class="lang-label">English</span>
+        <button class="btn-icon ml-auto" id="en-clear" title="Clear both boxes">✕</button>
+      </div>
+      <div class="ebox" id="en-box" contenteditable="true"
+           data-ph="Type English text here…"
+           spellcheck="false"></div>
+    </div>
+
+    <!-- Arabic column -->
+    <div class="ecol">
+      <div class="ecol-head" id="ar-head">
+        <button class="btn-icon" id="ar-clear" title="Clear both boxes">✕</button>
+        <span class="lang-label ml-auto">عربي</span>
+      </div>
+      <div class="ebox" id="ar-box" contenteditable="true"
+           data-ph="اكتب النص العربي هنا…"
+           data-rtl
+           spellcheck="false"></div>
+    </div>
+
+  </div>
+
+  <!-- History panel -->
+  <div class="hist" id="hist-panel">
+    <div class="hist-inner">
+
+      <div class="hist-head">
+        <span class="hist-title">History</span>
+        <span class="hist-cnt" id="hist-cnt">0</span>
+      </div>
+
+      <div class="hist-search">
+        <input type="text" id="hist-q" placeholder="Search…">
+      </div>
+
+      <div class="hist-list" id="hist-list">
+        <div class="empty-state">No history yet</div>
+      </div>
+
+      <div class="hist-del">
+        <label for="del-n">Delete oldest</label>
+        <input type="number" id="del-n" class="del-n-input" value="10" min="1">
+        <span style="font-size:11px;color:var(--t2)">entries</span>
+        <button class="btn-del" id="btn-del">Delete</button>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- .main -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<script>
+"use strict";
+
+// ── Elements ────────────────────────────────────────────────────────────────
+const enBox    = document.getElementById('en-box');
+const arBox    = document.getElementById('ar-box');
+const enHead   = document.getElementById('en-head');
+const arHead   = document.getElementById('ar-head');
+const dot      = document.getElementById('dot');
+const statusEl = document.getElementById('status-msg');
+const btnHist  = document.getElementById('btn-hist');
+const histPanel= document.getElementById('hist-panel');
+const histList = document.getElementById('hist-list');
+const histCnt  = document.getElementById('hist-cnt');
+const histQ    = document.getElementById('hist-q');
+const delN     = document.getElementById('del-n');
+const btnDel   = document.getElementById('btn-del');
+const enClear  = document.getElementById('en-clear');
+const arClear  = document.getElementById('ar-clear');
+const toastEl  = document.getElementById('toast');
+
+// ── State ────────────────────────────────────────────────────────────────────
+const S = {
+  ready:       false,
+  histOpen:    false,
+  enHasSpans:  false,
+  arHasSpans:  false,
+  lastEnText:  '',
+  lastArText:  '',
+  reqId:       0,
+};
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const plainText = el => el.innerText || '';
+
+function isArabic(text) {
+  const ar  = (text.match(/[\u0600-\u06FF]/g) || []).length;
+  const tot = text.replace(/\s/g,'').length;
+  return tot > 0 && ar / tot > 0.3;
+}
+
+function isTypingKey(e) {
+  if (e.ctrlKey || e.metaKey || e.altKey) return false;
+  const skip = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',
+                'Home','End','PageUp','PageDown','Tab','Escape',
+                'Shift','Control','Alt','Meta','CapsLock','NumLock',
+                'ScrollLock','Insert','F1','F2','F3','F4','F5',
+                'F6','F7','F8','F9','F10','F11','F12'];
+  return !skip.includes(e.key);
+}
+
+function toast(msg, ms = 2800) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toastEl.classList.remove('show'), ms);
+}
+
+// ── Caret save / restore in a contenteditable ─────────────────────────────────
+// We need this so re-rendering srcBox as spans doesn't lose the cursor position.
+function saveCaret(el) {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return -1;
+  const range = sel.getRangeAt(0);
+  const pre   = range.cloneRange();
+  pre.selectNodeContents(el);
+  pre.setEnd(range.endContainer, range.endOffset);
+  return pre.toString().length;
+}
+
+function restoreCaret(el, offset) {
+  if (offset < 0) return;
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+  let node;
+  let rem = offset;
+  while ((node = walker.nextNode())) {
+    if (rem <= node.nodeValue.length) {
+      const r = document.createRange();
+      r.setStart(node, rem);
+      r.collapse(true);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      return;
+    }
+    rem -= node.nodeValue.length;
+  }
+  // fallback: end of content
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  r.collapse(false);
+  window.getSelection().removeAllRanges();
+  window.getSelection().addRange(r);
+}
+
+// ── Status polling ────────────────────────────────────────────────────────────
+async function pollStatus() {
+  try {
+    const d = await (await fetch('/api/status')).json();
+    if (d.msg === 'ready') {
+      S.ready = true;
+      dot.className = 'dot ok';
+      statusEl.innerHTML = 'Ready &mdash; Space/Enter to translate &nbsp;·&nbsp; hover a word to see its match';
+      return;
+    }
+    if (d.msg && d.msg.startsWith('err:')) {
+      dot.className = 'dot err';
+      statusEl.textContent = d.msg.slice(4);
+      return;
+    }
+    dot.className = 'dot warn';
+    statusEl.innerHTML = `<span class="spinner"></span>&nbsp;${esc(d.msg || 'Loading…')}`;
+    setTimeout(pollStatus, 1200);
+  } catch (_) { setTimeout(pollStatus, 2000); }
+}
+
+// ── Word-span rendering ───────────────────────────────────────────────────────
+// Renders a box as clickable word-spans used for hover mapping.
+// If `restoreOffset` is given, cursor is placed back at that character offset
+// after the innerHTML replacement (needed when re-rendering the source box
+// while the user is still in it).
+function renderWords(box, text, restoreOffset) {
+  const isActive = (document.activeElement === box);
+  const tokens = text.split(/(\s+)/);
+  let html = '', idx = 0;
+  for (const t of tokens) {
+    if (/\S/.test(t)) {
+      html += `<span class="w" data-i="${idx++}">${esc(t)}</span>`;
+    } else {
+      html += t.replace(/\n/g,'<br>');
+    }
+  }
+  box.innerHTML = html;
+
+  // Restore cursor so the user can keep typing without disruption
+  if (isActive) {
+    box.focus();
+    restoreCaret(box, restoreOffset !== undefined ? restoreOffset : text.length);
+  }
+
+  if (box === enBox) S.enHasSpans = true;
+  else               S.arHasSpans = true;
+}
+
+// ── Wire hover mapping on a span-rendered box ─────────────────────────────────
+// Called once after BOTH boxes have been rendered as spans.
+function wireHover() {
+  [enBox, arBox].forEach(srcBox => {
+    const tgtBox = srcBox === enBox ? arBox : enBox;
+    const spans  = srcBox.querySelectorAll('.w');
+    const sn     = spans.length;
+    spans.forEach(sp => {
+      sp.addEventListener('mouseenter', () => {
+        clearHl();
+        sp.classList.add('hl');
+        const tw = tgtBox.querySelectorAll('.w');
+        if (!tw.length) return;
+        const ti = Math.min(
+          Math.round(parseInt(sp.dataset.i) / sn * tw.length),
+          tw.length - 1
+        );
+        tw[ti].classList.add('hl');
+      });
+      sp.addEventListener('mouseleave', clearHl);
+    });
+  });
+}
+
+function clearHl() {
+  document.querySelectorAll('.w.hl').forEach(el => el.classList.remove('hl'));
+}
+
+// ── Collapse one box from spans → plain text, preserving content + cursor ─────
+function collapseSpans(box) {
+  const hasSpans = box === enBox ? S.enHasSpans : S.arHasSpans;
+  if (!hasSpans) return;
+  const caretBefore = saveCaret(box);
+  const plain = box.innerText;            // grab plain text from spans
+  box.innerHTML = '';
+  box.appendChild(document.createTextNode(plain));
+  restoreCaret(box, caretBefore);
+  if (box === enBox) S.enHasSpans = false;
+  else               S.arHasSpans = false;
+}
+
+// ── Clear both boxes (✕ buttons only) ────────────────────────────────────────
+function clearAll() {
+  enBox.innerHTML = '';
+  arBox.innerHTML = '';
+  S.enHasSpans = false;
+  S.arHasSpans = false;
+  S.lastEnText = '';
+  S.lastArText = '';
+}
+
+// ── Translation ───────────────────────────────────────────────────────────────
+async function translate(text, fromLang, toLang, srcBox, tgtBox, caretOffset) {
+  if (!text.trim()) return;
+  const reqId = ++S.reqId;
+
+  const tgtHead = tgtBox === enBox ? enHead : arHead;
+  tgtBox.classList.add('dimmed');
+  tgtHead.classList.add('pulsing');
+
+  try {
+    const r = await fetch('/api/translate', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ text, from_lang: fromLang, to_lang: toLang }),
+    });
+    const d = await r.json();
+    if (reqId !== S.reqId) return;
+    if (d.error) { toast('⚠ ' + d.error); return; }
+
+    if (d.result) {
+      // Render TARGET box as word-spans (user is not typing in it)
+      renderWords(tgtBox, d.result);
+
+      // Render SOURCE box as word-spans too — needed for hover mapping.
+      // If the user is still in that box, pass the saved caret offset so
+      // the cursor lands back exactly where it was after the innerHTML swap.
+      const srcCurrentText = plainText(srcBox).trim();
+      if (srcCurrentText === text) {
+        // text hasn't changed → safe to re-render with cursor restore
+        renderWords(srcBox, text, caretOffset);
+      } else {
+        // user typed more → don't touch srcBox, just mark spans absent
+        // (hover won't work for srcBox this round, which is fine)
+        if (srcBox === enBox) S.enHasSpans = false;
+        else                  S.arHasSpans = false;
+      }
+
+      // Wire hover on both boxes now that both (possibly) have spans
+      wireHover();
+
+      // Update last-known text for debounce
+      if (srcBox === enBox) S.lastEnText = text;
+      else                  S.lastArText = text;
+      if (tgtBox === enBox) S.lastEnText = d.result;
+      else                  S.lastArText = d.result;
+
+      if (S.histOpen) loadHistory();
+    }
+  } catch (_) {
+    if (reqId === S.reqId) toast('⚠ Translation failed');
+  } finally {
+    if (reqId === S.reqId) {
+      tgtBox.classList.remove('dimmed');
+      tgtHead.classList.remove('pulsing');
+    }
+  }
+}
+
+// ── Trigger ───────────────────────────────────────────────────────────────────
+function triggerFrom(box) {
+  if (!S.ready) return;
+  const text = plainText(box).trim();
+  if (!text) return;
+  const lastText = box === enBox ? S.lastEnText : S.lastArText;
+  if (text === lastText) return;
+
+  const fromLang = isArabic(text) ? 'ar' : 'en';
+  const toLang   = fromLang === 'en' ? 'ar' : 'en';
+  const tgtBox   = toLang === 'ar' ? arBox : enBox;
+  const srcBox   = fromLang === 'ar' ? arBox : enBox;
+
+  // Save caret now, before the async gap, so we can restore it after re-render
+  const caretOffset = saveCaret(srcBox);
+
+  translate(text, fromLang, toLang, srcBox, tgtBox, caretOffset);
+}
+
+// ── Per-box wiring ────────────────────────────────────────────────────────────
+function wireBox(box) {
+
+  // When the user clicks into a span-rendered box, convert spans → plain text
+  // BEFORE the browser places the cursor (mousedown fires before focus).
+  box.addEventListener('mousedown', () => {
+    if (box === enBox ? S.enHasSpans : S.arHasSpans) collapseSpans(box);
+  });
+
+  // Trigger on Space / Enter
+  box.addEventListener('keyup', e => {
+    if (e.key === ' ' || e.key === 'Enter') triggerFrom(box);
+  });
+
+  // Paste → plain text only, then translate
+  box.addEventListener('paste', e => {
+    e.preventDefault();
+    collapseSpans(box);
+    const txt = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, txt);
+    setTimeout(() => triggerFrom(box), 50);
+  });
+}
+
+wireBox(enBox);
+wireBox(arBox);
+
+enClear.addEventListener('click', () => { clearAll(); enBox.focus(); });
+arClear.addEventListener('click', () => { clearAll(); arBox.focus(); });
+
+// ── History ───────────────────────────────────────────────────────────────────
+async function loadHistory() {
+  const q = histQ.value.trim();
+  try {
+    const url = '/api/history' + (q ? '?q=' + encodeURIComponent(q) : '');
+    const d   = await (await fetch(url)).json();
+    histCnt.textContent = d.count;
+    renderHistory(d.entries);
+  } catch (_) {}
+}
+
+function renderHistory(entries) {
+  histList.innerHTML = '';
+  if (!entries.length) {
+    histList.innerHTML = '<div class="empty-state">No entries found</div>';
+    return;
+  }
+  entries.forEach(e => {
+    const isAr = e.tl === 'ar';
+    const sp   = e.src.slice(0,68) + (e.src.length>68?'…':'');
+    const tp   = e.tgt.slice(0,68) + (e.tgt.length>68?'…':'');
+    const dir  = e.sl === 'en' ? 'EN → AR' : 'AR → EN';
+    const card = document.createElement('div');
+    card.className = 'hcard';
+    card.innerHTML = `
+      <div class="hcard-meta">
+        <span class="hdir">${dir}</span>
+        <span class="hts">${esc(e.ts)}</span>
+      </div>
+      <div class="hsrc">${esc(sp)}</div>
+      <div class="htgt" ${isAr?'data-rtl':''}>${esc(tp)}</div>`;
+    card.addEventListener('click', () => {
+      if (e.sl === 'en') { renderWords(enBox, e.src); renderWords(arBox, e.tgt); }
+      else               { renderWords(arBox, e.src); renderWords(enBox, e.tgt); }
+      wireHover();
+      S.lastEnText = e.sl==='en' ? e.src : e.tgt;
+      S.lastArText = e.sl==='ar' ? e.src : e.tgt;
+    });
+    histList.appendChild(card);
+  });
+}
+
+histQ.addEventListener('input', loadHistory);
+
+btnDel.addEventListener('click', async () => {
+  const n = parseInt(delN.value) || 0;
+  if (n <= 0) return;
+  try {
+    const d = await (await fetch('/api/history/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ n }),
+    })).json();
+    histCnt.textContent = d.count;
+    toast(`🗑 Deleted ${d.deleted} oldest ${d.deleted===1?'entry':'entries'}`);
+    loadHistory();
+  } catch (_) {}
+});
+
+btnHist.addEventListener('click', () => {
+  S.histOpen = !S.histOpen;
+  histPanel.classList.toggle('open', S.histOpen);
+  btnHist.textContent = S.histOpen ? 'History ◂' : 'History ▸';
+  btnHist.classList.toggle('active', S.histOpen);
+  if (S.histOpen) loadHistory();
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+pollStatus();
+
+</script>
+</body>
+</html>

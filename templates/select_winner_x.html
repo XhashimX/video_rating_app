@@ -1,3 +1,5 @@
+<!-- START: MODIFIED SECTION -->
+<!-- Mentorbot: Enhanced Name Edit Modal with Keyboard Navigation (Arrows, Alt+Z/X, Enter) -->
 <!doctype html>
 
 <html lang="ar">
@@ -720,6 +722,7 @@
         border: 1px solid rgba(255, 51, 0, 0.5);
       }
 
+      /* تنسيقات الأوسمة الجديدة */
       .tag-und {
         background-color: rgba(150, 150, 150, 0.2) !important;
         color: rgb(200, 200, 200) !important;
@@ -753,6 +756,7 @@
         pointer-events: none; 
       }
     </style>
+
 
   </head>
   <body>
@@ -951,6 +955,7 @@
                     Kog
                   </label>
                 </div>
+                <!-- START: NEW TAGS HTML -->
                 <div class="form-check">
                   <input class="form-check-input tag-checkbox" type="checkbox" value="und" id="tag-und-{{ loop.index }}" {% if 'und' in current_tags %}checked{% endif %} data-index="{{ loop.index }}">
                   <label class="form-check-label tag-btn tag-und" for="tag-und-{{ loop.index }}">
@@ -969,6 +974,7 @@
                     pics
                   </label>
                 </div>
+                <!-- END: NEW TAGS HTML -->
               </div>
               <input type="hidden" name="tag_{{ loop.index }}" value="{{ video.tags }}" />
             </div>
@@ -1042,7 +1048,6 @@
                 </div>
 
                 <button class="fullscreen-button">ملء الشاشة</button>
-                
                 <button type="button" class="rotate-button" title="تدوير جميع الفيديوهات">
                     <i class="fas fa-redo"></i>
                 </button>
@@ -1117,6 +1122,15 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
+        
+        let isXHeld = false;
+        document.addEventListener('keydown', function(e) {
+            if(e.key && e.key.toLowerCase() === 'x') isXHeld = true;
+        });
+        document.addEventListener('keyup', function(e) {
+            if(e.key && e.key.toLowerCase() === 'x') isXHeld = false;
+        });
+
         const modal = document.getElementById('name-edit-modal');
         const inputField = document.getElementById('name-input-field');
         const suggestionsList = document.getElementById('name-suggestions-list');
@@ -1236,7 +1250,7 @@
         }
 
         document.addEventListener('keydown', function(e) {
-            const key = e.key.toLowerCase();
+            const key = e.key ? e.key.toLowerCase() : '';
             
             if (modal.style.display === 'block') {
                 if (e.key === 'Escape') {
@@ -1310,6 +1324,7 @@
             element.classList.add("rating-value-over-3500");
           }
         }
+
 
         const form = document.getElementById("competition-form");
         const errorMessage = document.getElementById("error-message");
@@ -1470,6 +1485,7 @@
                  }
              });
 
+
             if (
                 (hasEmptyRank && rankingType != "winner_only") ||
                 hasEmptyTag
@@ -1481,6 +1497,7 @@
                 form.submit(); 
             }
         });
+
 
         const videos = document.querySelectorAll(".video-card video");
         videos.forEach(function (video) {
@@ -2000,6 +2017,8 @@
             if (globalRotation % 180 !== 0) updateFullscreenFit();
         });
 
+        // # START: UNIFIED SHORTCUT LOGIC
+        
         function actionNext() {
             const isImageFullscreen = document.getElementById('fullscreen-overlay').style.display === 'block';
             const isVideoFullscreen = document.getElementById('video-fullscreen-overlay').style.display === 'flex';
@@ -2152,7 +2171,7 @@
 
         document.addEventListener('keydown', function(event) {
             const tagName = document.activeElement.tagName;
-            const key = event.key.toLowerCase();
+            const key = event.key ? event.key.toLowerCase() : '';
 
             if (['INPUT', 'TEXTAREA'].includes(tagName)) {
                 if (key === 'q' || key === 'enter') {
@@ -2162,7 +2181,8 @@
                 }
             }
 
-            const isAlt = event.altKey;
+            const isXModifier = isXHeld;
+
             const isImageFullscreen = document.getElementById('fullscreen-overlay').style.display === 'block';
             const isVideoFullscreen = document.getElementById('video-fullscreen-overlay').style.display === 'flex';
             const isAnyFullscreen = isImageFullscreen || isVideoFullscreen;
@@ -2176,7 +2196,6 @@
                 if (key === 'b') actionTag('body');
                 if (key === 'f') actionTag('face');
                 
-                // تمت إضافة الاختصارات للوسوم الجديدة هنا (ملء الشاشة)
                 if (key === 'u') actionTag('und');
                 if (key === 't') actionTag('extend');
                 if (key === 'p') actionTag('pics');
@@ -2197,14 +2216,14 @@
 
             if (key === 'z' && !document.activeElement.classList.contains('quick-bet-input')) { event.preventDefault(); goBackUrl(); }
             
-            if (isAlt && !isNaN(key) && key >= '1' && key <= '9') {
+            if (isXModifier && !isNaN(key) && key >= '1' && key <= '9') {
                 event.preventDefault();
                 const index = key;
                 const radioBtn = document.getElementById(`winner-${index}`);
                 if (radioBtn) { radioBtn.checked = true; form.submit(); }
             }
 
-            if (!isAlt && !isNaN(key) && key >= '1' && key <= '9') {
+            if (!isXModifier && !isNaN(key) && key >= '1' && key <= '9') {
                 const index = key;
                 const targetCard = document.getElementById(`video-card-${index}`);
                 if (targetCard) {
@@ -2225,7 +2244,6 @@
             if (key === 'f') actionTag('face');
             if (key === 'w') actionTag('w'); 
             
-            // تمت إضافة الاختصارات للوسوم الجديدة هنا (الوضع العادي)
             if (key === 'u') actionTag('und');
             if (key === 't') actionTag('extend');
             if (key === 'p') actionTag('pics');
@@ -2281,6 +2299,7 @@
                 }
             }
         });
+        // # END: UNIFIED SHORTCUT LOGIC
 
         if (globalRotation !== 0) {
             applyGlobalRotation();
@@ -2425,3 +2444,4 @@
     
   </body>
 </html>
+<!-- END: MODIFIED SECTION -->

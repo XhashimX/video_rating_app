@@ -262,19 +262,41 @@ def search():
 
     all_images = main_images + all_subfolder_images
     
-    # --- منطق البحث المطور ---
-    # البحث في: البرومبت، اسم الموديل، اسم الملف، المسار
+    # --- منطق البحث المطور الجديد (يدعم الفاصلة لمنطق AND) ---
+    
+    # 1. تقطيع نص البحث عند الفاصلة وإزالة الفراغات الجانبية لكل كلمة
+    # مثال: "solo , 1boy" تصبح ["solo", "1boy"]
+    search_terms = [term.strip() for term in query.split(',') if term.strip()]
+    
     search_results = []
+    
     for img in all_images:
-        in_prompt = query in img.get('prompt_data', '').lower()
-        in_model = query in img.get('model_name', '').lower()
-        in_name = query in img.get('name', '').lower() # (جديد) البحث في الاسم
+        # تجهيز نصوص الصورة للبحث فيها
+        prompt_text = img.get('prompt_data', '').lower()
+        model_text = img.get('model_name', '').lower()
+        name_text = img.get('name', '').lower()
+        path_text = img.get('relative_path', '').lower()
         
-        # (جديد) البحث في اسم المجلد الأصلي (إذا كان جزءاً من المسار)
-        in_path = query in img.get('relative_path', '').lower()
+        # نفترض أن الصورة تطابق جميع الكلمات حتى يثبت العكس
+        matches_all_terms = True
         
-        if in_prompt or in_model or in_name or in_path:
+        for term in search_terms:
+            # هل الكلمة الحالية موجودة في أي من حقول الصورة؟
+            term_found = (term in prompt_text) or \
+                         (term in model_text) or \
+                         (term in name_text) or \
+                         (term in path_text)
+            
+            # إذا وجدنا كلمة واحدة غير موجودة، إذن الصورة لا تطابق (نوقف البحث ونرفض الصورة)
+            if not term_found:
+                matches_all_terms = False
+                break
+        
+        # إذا كانت جميع الكلمات موجودة، أضف الصورة للنتائج
+        if matches_all_terms:
             search_results.append(img)
+            
+    # --- نهاية منطق البحث ---
     
     # تطبيق الفرز على النتائج
     search_results = apply_sorting(search_results, sort_by)
@@ -300,7 +322,6 @@ def search():
                            sort_by=sort_by, # نمرر قيمة الفرز
                            total_images=total_images)
 
-@app.route('/toggle_favorite', methods=['POST'])
 def toggle_favorite():
     """إضافة/إزالة من المفضلة"""
     data = request.json

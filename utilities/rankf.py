@@ -3,12 +3,12 @@ import os
 import math
 
 # المسار الجديد
-input_file = r"C:\Users\Stark\Download\myhome\video_rating_app\utilities\topcut_elo_videos_A1000 elo tik_559.json"
+input_file = r"C:\Users\Stark\Download\myhome\video_rating_app\utilities\topcut_elo_videos_A1000 elo pic_162.json"
 base_dir = os.path.dirname(input_file)
 
-base_name = "topcut_elo_videos_A1000 elo tik_"
-start_index = 3000
-competitions_per_file = 8   # كل ملف يحتوي 8 مسابقات
+base_name = "topcut_elo_videos_A1000 elo pic_"
+start_index = 1011
+competitions_per_file = 16   # كل ملف يحتوي 16 مسابقة
 
 # قراءة الملف الأصلي
 with open(input_file, "r", encoding="utf-8") as f:

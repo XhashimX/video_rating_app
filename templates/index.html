@@ -224,6 +224,11 @@
         <a href="{{ url_for('names_analysis_page') }}" id="btn-names" class="btn btn-info"
           ><i class="fas fa-chart-bar"></i> <span class="shortcut-key">[N]</span> تحليل الأسماء</a
         >
+
+        <!-- B: Names Browser (متصفح الأسماء) -->
+        <a href="{{ url_for('names_browser') }}" id="btn-names-browser" class="btn btn-success"
+          ><i class="fas fa-users"></i> <span class="shortcut-key">[B]</span> متصفح الأسماء</a
+        >
         
         <!-- START: NEW LONE WOLF BUTTON -->
         <!-- L: Lone Wolf -->
@@ -235,6 +240,11 @@
         <!-- T: Tour Page -->
         <a href="{{ url_for('tour_page') }}" id="btn-tour" class="btn btn-primary"
           ><i class="fas fa-road"></i> <span class="shortcut-key">[T]</span> المسابقة (Tour)</a
+        >
+
+        <!-- A: Archive Tools (New) -->
+        <a href="{{ url_for('archive_tools_page') }}" id="btn-archive" class="btn btn-secondary"
+          ><i class="fas fa-archive"></i> <span class="shortcut-key">[A]</span> أدوات الأرشيف</a
         >
         
         <!-- M: Manage Tournaments -->
@@ -286,6 +296,9 @@
               case 't': // Tour Page
                   btnId = 'btn-tour';
                   break;
+              case 'a': // Archive Tools (New)
+                  btnId = 'btn-archive';
+                  break;
               case 'd': // Dashboard
                   btnId = 'btn-dashboard';
                   break;
@@ -307,6 +320,9 @@
               case 'n': // Names Analysis
                   btnId = 'btn-names';
                   break;
+              case 'b': // Names Browser
+                  btnId = 'btn-names-browser';
+                  break;
               case 'l': // Lone Wolf (New)
                   btnId = 'btn-lone-wolf';
                   break;
@@ -324,7 +340,7 @@
           if (btnId) {
               const btn = document.getElementById(btnId);
               if (btn) {
-                  event.preventDefault(); // منع السلوك الاftراضي للمتصفح إذا لزم الأمر
+                  event.preventDefault(); // منع السلوك الافتراضي للمتصفح إذا لزم الأمر
                   btn.click();
               }
           }

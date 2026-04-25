@@ -2745,28 +2745,230 @@ def get_tournament_priority(filename):
         return (2, filename)
     else:
         return (3, filename)
-def main():
-    # إنشاء المجلدات الضرورية عند بدء التشغيل
-    os.makedirs(BACKUP_FOLDER, exist_ok=True)
-    os.makedirs(STATUS_FOLDER, exist_ok=True)
-    os.makedirs(UPSCALED_MEDIA_DIR, exist_ok=True) # <-- السطر الجديد هنا
-    print(f"Backup folder ensured at {BACKUP_FOLDER}")
-    print(f"Status folder ensured at {STATUS_FOLDER}")
-    print(f"Upscaled media folder ensured at {UPSCALED_MEDIA_DIR}")
-    if not os.path.exists(BACKUP_FOLDER):
-        try:
-            os.makedirs(BACKUP_FOLDER)
-            print(f"Backup folder created at {BACKUP_FOLDER}")
-        except Exception as e:
-            print(f"Error creating backup folder: {e}")
-    if not os.path.exists(STATUS_FOLDER):
-        try:
-            os.makedirs(STATUS_FOLDER)
-            print(f"Status folder created at {STATUS_FOLDER}")
-        except Exception as e:
-            print(f"Error creating status folder: {e}")
 
 
+# ═══════════════════════════════════════════════════════════
+# NAMES BROWSER - متصفح الأسماء
+# أضف هذه الـ routes في app.py قبل سطر if __name__ == "__main__":
+# ═══════════════════════════════════════════════════════════
+
+@app.route('/get_media/<path:encoded_filename>')
+def get_names_media(encoded_filename):
+    from urllib.parse import unquote
+    selected_folder = session.get('selected_folder')
+    if not selected_folder:
+        return '', 404
+    filename = unquote(encoded_filename)
+    return send_from_directory(selected_folder, filename)
+
+
+@app.route('/names_browser')
+def names_browser():
+    from urllib.parse import quote as url_quote
+    if not session.get('selected_folder'):
+        flash("يرجى اختيار مجلد أولاً.", "warning")
+        return redirect(url_for('index'))
+
+    data = load_data()
+    names_dict = {}
+
+    for filename, info in data.items():
+        name = info.get('name', '').strip()
+        key  = name if name else '__unnamed__'
+        wr_raw = info.get('win_rate', 0.0)
+        if key not in names_dict:
+            names_dict[key] = []
+        names_dict[key].append({
+            'filename': filename,
+            'rating':   round(info.get('rating', 1000), 1),
+            'win_rate': wr_raw,
+            'tags':     info.get('tags', ''),
+            'encoded':  url_quote(filename)
+        })
+
+    for key in names_dict:
+        names_dict[key].sort(key=lambda x: x['rating'], reverse=True)
+
+    named   = sorted([k for k in names_dict if k != '__unnamed__'], key=lambda s: s.lower())
+    unnamed = ['__unnamed__'] if '__unnamed__' in names_dict else []
+    sorted_names  = named + unnamed
+    all_names     = named   # autocomplete يعرض الأسماء الحقيقية فقط
+    unnamed_count = len(names_dict.get('__unnamed__', []))
+
+    return render_template(
+        'names_browser.html',
+        names_dict=names_dict,
+        sorted_names=sorted_names,
+        all_names=all_names,
+        unnamed_count=unnamed_count
+    )
+@app.route('/names_browser/update', methods=['POST'])
+def names_browser_update():
+    if not session.get('selected_folder'):
+        return jsonify({'success': False, 'message': 'لم يتم اختيار مجلد'}), 403
+
+    req_data  = request.get_json(silent=True) or {}
+    filenames = req_data.get('filenames', [])
+    new_name  = req_data.get('name', '').strip()   # empty string = remove name
+
+    if not filenames:
+        return jsonify({'success': False, 'message': 'لا توجد ملفات محددة'}), 400
+
+    data    = load_data()
+    updated = 0
+    for fn in filenames:
+        if fn in data:
+            data[fn]['name'] = new_name
+            updated += 1
+
+    if updated:
+        save_data(data)
+
+    return jsonify({'success': True, 'updated': updated})
+@app.route('/archive_tools', methods=['GET'])
+def archive_tools_page():
+    from utilities.archive_tools import (
+        load_archive, filter_tournaments_by_name,
+        filter_tournaments_by_ratings
+    )
+    from utilities.tour import get_tournament_weight
+
+    archive = load_archive()
+
+    name_query = request.args.get('name_query', '').strip()
+    rating_query = request.args.get('rating_query', '').strip()
+
+    filtered = archive
+    if name_query:
+        filtered = filter_tournaments_by_name(filtered, name_query)
+    if rating_query:
+        filtered = filter_tournaments_by_ratings(filtered, rating_query)
+
+    # Show newest first (reversed)
+    sorted_archive = list(reversed(list(filtered.items())))
+
+    return render_template(
+        'archive_tools.html',
+        tournament_archive=sorted_archive,
+        total_count=len(archive),
+        filtered_count=len(filtered),
+        name_query=name_query,
+        rating_query=rating_query,
+        get_tournament_weight=get_tournament_weight
+    )
+
+
+@app.route('/archive_tools/action', methods=['POST'])
+def archive_tools_action():
+    from utilities.archive_tools import (
+        load_archive, load_elo_files,
+        extract_videos_from_selected, create_tournament_files,
+        save_tournament_files, export_file_sizes
+    )
+
+    archive = load_archive()
+    selected_ids = request.form.getlist('selected_tournaments')
+
+    # Preserve filter state for redirect
+    name_query = request.form.get('name_query', '')
+    rating_query = request.form.get('rating_query', '')
+    redirect_url = url_for('archive_tools_page', name_query=name_query, rating_query=rating_query)
+
+    if not selected_ids:
+        flash("لم يتم تحديد أي بطولات.", "warning")
+        return redirect(redirect_url)
+
+    action = request.form.get('action', '')
+
+    # --- Parse top levels ---
+    top_levels_raw = request.form.getlist('top_levels')
+    if 'all' in top_levels_raw:
+        top_levels = 'all'
+    else:
+        top_levels = [int(x) for x in top_levels_raw if x.isdigit()]
+        if not top_levels:
+            top_levels = [1]
+
+    # --- Smart match ---
+    smart_match = request.form.get('smart_match') == 'on'
+    size_to_name = load_elo_files() if smart_match else {}
+
+    # --- Extract videos from selected tournaments ---
+    videos = extract_videos_from_selected(
+        selected_ids, archive, top_levels, smart_match, size_to_name
+    )
+
+    if not videos:
+        flash("لم يتم العثور على فيديوهات في البطولات المحددة.", "warning")
+        return redirect(redirect_url)
+
+    # --- Handle Action ---
+    if action == 'create_tournament':
+        num_videos_per_match = int(request.form.get('num_videos_per_match', 4))
+        ranking_type = request.form.get('ranking_type', 'winner_only')
+        file_prefix = request.form.get('file_prefix', 'topcut_elo_videos_A1000 elo tik_')
+        start_num = int(request.form.get('start_num', 1000))
+        step = max(1, int(request.form.get('step', 1)))
+        num_files = max(1, int(request.form.get('num_files', 1)))
+
+        result_files = create_tournament_files(
+            videos, file_prefix, start_num, step,
+            num_files, num_videos_per_match, ranking_type
+        )
+        saved = save_tournament_files(result_files)
+
+        total_matches = sum(len(m) for m in result_files.values())
+        flash(
+            f"✅ تم إنشاء {len(saved)} ملف بطولة ({total_matches} مباراة، {len(videos)} فيديو). "
+            f"الملفات: {', '.join(saved)}",
+            "success"
+        )
+
+    elif action == 'export_sizes':
+        output_filename = request.form.get('output_filename', 'exported_sizes.txt').strip()
+        if not output_filename:
+            output_filename = 'exported_sizes.txt'
+        if not output_filename.endswith('.txt'):
+            output_filename += '.txt'
+
+        success, path_or_err = export_file_sizes(videos, output_filename)
+        if success:
+            flash(
+                f"✅ تم تصدير {len(videos)} حجم ملف إلى: {path_or_err}",
+                "success"
+            )
+        else:
+            flash(f"❌ خطأ في التصدير: {path_or_err}", "danger")
+
+    else:
+        flash("عملية غير معروفة.", "warning")
+
+    return redirect(redirect_url)
+
+
+@app.route('/archive_tools/count', methods=['POST'])
+def archive_tools_count():
+    """
+    AJAX endpoint — returns a JSON summary of how many videos will be
+    extracted given the selected tournament IDs and top_levels.
+    Used by the live counter in the UI.
+    """
+    from utilities.archive_tools import load_archive, count_videos_preview
+
+    data = request.get_json(silent=True) or {}
+    selected_ids = data.get('selected_ids', [])
+    top_levels_raw = data.get('top_levels', ['1'])
+
+    if 'all' in top_levels_raw:
+        top_levels = 'all'
+    else:
+        top_levels = [int(x) for x in top_levels_raw if str(x).isdigit()]
+        if not top_levels:
+            top_levels = [1]
+
+    archive = load_archive()
+    result = count_videos_preview(selected_ids, archive, top_levels)
+    return jsonify(result)
 if __name__ == "__main__":
     main()
     print("Registered routes:")

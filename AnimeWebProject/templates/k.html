@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎌 Anime Browser</title>
+<style>
+:root{--bg:#0d0d1a;--sf:#13132b;--sf2:#1a1a35;--ac:#6c63ff;--ac2:#ff6584;--tx:#e8e8f0;--mu:#8888aa;--bd:#2a2a4a;--cd:#16162e;--rd:12px;--green:#34d399;--yellow:#fcd34d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',Tahoma,sans-serif;min-height:100vh}
+nav{background:rgba(13,13,26,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);padding:0 20px;height:64px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200}
+.logo{font-size:1.2rem;font-weight:900;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.nav-tabs{display:flex;gap:2px;background:var(--sf2);border-radius:8px;padding:3px}
+.nav-tab{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--mu);border:none;background:none;transition:all .2s}
+.nav-tab.on{background:var(--ac);color:#fff}
+.nav-search{flex:1;max-width:400px;position:relative;display:none}
+.nav-search input{width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:50px;padding:8px 16px 8px 40px;color:var(--tx);font-size:.85rem;outline:none;transition:border-color .2s}
+.nav-search input:focus{border-color:var(--ac)}
+.nav-search .si{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--mu);pointer-events:none}
+.nst{margin-right:auto;font-size:.78rem;color:var(--mu);white-space:nowrap}
+.nup label{background:linear-gradient(135deg,var(--ac),#8b5cf6);padding:7px 16px;border-radius:50px;cursor:pointer;font-size:.82rem;font-weight:600;white-space:nowrap}
+#fi{display:none}
+.hero{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:78vh;text-align:center;padding:40px}
+.hero h1{font-size:2.8rem;font-weight:900;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:14px}
+.hero p{color:var(--mu);font-size:1.05rem;margin-bottom:28px}
+.uz{border:2px dashed var(--ac);border-radius:20px;padding:44px 60px;cursor:pointer;transition:all .3s;background:rgba(108,99,255,.05)}
+.uz:hover{background:rgba(108,99,255,.12);transform:scale(1.02)}
+.uz .ic{font-size:2.8rem;margin-bottom:12px}
+select,.btn{background:var(--sf2);border:1px solid var(--bd);color:var(--tx);padding:7px 12px;border-radius:8px;font-size:.82rem;cursor:pointer;outline:none;transition:all .2s}
+select:focus,.btn:hover{border-color:var(--ac)}
+.btn{font-weight:600}
+.btn.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.btn-g{background:linear-gradient(135deg,rgba(52,211,153,.2),rgba(5,150,105,.2));border-color:rgba(52,211,153,.4);color:var(--green)}
+.btn-g:hover{background:linear-gradient(135deg,rgba(52,211,153,.3),rgba(5,150,105,.3))}
+.btn-g.on{background:linear-gradient(135deg,#34d399,#059669);border-color:transparent;color:#fff}
+.btn-r{background:rgba(255,101,132,.15);border-color:rgba(255,101,132,.3);color:var(--ac2)}
+.btn-r.on{background:linear-gradient(135deg,var(--ac2),#e11d48);border-color:transparent;color:#fff}
+.btn-y{background:rgba(252,211,77,.1);border-color:rgba(252,211,77,.3);color:var(--yellow)}
+.btn-y:hover{background:rgba(252,211,77,.2)}
+.btn-pulse.on{animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(108,99,255,.4)}50%{box-shadow:0 0 0 7px rgba(108,99,255,0)}}
+.ctrl{padding:12px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--bd);background:var(--sf);position:sticky;top:64px;z-index:150}
+.cr{margin-right:auto;display:flex;gap:7px;align-items:center}
+.vbs{display:flex;gap:3px}
+.vb{background:var(--sf2);border:1px solid var(--bd);color:var(--mu);padding:7px 10px;border-radius:8px;cursor:pointer;font-size:.95rem;transition:all .2s}
+.vb.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.rc{color:var(--mu);font-size:.82rem}
+.sel-tags-bar{padding:7px 20px;display:none;gap:6px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--bd);background:var(--sf)}
+.sel-tag{background:rgba(108,99,255,.15);border:1px solid var(--ac);color:var(--ac);padding:3px 10px 3px 8px;border-radius:50px;font-size:.72rem;display:flex;align-items:center;gap:4px;cursor:pointer;transition:all .2s}
+.sel-tag:hover{background:rgba(108,99,255,.3)}
+.logic-badge{font-size:.7rem;color:var(--mu);padding:3px 9px;background:var(--sf2);border-radius:50px;cursor:pointer;border:1px solid var(--bd)}
+.logic-badge:hover{border-color:var(--ac)}
+.clr-all{font-size:.72rem;color:var(--ac2);cursor:pointer;text-decoration:underline}
+.tb{padding:8px 20px;display:flex;gap:6px;overflow-x:auto;border-bottom:1px solid var(--bd);background:var(--sf);scrollbar-width:none}
+.tb::-webkit-scrollbar{display:none}
+.chip{background:var(--sf2);border:1px solid var(--bd);color:var(--mu);padding:3px 11px;border-radius:50px;font-size:.72rem;cursor:pointer;white-space:nowrap;transition:all .2s}
+.chip:hover,.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
+#ac{padding:18px 20px}
+.gv{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:16px}
+.lv{display:flex;flex-direction:column;gap:9px}
+.card{background:var(--cd);border:1px solid var(--bd);border-radius:var(--rd);overflow:hidden;cursor:pointer;transition:all .22s;position:relative}
+.card:hover{transform:translateY(-4px);box-shadow:0 6px 28px rgba(108,99,255,.2);border-color:var(--ac)}
+.iw{position:relative;padding-top:142%;overflow:hidden;background:var(--sf2)}
+.iw img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.iw img.ok{display:block}
+.ip{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--mu);font-size:.72rem;cursor:pointer;transition:background .2s}
+.ip:hover{background:rgba(108,99,255,.1)}
+.ip .li{font-size:1.8rem;opacity:.45;transition:opacity .2s}
+.ip:hover .li{opacity:.9}
+.cb{padding:9px}
+.ct{font-size:.8rem;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:5px}
+.cm{display:flex;gap:4px;flex-wrap:wrap}
+.badge{font-size:.65rem;padding:2px 7px;border-radius:50px;background:var(--sf2);color:var(--mu)}
+.TV{background:rgba(108,99,255,.2);color:#a5a0ff}.MOVIE{background:rgba(255,101,132,.2);color:#ff91a8}.OVA{background:rgba(52,211,153,.2);color:#6ee7b7}.ONA{background:rgba(251,191,36,.2);color:#fcd34d}.SPECIAL{background:rgba(167,139,250,.2);color:#c4b5fd}.MUSIC{background:rgba(20,184,166,.2);color:#5eead4}
+.sco{position:absolute;top:7px;right:7px;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);border-radius:7px;padding:2px 7px;font-size:.72rem;font-weight:700;color:var(--yellow)}
+.lv .card{display:flex;height:94px}
+.lv .iw{padding-top:0;width:66px;min-width:66px;height:100%}
+.lv .sco{top:4px;right:4px;font-size:.67rem}
+.lv .cb{flex:1;padding:9px;display:flex;flex-direction:column;justify-content:space-between}
+.lv .ct{-webkit-line-clamp:1;font-size:.87rem}
+.lv .ltags{display:flex;gap:3px;flex-wrap:wrap}
+.lv .ltag{font-size:.63rem;background:var(--sf2);color:var(--mu);padding:2px 7px;border-radius:50px}
+.lv .ip{font-size:.6rem}
+.lv .ip .li{font-size:1.3rem}
+/* TAGS MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:500;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.tbox{background:var(--sf);border:1px solid var(--bd);border-radius:18px;max-width:700px;width:100%;max-height:86vh;display:flex;flex-direction:column}
+.tbox-head{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.tbox-head h3{font-size:1rem;font-weight:800;flex:1}
+.tbox-search{flex:1;max-width:200px;background:var(--sf2);border:1px solid var(--bd);border-radius:50px;padding:7px 14px;color:var(--tx);font-size:.82rem;outline:none;transition:border-color .2s}
+.tbox-search:focus{border-color:var(--ac)}
+.logic-wrap{display:flex;gap:3px;background:var(--sf2);border-radius:8px;padding:3px}
+.lbtn{padding:5px 11px;border-radius:5px;font-size:.75rem;font-weight:600;color:var(--mu);border:none;cursor:pointer;background:none;transition:all .2s}
+.lbtn.on{background:var(--ac);color:#fff}
+.tbox-actions{display:flex;gap:10px;align-items:center;padding:8px 20px;border-bottom:1px solid var(--bd);flex-shrink:0;font-size:.75rem}
+.tbox-actions span{color:var(--mu)}
+.tbox-actions a{color:var(--ac);cursor:pointer;text-decoration:underline}
+.tbox-body{overflow-y:auto;padding:14px 20px;flex:1;scrollbar-width:thin;scrollbar-color:var(--ac) transparent}
+.tags-wrap{display:flex;flex-wrap:wrap;gap:7px}
+.ti{background:var(--sf2);border:1px solid var(--bd);color:var(--mu);padding:5px 12px;border-radius:50px;font-size:.75rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px}
+.ti:hover{border-color:var(--ac)}
+.ti.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.ti .tc{font-size:.63rem;opacity:.7}
+.tbox-foot{padding:12px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+/* CHARS PAGE */
+#page-chars{display:none;min-height:calc(100vh - 64px)}
+.cp-head{background:var(--sf);border-bottom:1px solid var(--bd);padding:14px 20px}
+.cp-title{font-size:1.15rem;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.cp-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.cp-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.prog-wrap{background:var(--sf2);border-radius:50px;height:5px;flex:1;min-width:100px;overflow:hidden;display:none}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--ac),var(--ac2));border-radius:50px;width:0;transition:width .3s}
+.cp-stat-txt{font-size:.78rem;color:var(--mu);white-space:nowrap}
+.cp-search-w{position:relative}
+.cp-search-w input{background:var(--sf2);border:1px solid var(--bd);border-radius:50px;padding:7px 16px 7px 36px;color:var(--tx);font-size:.82rem;outline:none;width:190px;transition:all .2s}
+.cp-search-w input:focus{border-color:var(--ac);width:230px}
+.cp-search-w .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mu);pointer-events:none}
+.cp-grid-wrap{padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:13px}
+.cp-empty{grid-column:1/-1;text-align:center;padding:60px;color:var(--mu);font-size:.92rem}
+/* CHAR CARDS */
+.ccard{background:var(--cd);border:1px solid var(--bd);border-radius:var(--rd);overflow:hidden;cursor:pointer;transition:all .22s;position:relative}
+.ccard:hover{transform:translateY(-3px);box-shadow:0 4px 20px rgba(108,99,255,.2);border-color:var(--ac)}
+.cw{position:relative;padding-top:135%;overflow:hidden;background:var(--sf2)}
+.cw img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;display:none}
+.cw img.ok{display:block}
+.cph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.2rem;color:var(--mu);opacity:.35;transition:opacity .2s;cursor:pointer}
+.cph:hover{opacity:.7}
+.cph.loading{opacity:.6;animation:none}
+.crole{position:absolute;top:5px;right:5px;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:50px}
+.rMain{background:rgba(108,99,255,.85);color:#fff}
+.rSupporting{background:rgba(0,0,0,.65);color:var(--mu);border:1px solid var(--bd)}
+.cfav{position:absolute;top:5px;left:5px;background:rgba(0,0,0,.72);border-radius:6px;padding:2px 6px;font-size:.62rem;color:var(--yellow)}
+.cbody{padding:8px}
+.cname{font-size:.77rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.csub{font-size:.66rem;color:var(--mu);display:flex;gap:6px}
+.cheight{color:var(--green);font-weight:600}
+.canime{font-size:.62rem;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;opacity:.7}
+/* ANIME MODAL */
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(7px);z-index:1000;align-items:center;justify-content:center;padding:18px}
+.mo.open{display:flex}
+.mbox{background:var(--sf);border:1px solid var(--bd);border-radius:18px;max-width:720px;width:100%;max-height:90vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--ac) transparent;position:relative}
+.mcb{position:absolute;top:12px;right:12px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;z-index:10;transition:all .2s}
+.mcb:hover{background:var(--ac2);border-color:var(--ac2)}
+.mban{position:relative;height:230px;overflow:hidden;border-radius:18px 18px 0 0;background:var(--sf2)}
+.mban img{width:100%;height:100%;object-fit:cover}
+.mov{position:absolute;inset:0;background:linear-gradient(to top,var(--sf) 0%,transparent 55%)}
+.mc{padding:20px;margin-top:-34px;position:relative}
+.mt{font-size:1.3rem;font-weight:800;margin-bottom:6px}
+.mmr{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.ms{font-size:1.1rem;font-weight:700;color:var(--yellow)}
+.ms small{display:block;font-size:.67rem;color:var(--mu);font-weight:400}
+.msec{margin-bottom:14px}
+.msec h4{font-size:.73rem;text-transform:uppercase;letter-spacing:1px;color:var(--mu);margin-bottom:7px}
+.msy{color:var(--mu);font-size:.81rem;line-height:1.9}
+.mtw{display:flex;gap:4px;flex-wrap:wrap}
+.mtag{background:var(--sf2);border:1px solid var(--bd);color:var(--mu);padding:3px 10px;border-radius:50px;font-size:.73rem;cursor:pointer;transition:all .2s}
+.mtag:hover{border-color:var(--ac);color:var(--ac)}
+.mlinks{display:flex;gap:7px;flex-wrap:wrap}
+.mlink{background:var(--sf2);border:1px solid var(--bd);color:var(--tx);padding:6px 13px;border-radius:8px;text-decoration:none;font-size:.78rem;transition:all .2s}
+.mlink:hover{border-color:var(--ac);color:var(--ac)}
+.ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:9px;margin-bottom:13px}
+.ii{background:var(--sf2);border-radius:10px;padding:10px}
+.ii .l{font-size:.67rem;text-transform:uppercase;letter-spacing:1px;color:var(--mu);margin-bottom:3px}
+.ii .v{font-weight:600;font-size:.85rem}
+.mtabs{display:flex;border-bottom:1px solid var(--bd);margin-bottom:16px;margin-top:4px}
+.mtab{padding:9px 18px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--mu);border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none}
+.mtab:hover{color:var(--tx)}
+.mtab.on{color:var(--ac);border-bottom-color:var(--ac)}
+.tpanel{display:none}
+.tpanel.on{display:block}
+.char-ctrl{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.char-sw{position:relative;flex:1}
+.char-sw input{width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:50px;padding:7px 14px 7px 36px;color:var(--tx);font-size:.81rem;outline:none}
+.char-sw input:focus{border-color:var(--ac)}
+.char-sw .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mu);pointer-events:none}
+.chars-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.ccount{font-size:.72rem;color:var(--mu);margin-bottom:8px}
+.cload{text-align:center;padding:36px;color:var(--mu);font-size:.87rem}
+.cerr{text-align:center;padding:24px;color:var(--ac2);font-size:.82rem}
+/* CHAR DETAIL MODAL */
+.cdmo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);z-index:2000;align-items:center;justify-content:center;padding:20px}
+.cdmo.open{display:flex}
+.cdbox{background:var(--sf);border:1px solid var(--bd);border-radius:18px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--ac) transparent;position:relative}
+.cd-cl{position:absolute;top:12px;right:12px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;z-index:10;transition:all .2s}
+.cd-cl:hover{background:var(--ac2);border-color:var(--ac2)}
+.cd-img{width:100%;height:280px;overflow:hidden;border-radius:18px 18px 0 0;background:var(--sf2);position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.cd-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;display:none}
+.cd-img img.ok{display:block}
+.cd-img-hint{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--mu);transition:color .2s}
+.cd-img:hover .cd-img-hint{color:var(--tx)}
+.cd-img-ov{position:absolute;inset:0;background:linear-gradient(to top,var(--sf) 0%,transparent 50%);pointer-events:none;display:none}
+.cd-img-ov.show{display:block}
+.cd-body{padding:18px}
+.cdn{font-size:1.15rem;font-weight:800;margin-bottom:2px}
+.cdtags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.cdtag{padding:3px 11px;border-radius:50px;font-size:.73rem;font-weight:600}
+.cd-main{background:rgba(108,99,255,.2);color:#a5a0ff}
+.cd-supp{background:rgba(255,101,132,.2);color:#ff91a8}
+.cd-stats-g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px}
+.cd-s{background:var(--sf2);border-radius:9px;padding:9px}
+.cd-s.hi{border:1px solid rgba(52,211,153,.3)}
+.cd-s .l{font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--mu);margin-bottom:3px}
+.cd-s .v{font-weight:700;font-size:.88rem}
+.cd-s.hi .v{color:var(--green)}
+.cd-sec{margin-bottom:12px}
+.cd-sec h5{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--mu);margin-bottom:6px}
+.cd-about{font-size:.78rem;color:var(--mu);line-height:1.7;max-height:100px;overflow-y:auto;scrollbar-width:thin;border:1px solid var(--bd);border-radius:8px;padding:8px}
+.va-list{display:flex;flex-direction:column;gap:5px}
+.va{display:flex;align-items:center;gap:8px;background:var(--sf2);border-radius:8px;padding:6px 9px}
+.va img{width:30px;height:30px;border-radius:50%;object-fit:cover;background:var(--bg)}
+.va-name{font-size:.78rem;font-weight:600}
+.va-lang{font-size:.66rem;color:var(--mu)}
+.cd-link{display:inline-block;margin-top:8px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx);padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.78rem;transition:all .2s}
+.cd-link:hover{border-color:var(--ac);color:var(--ac)}
+.pag{display:flex;justify-content:center;gap:6px;padding:22px 20px;flex-wrap:wrap}
+.pb{background:var(--sf2);border:1px solid var(--bd);color:var(--tx);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:.82rem;transition:all .2s;min-width:36px;text-align:center}
+.pb:hover{border-color:var(--ac)}
+.pb.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:700}
+.pb:disabled{opacity:.3;cursor:not-allowed}
+.lbar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--ac),var(--ac2));width:0;transition:width .3s;z-index:9999}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+@media(max-width:600px){nav{padding:0 10px;gap:8px}.nst{display:none}.logo{font-size:1rem}#ac{padding:10px}.gv{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:11px}.ctrl,.cp-head{padding:8px 10px}.cp-grid-wrap{padding:10px;grid-template-columns:repeat(auto-fill,minmax(125px,1fr))}.hero h1{font-size:2rem}.uz{padding:28px 32px}}
+</style>
+</head>
+<body>
+<div class="lbar" id="lb"></div>
+
+<nav>
+  <div class="logo">🎌 Anime DB</div>
+  <div class="nav-tabs" id="ntabs" style="display:none">
+    <button class="nav-tab on" onclick="setPage('anime')">🎬 أنمي</button>
+    <button class="nav-tab" onclick="setPage('chars')">🎭 شخصيات</button>
+  </div>
+  <div class="nav-search" id="nsw">
+    <span class="si">🔍</span>
+    <input type="text" id="si" placeholder="ابحث عن أنمي...">
+  </div>
+  <div class="nst" id="nst"></div>
+  <div class="nup"><label for="fi">📂 استورد</label><input type="file" id="fi" accept=".json"></div>
+</nav>
+
+<!-- HERO -->
+<div class="hero" id="hero">
+  <h1>🎌 Anime Browser</h1>
+  <p>استورد ملف قاعدة بيانات الأنمي لتصفحه بطريقة احترافية</p>
+  <label for="fi"><div class="uz"><div class="ic">📁</div><p><strong>اضغط لاختيار الملف</strong> أو اسحب وأفلت</p><p style="margin-top:8px;font-size:.78rem;color:var(--mu)">anime-offline-database-minified.json</p></div></label>
+</div>
+
+<!-- ANIME PAGE -->
+<div id="page-anime" style="display:none">
+  <div class="ctrl">
+    <select id="ss"><option value="yr-d">الأحدث</option><option value="yr-a">الأقدم</option><option value="ti-a">الاسم أ-ي</option><option value="ti-d">الاسم ي-أ</option><option value="sc-d">أعلى تقييم</option><option value="sc-a">أدنى تقييم</option><option value="ep-d">أكثر حلقات</option></select>
+    <select id="stp"><option value="">كل الأنواع</option><option value="TV">TV</option><option value="MOVIE">Movie</option><option value="OVA">OVA</option><option value="ONA">ONA</option><option value="SPECIAL">Special</option><option value="MUSIC">Music</option></select>
+    <select id="syr"><option value="">كل السنوات</option></select>
+    <select id="sse"><option value="">كل الفصول</option><option value="WINTER">❄️ شتاء</option><option value="SPRING">🌸 ربيع</option><option value="SUMMER">☀️ صيف</option><option value="FALL">🍂 خريف</option></select>
+    <select id="sst"><option value="">كل الحالات</option><option value="FINISHED">✅ منتهي</option><option value="ONGOING">🔄 جاري</option><option value="UPCOMING">🕐 قادم</option></select>
+    <button class="btn" id="bsc" onclick="toggleSc()">⭐ مقيّم</button>
+    <button class="btn" id="btntags" onclick="openTM('anime')">🏷️ التصنيفات</button>
+    <button class="btn btn-pulse" id="btnauto" onclick="toggleAuto()">🚀 تحميل صور</button>
+    <div class="cr">
+      <span class="rc" id="rc"></span>
+      <div class="vbs">
+        <button class="vb on" id="vg" onclick="setV('g')">⊞</button>
+        <button class="vb" id="vl" onclick="setV('l')">☰</button>
+      </div>
+    </div>
+  </div>
+  <div class="sel-tags-bar" id="stbar"></div>
+  <div class="tb" id="tb"></div>
+  <div id="ac"><div id="ag" class="gv"></div></div>
+  <div class="pag" id="pg"></div>
+</div>
+
+<!-- CHARACTERS PAGE -->
+<div id="page-chars">
+  <div class="cp-head">
+    <div class="cp-title">🎭 استعراض الشخصيات <span id="cp-match" style="font-size:.78rem;color:var(--mu);font-weight:400"></span></div>
+    <div class="cp-filters">
+      <select id="cpt"><option value="">كل الأنواع</option><option value="TV">TV</option><option value="MOVIE">Movie</option><option value="OVA">OVA</option><option value="ONA">ONA</option><option value="SPECIAL">Special</option></select>
+      <select id="cpy"><option value="">كل السنوات</option></select>
+      <select id="cpse"><option value="">كل الفصول</option><option value="WINTER">❄️ شتاء</option><option value="SPRING">🌸 ربيع</option><option value="SUMMER">☀️ صيف</option><option value="FALL">🍂 خريف</option></select>
+      <button class="btn" id="cptbtn" onclick="openTM('cp')">🏷️ التصنيفات</button>
+      <select id="cprl"><option value="">كل الأدوار</option><option value="Main">رئيسية</option><option value="Supporting">ثانوية</option></select>
+    </div>
+    <div class="cp-actions">
+      <button class="btn btn-g" id="cpstart" onclick="startCP()">▶ ابدأ التحميل</button>
+      <button class="btn btn-r" id="cpstop" onclick="stopCP()" style="display:none">⏹ إيقاف</button>
+      <button class="btn btn-y" id="cpheights" onclick="batchHeights()" style="display:none">📏 تحميل الأطوال</button>
+      <button class="btn btn-pulse" id="cpauto" onclick="toggleCPAuto()">🖼️ تحميل الصور تلقائياً</button>
+      <div class="prog-wrap" id="ppw"><div class="prog-bar" id="pp"></div></div>
+      <span class="cp-stat-txt" id="cpst"></span>
+      <div class="cp-search-w"><span class="si">🔍</span><input type="text" id="cpsearch" placeholder="ابحث في الشخصيات..." oninput="filterCP()"></div>
+      <select id="cpsort" onchange="sortAndRenderCP()"><option value="fav-d">❤️ الأكثر إعجاباً</option><option value="fav-a">الأقل إعجاباً</option><option value="height-d">📏 الأطول</option><option value="height-a">الأقصر</option><option value="name-a">الاسم أ-ي</option><option value="name-d">الاسم ي-أ</option></select>
+    </div>
+  </div>
+  <div class="cp-grid-wrap" id="cpgrid"><div class="cp-empty">اضبط الفلاتر ثم اضغط "ابدأ التحميل"</div></div>
+  <div class="pag" id="cppg"></div>
+</div>
+
+<!-- TAGS MODAL -->
+<div class="overlay" id="tmo" onclick="if(event.target===this)closeTM()">
+  <div class="tbox">
+    <div class="tbox-head">
+      <h3>🏷️ التصنيفات</h3>
+      <input class="tbox-search" id="tsearch" type="text" placeholder="ابحث..." oninput="renderTags()">
+      <div class="logic-wrap" id="logic-wrap">
+        <button class="lbtn on" id="lbor" onclick="setLogic('OR')">أو</button>
+        <button class="lbtn" id="lband" onclick="setLogic('AND')">و</button>
+      </div>
+      <button class="btn" style="padding:5px 10px" onclick="closeTM()">✕</button>
+    </div>
+    <div class="tbox-actions">
+      <span id="tselcount">0 محدد</span>
+      <a onclick="selAll()">تحديد الكل</a>
+      <a onclick="selNone()">مسح الكل</a>
+    </div>
+    <div class="tbox-body"><div class="tags-wrap" id="tgrid"></div></div>
+    <div class="tbox-foot">
+      <button class="btn" onclick="closeTM()">إغلاق</button>
+      <button class="btn on" onclick="applyTM()">✓ تطبيق</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANIME MODAL -->
+<div class="mo" id="mo" onclick="if(event.target===this)cMd()">
+  <div class="mbox">
+    <button class="mcb" onclick="cMd()">✕</button>
+    <div class="mban"><img id="mi" src="" alt="" onerror="this.style.display='none'"><div class="mov"></div></div>
+    <div class="mc">
+      <div id="mctop"></div>
+      <div class="mtabs">
+        <button class="mtab on" onclick="swTab('info',this)">📋 المعلومات</button>
+        <button class="mtab" onclick="swTab('chars',this)">👥 الشخصيات</button>
+      </div>
+      <div id="tp-info" class="tpanel on"></div>
+      <div id="tp-chars" class="tpanel">
+        <div class="char-ctrl">
+          <div class="char-sw"><span class="si">🔍</span><input type="text" id="chsearch" placeholder="ابحث..." oninput="filterMChars()"></div>
+          <select id="chsort" onchange="sortMChars()"><option value="fav-d">❤️ الأكثر إعجاباً</option><option value="fav-a">الأقل</option><option value="height-d">📏 الأطول</option><option value="height-a">الأقصر</option><option value="name-a">الاسم أ-ي</option></select>
+        </div>
+        <div class="ccount" id="ccount"></div>
+        <div class="chars-grid" id="chgrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAR DETAIL MODAL -->
+<div class="cdmo" id="cdmo" onclick="if(event.target===this)closeCd()">
+  <div class="cdbox"><button class="cd-cl" onclick="closeCd()">✕</button><div id="cdinner"></div></div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+var all=[],fil=[],cpg=1,PP=48,vm='g',oSc=false;
+var selTags=[],tagLogic='OR',allTags=[];
+var quickTag='',tmTarget='anime';
+var cpSelTags=[];
+var curAnime=null,mChars=[],mCharsF=[];
+var charCache={},detailCache={};
+var CP={running:false,queue:[],loaded:0,total:0,chars:[],ids:new Set(),filtered:[],autoImg:false,pageNum:1};
+
+// Jikan rate-limited queue (350ms between requests)
+var JQ={q:[],busy:false,
+  add:function(url,cb){this.q.push({url,cb});if(!this.busy)this.next();},
+  next:function(){
+    if(!this.q.length){this.busy=false;return;}
+    this.busy=true;var {url,cb}=this.q.shift(),self=this;
+    fetch(url).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json();})
+    .then(d=>{cb(null,d);setTimeout(()=>self.next(),360);})
+    .catch(e=>{cb(e,null);setTimeout(()=>self.next(),360);});
+  },
+  clear:function(){this.q=[];}
+};
+
+// ============================================================
+// FILE LOAD
+// ============================================================
+document.getElementById('fi').addEventListener('change',function(e){
+  var f=e.target.files[0];if(!f)return;
+  var lb=document.getElementById('lb');lb.style.width='30%';
+  var r=new FileReader();
+  r.onload=function(ev){
+    lb.style.width='65%';
+    try{
+      var d=JSON.parse(ev.target.result);
+      all=d.data||d.samples||[];
+      document.getElementById('nst').textContent=all.length.toLocaleString()+' أنمي';
+      buildTags();fillYears();fillCpYears();fillQuickTags();applyF();
+      document.getElementById('hero').style.display='none';
+      document.getElementById('page-anime').style.display='block';
+      document.getElementById('ntabs').style.display='';
+      document.getElementById('nsw').style.display='';
+      lb.style.width='100%';setTimeout(()=>lb.style.width='0',500);
+    }catch(err){alert('خطأ: '+err.message);lb.style.width='0';}
+  };
+  r.readAsText(f);
+});
+
+// ============================================================
+// TAGS SYSTEM
+// ============================================================
+function buildTags(){
+  var tc={};
+  all.forEach(a=>(a.tags||[]).forEach(t=>{tc[t]=(tc[t]||0)+1;}));
+  allTags=Object.entries(tc).sort((a,b)=>b[1]-a[1]).map(([tag,count])=>({tag,count}));
+}
+
+function fillQuickTags(){
+  var tb=document.getElementById('tb');
+  tb.innerHTML='<span class="chip on" data-tag="">الكل</span>';
+  allTags.slice(0,24).forEach(({tag})=>{
+    var c=document.createElement('span');c.className='chip';c.textContent=tag;c.setAttribute('data-tag',tag);
+    tb.appendChild(c);
+  });
+  tb.addEventListener('click',function(e){
+    var chip=e.target.closest('.chip');if(!chip)return;
+    quickTag=chip.getAttribute('data-tag');
+    tb.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+    chip.classList.add('on');
+    if(quickTag){selTags=[];updateSelBar();}
+    cpg=1;applyF();
+  });
+}
+
+// TAGS MODAL
+function openTM(target){
+  tmTarget=target;
+  var isCP=target==='cp';
+  var currentSel=isCP?cpSelTags:selTags;
+  document.getElementById('logic-wrap').style.display=isCP?'none':'';
+  document.getElementById('tsearch').value='';
+  renderTags(currentSel);
+  document.getElementById('tmo').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeTM(){document.getElementById('tmo').classList.remove('open');document.body.style.overflow='';}
+
+function renderTags(currentSel){
+  if(currentSel===undefined)currentSel=tmTarget==='cp'?cpSelTags:selTags;
+  var q=document.getElementById('tsearch').value.toLowerCase();
+  var grid=document.getElementById('tgrid');
+  grid.innerHTML='';
+  var visible=q?allTags.filter(({tag})=>tag.toLowerCase().includes(q)):allTags;
+  visible.forEach(({tag,count})=>{
+    var el=document.createElement('div');el.className='ti';
+    if(currentSel.includes(tag))el.classList.add('on');
+    el.innerHTML=esc(tag)+' <span class="tc">'+count+'</span>';
+    el.addEventListener('click',function(){
+      var idx=currentSel.indexOf(tag);
+      if(idx>=0)currentSel.splice(idx,1);else currentSel.push(tag);
+      el.classList.toggle('on',currentSel.includes(tag));
+      updateSelCount(currentSel);
+    });
+    grid.appendChild(el);
+  });
+  updateSelCount(currentSel);
+}
+
+function updateSelCount(arr){
+  document.getElementById('tselcount').textContent=(arr||[]).length+' محدد';
+}
+
+function setLogic(l){tagLogic=l;document.getElementById('lbor').classList.toggle('on',l==='OR');document.getElementById('lband').classList.toggle('on',l==='AND');}
+function selAll(){var arr=tmTarget==='cp'?cpSelTags:selTags;allTags.forEach(({tag})=>{if(!arr.includes(tag))arr.push(tag);});renderTags(arr);}
+function selNone(){var arr=tmTarget==='cp'?cpSelTags:selTags;arr.splice(0,arr.length);renderTags(arr);}
+
+function applyTM(){
+  closeTM();
+  if(tmTarget==='anime'){
+    quickTag='';
+    document.querySelectorAll('.tb .chip').forEach(c=>c.classList.remove('on'));
+    if(!selTags.length)document.querySelector('.tb .chip').classList.add('on');
+    updateSelBar();
+    cpg=1;applyF();
+  } else {
+    updateCPBtn();
+    updateCPMatchCount();
+  }
+}
+
+function updateSelBar(){
+  var bar=document.getElementById('stbar');
+  var btn=document.getElementById('btntags');
+  if(!selTags.length){bar.style.display='none';btn.classList.remove('on');btn.textContent='🏷️ التصنيفات';return;}
+  bar.style.display='flex';
+  btn.classList.add('on');btn.textContent='🏷️ تصنيفات ('+selTags.length+')';
+  var h='<span class="logic-badge" onclick="setLogic(tagLogic===\'OR\'?\'AND\':\'OR\');updateSelBar();applyF()">'+(tagLogic==='OR'?'أو':'و')+'</span>';
+  selTags.forEach(t=>{h+='<span class="sel-tag" onclick="removeTag(\''+ea(t)+'\')">'+esc(t)+' <span>✕</span></span>';});
+  h+='<span class="clr-all" onclick="selTags=[];updateSelBar();applyF()">مسح الكل</span>';
+  bar.innerHTML=h;
+}
+
+function removeTag(tag){var i=selTags.indexOf(tag);if(i>=0)selTags.splice(i,1);updateSelBar();cpg=1;applyF();}
+
+function updateCPBtn(){
+  var btn=document.getElementById('cptbtn');
+  btn.classList.toggle('on',cpSelTags.length>0);
+  btn.textContent=cpSelTags.length?'🏷️ تصنيفات ('+cpSelTags.length+')':'🏷️ التصنيفات';
+}
+
+// ============================================================
+// ANIME FILTER & RENDER
+// ============================================================
+function fillYears(){
+  var yrs=[...new Set(all.map(a=>a.animeSeason?.year).filter(Boolean))].sort((a,b)=>b-a);
+  var s=document.getElementById('syr');
+  yrs.forEach(y=>{var o=document.createElement('option');o.value=y;o.textContent=y;s.appendChild(o);});
+}
+function fillCpYears(){
+  var yrs=[...new Set(all.map(a=>a.animeSeason?.year).filter(Boolean))].sort((a,b)=>b-a);
+  var s=document.getElementById('cpy');
+  yrs.forEach(y=>{var o=document.createElement('option');o.value=y;o.textContent=y;s.appendChild(o);});
+}
+
+['ss','stp','syr','sse','sst'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{cpg=1;applyF();}));
+document.getElementById('si').addEventListener('input',()=>{cpg=1;applyF();});
+['cpt','cpy','cpse','cprl'].forEach(id=>document.getElementById(id).addEventListener('change',updateCPMatchCount));
+
+function applyF(){
+  var q=document.getElementById('si').value.trim().toLowerCase();
+  var tp=document.getElementById('stp').value,yr=document.getElementById('syr').value;
+  var se=document.getElementById('sse').value,st=document.getElementById('sst').value;
+  var so=document.getElementById('ss').value;
+  fil=all.filter(a=>{
+    if(q&&!a.title.toLowerCase().includes(q)&&!(a.synonyms||[]).some(s=>s.toLowerCase().includes(q)))return false;
+    if(tp&&a.type!==tp)return false;
+    if(yr&&a.animeSeason?.year!=yr)return false;
+    if(se&&a.animeSeason?.season!==se)return false;
+    if(st&&a.status!==st)return false;
+    if(oSc&&!a.score)return false;
+    var tags=a.tags||[];
+    if(selTags.length){
+      if(tagLogic==='OR'){if(!selTags.some(t=>tags.includes(t)))return false;}
+      else{if(!selTags.every(t=>tags.includes(t)))return false;}
+    } else if(quickTag&&!tags.includes(quickTag))return false;
+    return true;
+  });
+  fil.sort((a,b)=>{
+    var so2=document.getElementById('ss').value;
+    if(so2==='ti-a')return a.title.localeCompare(b.title);
+    if(so2==='ti-d')return b.title.localeCompare(a.title);
+    if(so2==='yr-d')return(b.animeSeason?.year||0)-(a.animeSeason?.year||0);
+    if(so2==='yr-a')return(a.animeSeason?.year||0)-(b.animeSeason?.year||0);
+    if(so2==='sc-d')return(b.score?.arithmeticMean||0)-(a.score?.arithmeticMean||0);
+    if(so2==='sc-a'){var sa=a.score?.arithmeticMean||999,sb=b.score?.arithmeticMean||999;return sa-sb;}
+    if(so2==='ep-d')return(b.episodes||0)-(a.episodes||0);
+    return 0;
+  });
+  document.getElementById('rc').textContent=fil.length.toLocaleString()+' نتيجة';
+  cpg=1;renderP();renderPgs();
+}
+
+function toggleSc(){oSc=!oSc;document.getElementById('bsc').classList.toggle('on',oSc);applyF();}
+function setV(m){vm=m;document.getElementById('ag').className=m==='g'?'gv':'lv';document.getElementById('vg').classList.toggle('on',m==='g');document.getElementById('vl').classList.toggle('on',m==='l');renderP();}
+
+// AUTO LOAD ANIME IMAGES
+var autoOn=false,autoTimer=null;
+function toggleAuto(){
+  autoOn=!autoOn;
+  var btn=document.getElementById('btnauto');
+  btn.classList.toggle('on',autoOn);
+  btn.textContent=autoOn?'⏹️ إيقاف التحميل':'🚀 تحميل صور';
+  if(autoOn)runAutoLoad();else clearTimeout(autoTimer);
+}
+function runAutoLoad(){
+  var phs=Array.from(document.querySelectorAll('#ag .ip[data-src]'));
+  var idx=0;
+  function next(){
+    if(!autoOn)return;
+    while(idx<phs.length&&phs[idx].style.display==='none')idx++;
+    if(idx>=phs.length){
+      autoOn=false;var btn=document.getElementById('btnauto');
+      btn.classList.remove('on');btn.textContent='✅ اكتمل';
+      setTimeout(()=>btn.textContent='🚀 تحميل صور',3000);return;
+    }
+    loadImg(phs[idx],phs[idx].getAttribute('data-src'));idx++;
+    autoTimer=setTimeout(next,110);
+  }
+  next();
+}
+
+function renderP(){
+  clearTimeout(autoTimer);
+  if(autoOn){autoOn=false;document.getElementById('btnauto').classList.remove('on');document.getElementById('btnauto').textContent='🚀 تحميل صور';}
+  var items=fil.slice((cpg-1)*PP,cpg*PP);
+  var ag=document.getElementById('ag');ag.innerHTML='';
+  items.forEach(a=>ag.appendChild(mkCard(a)));
+}
+
+function mkCard(a){
+  var card=document.createElement('div');card.className='card';
+  var sc=a.score?.arithmeticMean?a.score.arithmeticMean.toFixed(1):null;
+  var tc=a.type||'',yr=a.animeSeason?.year||'';
+  var scH=sc?'<div class="sco">⭐ '+sc+'</div>':'';
+  var mH=(tc?'<span class="badge '+tc+'">'+tc+'</span>':'')+(yr?'<span class="badge">'+yr+'</span>':'')+(a.episodes?'<span class="badge">'+a.episodes+' حلقة</span>':'');
+  if(vm==='g'){
+    card.innerHTML='<div class="iw"><div class="ip" data-src="'+ea(a.picture||'')+'"><span class="li">🖼️</span><span>اضغط لتحميل</span></div><img src="" alt=""></div>'+scH+'<div class="cb"><div class="ct">'+esc(a.title)+'</div><div class="cm">'+mH+'</div></div>';
+  }else{
+    var tgs=(a.tags||[]).slice(0,4).map(t=>'<span class="ltag">'+t+'</span>').join('');
+    card.innerHTML='<div class="iw"><div class="ip" data-src="'+ea(a.thumbnail||a.picture||'')+'"><span class="li">🖼️</span></div><img src="" alt=""></div>'+scH+'<div class="cb"><div class="ct">'+esc(a.title)+'</div><div class="cm" style="margin-bottom:3px">'+mH+'</div><div class="ltags">'+tgs+'</div></div>';
+  }
+  card.querySelector('.ip').addEventListener('click',function(e){e.stopPropagation();loadImg(this,this.getAttribute('data-src'));});
+  card.addEventListener('click',()=>openAnime(a));
+  return card;
+}
+
+function loadImg(ph,src){
+  if(!src||ph.dataset.loading)return;
+  ph.dataset.loading='1';
+  var img=ph.parentElement.querySelector('img');
+  ph.innerHTML='<span class="li" style="opacity:.6">⏳</span>';
+  img.onload=()=>{ph.style.display='none';img.classList.add('ok');};
+  img.onerror=()=>{ph.innerHTML='<span class="li">❌</span>';ph.style.pointerEvents='none';};
+  img.src=src;
+}
+
+// ============================================================
+// PAGE SWITCHING
+// ============================================================
+function setPage(p){
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>t.classList.toggle('on',(i===0&&p==='anime')||(i===1&&p==='chars')));
+  document.getElementById('page-anime').style.display=p==='anime'?'block':'none';
+  document.getElementById('page-chars').style.display=p==='chars'?'block':'none';
+  if(p==='chars')updateCPMatchCount();
+}
+
+// ============================================================
+// ANIME DETAIL MODAL
+// ============================================================
+function openAnime(a){
+  curAnime=a;
+  var img=document.getElementById('mi');img.src=a.picture||'';img.style.display=a.picture?'':'none';
+  var sc=a.score?.arithmeticMean?a.score.arithmeticMean.toFixed(2):null;
+  var med=a.score?.median?a.score.median.toFixed(2):null;
+  var SM={WINTER:'❄️ شتاء',SPRING:'🌸 ربيع',SUMMER:'☀️ صيف',FALL:'🍂 خريف'};
+  var STM={FINISHED:'✅ منتهي',ONGOING:'🔄 جاري',UPCOMING:'🕐 قادم'};
+  var tc=a.type||'';
+  var top='<div class="mt">'+esc(a.title)+'</div><div class="mmr">';
+  if(sc)top+='<span class="ms">⭐ '+sc+'<small>متوسط'+(med?' · وسيط: '+med:'')+'</small></span>';
+  if(tc)top+='<span class="badge '+tc+'" style="font-size:.82rem;padding:4px 12px">'+tc+'</span>';
+  if(a.status)top+='<span class="badge" style="font-size:.82rem;padding:4px 12px">'+(STM[a.status]||a.status)+'</span>';
+  top+='</div>';
+  document.getElementById('mctop').innerHTML=top;
+  var h='<div class="ig">';
+  if(a.animeSeason?.year)h+='<div class="ii"><div class="l">السنة</div><div class="v">'+a.animeSeason.year+'</div></div>';
+  if(a.animeSeason?.season&&a.animeSeason.season!=='UNDEFINED')h+='<div class="ii"><div class="l">الفصل</div><div class="v">'+(SM[a.animeSeason.season]||a.animeSeason.season)+'</div></div>';
+  if(a.episodes)h+='<div class="ii"><div class="l">الحلقات</div><div class="v">'+a.episodes+'</div></div>';
+  if(a.duration)h+='<div class="ii"><div class="l">المدة</div><div class="v">'+fmtD(a.duration.value,a.duration.unit)+'</div></div>';
+  if(a.studios?.length)h+='<div class="ii"><div class="l">الاستوديو</div><div class="v" style="font-size:.77rem">'+esc(a.studios.join(', '))+'</div></div>';
+  if(a.producers?.length)h+='<div class="ii"><div class="l">المنتجون</div><div class="v" style="font-size:.77rem">'+esc(a.producers.slice(0,2).join(', '))+'</div></div>';
+  h+='</div>';
+  if(a.tags?.length)h+='<div class="msec"><h4>التصنيفات</h4><div class="mtw">'+a.tags.map(t=>'<span class="mtag" data-tag="'+ea(t)+'">'+esc(t)+'</span>').join('')+'</div></div>';
+  if(a.synonyms?.length)h+='<div class="msec"><h4>أسماء بديلة ('+a.synonyms.length+')</h4><div class="msy">'+a.synonyms.map(esc).join('<br>')+'</div></div>';
+  if(a.sources?.length)h+='<div class="msec"><h4>روابط</h4><div class="mlinks">'+a.sources.map(s=>'<a href="'+ea(s)+'" class="mlink" target="_blank">'+getLbl(s)+'</a>').join('')+'</div></div>';
+  if(a.relatedAnime?.length)h+='<div class="msec"><h4>أنمي ذات صلة</h4><div class="mlinks">'+a.relatedAnime.slice(0,6).map(s=>'<a href="'+ea(s)+'" class="mlink" target="_blank">'+getLbl(s)+'</a>').join('')+'</div></div>';
+  var tp=document.getElementById('tp-info');tp.innerHTML=h;
+  tp.querySelectorAll('.mtag').forEach(el=>el.addEventListener('click',function(){filterByTag(this.getAttribute('data-tag'));}));
+  mChars=[];mCharsF=[];
+  document.getElementById('chgrid').innerHTML='';
+  document.getElementById('ccount').textContent='';
+  document.getElementById('chsearch').value='';
+  swTab('info',document.querySelector('.mtab'));
+  document.getElementById('mo').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function swTab(name,btn){
+  document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tpanel').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');document.getElementById('tp-'+name).classList.add('on');
+  if(name==='chars'&&curAnime&&mChars.length===0)loadMChars(curAnime);
+}
+
+// ============================================================
+// CHARACTERS IN MODAL
+// ============================================================
+function getMalId(anime){
+  var u=(anime.sources||[]).find(s=>s.includes('myanimelist.net/anime/'));
+  if(!u)return null;
+  var m=u.match(/\/anime\/(\d+)/);return m?m[1]:null;
+}
+
+function loadMChars(anime){
+  var malId=getMalId(anime);
+  if(!malId){document.getElementById('chgrid').innerHTML='<div class="cerr">⚠️ لا يوجد رابط MAL</div>';return;}
+  if(charCache[malId]){mChars=charCache[malId];renderMChars();return;}
+  document.getElementById('chgrid').innerHTML='<div class="cload">⏳ جاري التحميل...</div>';
+  JQ.add('https://api.jikan.moe/v4/anime/'+malId+'/characters',function(err,data){
+    if(err||!data){document.getElementById('chgrid').innerHTML='<div class="cerr">❌ فشل التحميل</div>';return;}
+    charCache[malId]=data.data||[];mChars=charCache[malId];renderMChars();
+  });
+}
+
+function renderMChars(){mCharsF=mChars.slice();sortCharsArr(mCharsF,'chsort');displayMChars();}
+function filterMChars(){var q=document.getElementById('chsearch').value.toLowerCase();mCharsF=q?mChars.filter(c=>(c.character?.name||'').toLowerCase().includes(q)):mChars.slice();sortCharsArr(mCharsF,'chsort');displayMChars();}
+function sortMChars(){sortCharsArr(mCharsF,'chsort');displayMChars();}
+
+function displayMChars(){
+  var grid=document.getElementById('chgrid');
+  document.getElementById('ccount').textContent=mCharsF.length+' شخصية';
+  if(!mCharsF.length){grid.innerHTML='<div style="color:var(--mu);padding:20px;text-align:center">لا توجد نتائج</div>';return;}
+  grid.innerHTML='';
+  mCharsF.forEach((c,i)=>{
+    var card=mkCharCard(c,null);grid.appendChild(card);
+    var ph=card.querySelector('.cph[data-src]');
+    if(ph)setTimeout(()=>autoLoadChar(ph),i*70);
+  });
+}
+
+// ============================================================
+// HEIGHT PARSING
+// ============================================================
+function parseHeight(text){
+  if(!text)return null;
+  var m=text.match(/height[^:\n]{0,10}[:\s]+(\d+(?:\.\d+)?)\s*cm/i);
+  if(m){var h=parseFloat(m[1]);if(h>50&&h<300)return Math.round(h);}
+  m=text.match(/height[^:\n]{0,10}[:\s]+(\d+)'(\d+)/i);
+  if(m)return Math.round(parseInt(m[1])*30.48+parseInt(m[2])*2.54);
+  m=text.match(/\b(1[0-9]{2}|2[0-4][0-9])\s*cm\b/i);
+  if(m)return parseInt(m[1]);
+  m=text.match(/\b(\d)'(\d{1,2})["″]/);
+  if(m){var h=Math.round(parseInt(m[1])*30.48+parseInt(m[2])*2.54);if(h>100&&h<250)return h;}
+  return null;
+}
+
+function getHeight(c){
+  var id=c.character?.mal_id;if(!id)return null;
+  var d=detailCache[id];return d?d.height:null;
+}
+
+function fetchDetail(charId,cb){
+  if(detailCache[charId]!==undefined){cb(detailCache[charId]);return;}
+  JQ.add('https://api.jikan.moe/v4/characters/'+charId,function(err,data){
+    if(err||!data?.data){detailCache[charId]=null;cb(null);return;}
+    var about=data.data.about||'';
+    detailCache[charId]={height:parseHeight(about),about,nicknames:data.data.nicknames||[]};
+    cb(detailCache[charId]);
+  });
+}
+
+// ============================================================
+// CHARACTER CARD
+// ============================================================
+function mkCharCard(c,animeName){
+  var ch=c.character||{},name=ch.name||'؟';
+  var role=c.role||'',roleAr=role==='Main'?'رئيسية':role==='Supporting'?'ثانوية':role;
+  var imgSrc=ch.images?.jpg?.image_url||'';
+  var favs=c.favorites||0;
+  var height=getHeight(c);
+  var card=document.createElement('div');card.className='ccard';
+  var cw='<div class="cw">';
+  if(imgSrc){cw+='<div class="cph" data-src="'+ea(imgSrc)+'">👤</div><img src="" alt="'+ea(name)+'">';}
+  else cw+='<div class="cph">👤</div>';
+  cw+='</div>';
+  var roleH=role?'<div class="crole r'+role+'">'+roleAr+'</div>':'';
+  var favH=favs?'<div class="cfav">❤️ '+favs.toLocaleString()+'</div>':'';
+  var subH='<div class="csub">'+(favs?'<span>❤️ '+favs.toLocaleString()+'</span>':'')+(height?'<span class="cheight">📏 '+height+' cm</span>':'')+'</div>';
+  var anH=animeName?'<div class="canime">'+esc(animeName)+'</div>':'';
+  card.innerHTML=cw+roleH+favH+'<div class="cbody"><div class="cname">'+esc(name)+'</div>'+subH+anH+'</div>';
+  var ph=card.querySelector('.cph[data-src]');
+  if(ph)ph.addEventListener('click',function(e){e.stopPropagation();autoLoadChar(this);});
+  card.addEventListener('click',()=>openCharDetail(c));
+  return card;
+}
+
+function autoLoadChar(ph){
+  if(ph.dataset.loading||ph.style.display==='none')return;
+  ph.dataset.loading='1';
+  var src=ph.getAttribute('data-src');if(!src)return;
+  var img=ph.parentElement.querySelector('img');
+  img.onload=()=>{ph.style.display='none';img.classList.add('ok');};
+  img.onerror=()=>{ph.style.display='none';};
+  img.src=src;
+}
+
+function sortCharsArr(arr,selectId){
+  var so=document.getElementById(selectId).value;
+  arr.sort((a,b)=>{
+    if(so==='fav-d')return(b.favorites||0)-(a.favorites||0);
+    if(so==='fav-a')return(a.favorites||0)-(b.favorites||0);
+    if(so==='name-a')return(a.character?.name||'').localeCompare(b.character?.name||'');
+    if(so==='name-d')return(b.character?.name||'').localeCompare(a.character?.name||'');
+    if(so==='height-d'||so==='height-a'){var ha=getHeight(a),hb=getHeight(b);if(!ha&&!hb)return 0;if(!ha)return 1;if(!hb)return -1;return so==='height-d'?hb-ha:ha-hb;}
+    return 0;
+  });
+}
+
+// ============================================================
+// CHARACTER DETAIL MODAL
+// ============================================================
+function openCharDetail(c){
+  var ch=c.character||{},name=ch.name||'؟';
+  var role=c.role||'',roleAr=role==='Main'?'رئيسية':role==='Supporting'?'ثانوية':role;
+  var roleClass=role==='Main'?'cd-main':'cd-supp';
+  var imgSrc=ch.images?.jpg?.image_url||'';
+  var favs=c.favorites||0,url=ch.url||'',charId=ch.mal_id;
+  var vas=c.voice_actors||[];
+  var cached=charId?detailCache[charId]:undefined;
+  
+  function build(detail){
+    var height=detail?.height,about=detail?.about||'';
+    var h='<div class="cd-img" id="cdimgarea">';
+    if(imgSrc){
+      h+='<div class="cd-img-hint" id="cdhint"><span style="font-size:2.5rem">🖼️</span><span style="font-size:.83rem">اضغط لعرض الصورة</span></div>';
+      h+='<img id="cdmainimg" src="" alt="'+ea(name)+'"><div class="cd-img-ov" id="cdov"></div>';
+    }else{
+      h+='<div class="cd-img-hint"><span style="font-size:3rem">👤</span></div>';
+    }
+    h+='</div><div class="cd-body">';
+    h+='<div class="cdn">'+esc(name)+'</div>';
+    h+='<div class="cdtags"><span class="cdtag '+roleClass+'">'+roleAr+'</span>'+(favs?'<span class="cdtag" style="background:rgba(252,211,77,.1);color:var(--yellow)">❤️ '+favs.toLocaleString()+'</span>':'')+'</div>';
+    h+='<div class="cd-stats-g">';
+    h+='<div class="cd-s'+(height?' hi':'')+'"><div class="l">الطول</div><div class="v">'+(height?height+' cm':'—')+'</div></div>';
+    h+='<div class="cd-s"><div class="l">إعجابات</div><div class="v">'+(favs?favs.toLocaleString():'—')+'</div></div>';
+    h+='<div class="cd-s" id="cdheightstat"><div class="l">حالة</div><div class="v" style="font-size:.75rem">'+(detail?'محمّل':'⏳')+'</div></div>';
+    h+='</div>';
+    if(about){
+      // Extract key info lines
+      var lines=about.split('\n').filter(l=>l.match(/height|weight|age|birthday|blood|眼|身長|体重/i)).slice(0,4);
+      if(lines.length)h+='<div class="cd-sec"><h5>معلومات</h5><div class="cd-about">'+esc(lines.join('\n'))+'</div></div>';
+    }
+    if(vas.length){
+      h+='<div class="cd-sec"><h5>🎙️ أصوات الشخصية</h5><div class="va-list">';
+      vas.slice(0,5).forEach(v=>{
+        var vp=v.person||{},vi=vp.images?.jpg?.image_url||'';
+        h+='<div class="va">'+(vi?'<img src="'+ea(vi)+'" onerror="this.src=\'\'">':'<div style="width:30px;height:30px;border-radius:50%;background:var(--sf);display:flex;align-items:center;justify-content:center">🎙</div>');
+        h+='<div><div class="va-name">'+esc(vp.name||'')+'</div><div class="va-lang">'+esc(v.language||'')+'</div></div></div>';
+      });
+      h+='</div></div>';
+    }
+    if(url)h+='<a href="'+ea(url)+'" class="cd-link" target="_blank">🔗 صفحة على MAL</a>';
+    h+='</div>';
+    return h;
+  }
+
+  document.getElementById('cdinner').innerHTML=build(cached!==undefined?cached:null);
+  document.getElementById('cdmo').classList.add('open');
+  
+  // Setup image click
+  if(imgSrc){
+    var area=document.getElementById('cdimgarea');
+    if(area)area.addEventListener('click',function(){
+      var hint=document.getElementById('cdhint'),img=document.getElementById('cdmainimg'),ov=document.getElementById('cdov');
+      if(!img||img.src&&img.src!==window.location.href)return;
+      if(hint)hint.innerHTML='⏳';
+      img.onload=()=>{if(hint)hint.style.display='none';img.classList.add('ok');if(ov)ov.classList.add('show');};
+      img.onerror=()=>{if(hint)hint.innerHTML='❌';};
+      img.src=imgSrc;
+    },{once:true});
+  }
+  
+  // Fetch detail if needed
+  if(charId&&cached===undefined){
+    fetchDetail(charId,function(detail){
+      var hs=document.getElementById('cdheightstat');
+      if(hs){hs.previousElementSibling.previousElementSibling.innerHTML='<div class="l">الطول</div><div class="v">'+(detail?.height?detail.height+' cm':'—')+'</div>';
+      if(detail?.height)hs.previousElementSibling.previousElementSibling.classList.add('hi');
+      hs.querySelector('.v').textContent='محمّل ✓';}
+      // Update about section if exists
+      if(detail?.about){
+        var lines=detail.about.split('\n').filter(l=>l.match(/height|weight|age|birthday|blood|眼|身長|体重/i)).slice(0,4);
+        var aboutEl=document.querySelector('.cd-about');
+        if(!aboutEl&&lines.length){
+          var secH=document.createElement('div');secH.className='cd-sec';
+          secH.innerHTML='<h5>معلومات</h5><div class="cd-about">'+esc(lines.join('\n'))+'</div>';
+          document.getElementById('cdinner').querySelector('.cd-body .cd-stats-g').after(secH);
+        }
+      }
+    });
+  }
+}
+
+function closeCd(){document.getElementById('cdmo').classList.remove('open');}
+
+// ============================================================
+// CHARACTERS PAGE
+// ============================================================
+function getCPAnime(){
+  var tp=document.getElementById('cpt').value,yr=document.getElementById('cpy').value;
+  var se=document.getElementById('cpse').value;
+  return all.filter(a=>{
+    if(tp&&a.type!==tp)return false;
+    if(yr&&a.animeSeason?.year!=yr)return false;
+    if(se&&a.animeSeason?.season!==se)return false;
+    if(cpSelTags.length&&!cpSelTags.some(t=>(a.tags||[]).includes(t)))return false;
+    return !!getMalId(a);
+  });
+}
+
+function updateCPMatchCount(){
+  var n=getCPAnime().length;
+  document.getElementById('cpst').textContent='';
+  document.getElementById('cp-match').textContent='('+n+' أنمي مطابق)';
+}
+function updateCPMatchCount(){}  // will call after init
+
+function startCP(){
+  var list=getCPAnime();
+  if(!list.length){alert('لا يوجد أنمي مطابق أو لا يحتوي على رابط MAL');return;}
+  var MAX=60;
+  if(list.length>MAX&&!confirm('يوجد '+list.length+' أنمي. سيتم تحميل أول '+MAX+' فقط. متابعة؟'))return;
+  list=list.slice(0,MAX);
+  var rl=document.getElementById('cprl').value;
+  CP.chars=[];CP.ids=new Set();CP.filtered=[];CP.queue=list.map(a=>({malId:getMalId(a),title:a.title,role:rl}));
+  CP.loaded=0;CP.total=CP.queue.length;CP.running=true;CP.pageNum=1;
+  document.getElementById('cpgrid').innerHTML='';
+  document.getElementById('cpstop').style.display='';
+  document.getElementById('cpstart').style.display='none';
+  document.getElementById('cpheights').style.display='none';
+  document.getElementById('ppw').style.display='';
+  updateCPProg();
+  JQ.clear();nextCP();
+}
+
+function stopCP(){
+  CP.running=false;JQ.clear();
+  document.getElementById('cpstop').style.display='none';
+  document.getElementById('cpstart').style.display='';
+  document.getElementById('cpstart').textContent='▶ استئناف';
+  if(CP.chars.length)document.getElementById('cpheights').style.display='';
+}
+
+function nextCP(){
+  if(!CP.running||!CP.queue.length){
+    CP.running=false;
+    document.getElementById('cpstop').style.display='none';
+    document.getElementById('cpstart').style.display='';
+    document.getElementById('cpstart').textContent='▶ إعادة التحميل';
+    if(CP.chars.length)document.getElementById('cpheights').style.display='';
+    return;
+  }
+  var item=CP.queue.shift(),key=item.malId;
+  if(charCache[key]){
+    addCPChars(charCache[key],item.title,item.role);
+    CP.loaded++;updateCPProg();nextCP();return;
+  }
+  JQ.add('https://api.jikan.moe/v4/anime/'+item.malId+'/characters',function(err,data){
+    CP.loaded++;
+    if(!err&&data?.data){charCache[key]=data.data;addCPChars(data.data,item.title,item.role);}
+    updateCPProg();nextCP();
+  });
+}
+
+function addCPChars(chars,animeName,roleFilter){
+  chars.forEach(c=>{
+    if(roleFilter&&c.role!==roleFilter)return;
+    var id=c.character?.mal_id||c.character?.name;
+    if(!id||CP.ids.has(id))return;
+    CP.ids.add(id);c._anime=animeName;CP.chars.push(c);
+  });
+  filterCP();
+}
+
+function updateCPProg(){
+  var pct=CP.total?(CP.loaded/CP.total*100):0;
+  document.getElementById('pp').style.width=pct+'%';
+  document.getElementById('cpst').textContent=CP.loaded+'/'+CP.total+' أنمي · '+CP.chars.length+' شخصية';
+}
+
+function filterCP(){
+  var q=document.getElementById('cpsearch').value.toLowerCase();
+  CP.filtered=q?CP.chars.filter(c=>(c.character?.name||'').toLowerCase().includes(q)):CP.chars.slice();
+  sortCharsArr(CP.filtered,'cpsort');
+  renderCPPage(1);
+}
+
+function sortAndRenderCP(){sortCharsArr(CP.filtered,'cpsort');renderCPPage(CP.pageNum);}
+
+function renderCPPage(p){
+  CP.pageNum=p||1;var CPP=48;
+  var grid=document.getElementById('cpgrid');grid.innerHTML='';
+  if(!CP.filtered.length){grid.innerHTML='<div class="cp-empty">'+(CP.chars.length?'لا توجد نتائج':'اضبط الفلاتر واضغط "ابدأ التحميل"')+'</div>';document.getElementById('cppg').innerHTML='';return;}
+  var items=CP.filtered.slice((CP.pageNum-1)*CPP,CP.pageNum*CPP);
+  items.forEach((c,i)=>{
+    var card=mkCharCard(c,c._anime);grid.appendChild(card);
+    if(CP.autoImg){var ph=card.querySelector('.cph[data-src]');if(ph)setTimeout(()=>autoLoadChar(ph),i*60);}
+  });
+  renderCPPgs(Math.ceil(CP.filtered.length/CPP));
+}
+
+function renderCPPgs(tot){
+  var p=document.getElementById('cppg');p.innerHTML='';if(tot<=1)return;
+  function add(l,pg,dis,act){var b=document.createElement('button');b.className='pb'+(act?' on':'');b.textContent=l;b.disabled=!!dis;if(!dis)b.addEventListener('click',()=>{renderCPPage(pg);window.scrollTo({top:200,behavior:'smooth'});});p.appendChild(b);}
+  add('◀',CP.pageNum-1,CP.pageNum===1);
+  var pages=[];
+  if(tot<=7)for(var i=1;i<=tot;i++)pages.push(i);
+  else{pages=[1];if(CP.pageNum>3)pages.push('…');for(var i=Math.max(2,CP.pageNum-1);i<=Math.min(tot-1,CP.pageNum+1);i++)pages.push(i);if(CP.pageNum<tot-2)pages.push('…');pages.push(tot);}
+  pages.forEach(x=>{if(x==='…'){var s=document.createElement('span');s.textContent='…';s.style.cssText='padding:7px 3px;color:var(--mu)';p.appendChild(s);}else add(x,x,false,x===CP.pageNum);});
+  add('▶',CP.pageNum+1,CP.pageNum===tot);
+}
+
+function toggleCPAuto(){
+  CP.autoImg=!CP.autoImg;
+  var btn=document.getElementById('cpauto');
+  btn.classList.toggle('on',CP.autoImg);
+  btn.textContent=CP.autoImg?'⏹️ إيقاف الصور':'🖼️ تحميل الصور تلقائياً';
+  if(CP.autoImg){document.querySelectorAll('#cpgrid .cph[data-src]').forEach((ph,i)=>setTimeout(()=>autoLoadChar(ph),i*60));}
+}
+
+function batchHeights(){
+  var btn=document.getElementById('cpheights');
+  var toFetch=CP.chars.filter(c=>c.character?.mal_id&&detailCache[c.character.mal_id]===undefined);
+  if(!toFetch.length){sortAndRenderCP();btn.textContent='✅ الأطوال محمّلة';return;}
+  btn.textContent='⏳ جاري... (0/'+toFetch.length+')';btn.disabled=true;
+  var done=0;
+  toFetch.forEach(c=>{
+    fetchDetail(c.character.mal_id,function(){
+      done++;btn.textContent='⏳ ('+done+'/'+toFetch.length+')';
+      if(done===toFetch.length){btn.textContent='✅ الأطوال ('+done+')';btn.disabled=false;sortAndRenderCP();}
+    });
+  });
+}
+
+// ============================================================
+// ANIME PAGINATION
+// ============================================================
+function renderPgs(){
+  var tot=Math.ceil(fil.length/PP),p=document.getElementById('pg');p.innerHTML='';if(tot<=1)return;
+  function add(l,pg,dis,act){var b=document.createElement('button');b.className='pb'+(act?' on':'');b.textContent=l;b.disabled=!!dis;if(!dis)b.addEventListener('click',()=>{cpg=pg;renderP();renderPgs();window.scrollTo({top:128,behavior:'smooth'});});p.appendChild(b);}
+  add('◀',cpg-1,cpg===1);
+  var pages=[];
+  if(tot<=7)for(var i=1;i<=tot;i++)pages.push(i);
+  else{pages=[1];if(cpg>3)pages.push('…');for(var i=Math.max(2,cpg-1);i<=Math.min(tot-1,cpg+1);i++)pages.push(i);if(cpg<tot-2)pages.push('…');pages.push(tot);}
+  pages.forEach(x=>{if(x==='…'){var s=document.createElement('span');s.textContent='…';s.style.cssText='padding:7px 3px;color:var(--mu)';p.appendChild(s);}else add(x,x,false,x===cpg);});
+  add('▶',cpg+1,cpg===tot);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function filterByTag(tag){cMd();quickTag=tag;selTags=[];updateSelBar();document.querySelectorAll('.tb .chip').forEach(c=>c.classList.toggle('on',c.getAttribute('data-tag')===tag));cpg=1;applyF();}
+function getLbl(u){if(u.includes('myanimelist'))return'🔗 MAL';if(u.includes('anilist'))return'🔗 AniList';if(u.includes('kitsu'))return'🔗 Kitsu';if(u.includes('anime-planet'))return'🔗 Anime-Planet';if(u.includes('anisearch'))return'🔗 AniSearch';return'🔗 رابط';}
+function fmtD(v,u){if(!v)return null;if(u==='SECONDS'){if(v>=3600)return(v/3600).toFixed(1)+' ساعة';if(v>=60)return Math.round(v/60)+' دقيقة';return v+' ثانية';}return v+' '+u;}
+function cMd(){document.getElementById('mo').classList.remove('open');document.body.style.overflow='';}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function ea(s){return(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;');}
+
+// Fix: update match count after all is loaded
+function updateCPMatchCount(){
+  if(!all.length)return;
+  var n=getCPAnime().length;
+  document.getElementById('cp-match').textContent='('+n+' أنمي مطابق)';
+  updateCPBtn();
+}
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    if(document.getElementById('cdmo').classList.contains('open'))closeCd();
+    else if(document.getElementById('tmo').classList.contains('open'))closeTM();
+    else cMd();
+  }
+});
+
+document.body.addEventListener('dragover',e=>e.preventDefault());
+document.body.addEventListener('drop',function(e){
+  e.preventDefault();var f=e.dataTransfer.files[0];
+  if(f?.name.endsWith('.json')){var dt=new DataTransfer();dt.items.add(f);var fi=document.getElementById('fi');fi.files=dt.files;fi.dispatchEvent(new Event('change'));}
+});
+</script>
+</body>
+</html>

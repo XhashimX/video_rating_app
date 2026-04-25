@@ -863,23 +863,99 @@ def _ask_pdf_paths_batch():
         return valid, True
 
 
-def _process_single_pdf_to_text(pdf_path, ranges, use_filter,
-                                 filter_pattern, raw_query,
-                                 extract_style, words_around):
+def _get_cache_path(pdf_path):
+    base = os.path.splitext(pdf_path)[0]
+    return base + ".__pdfcache__.txt"
+
+
+def _build_cache(pdf_path):
     try:
         from pypdf import PdfReader
+        import pypdf
     except ImportError:
-        return None, 0
+        print("  [!] pypdf not installed.")
+        return None
+
+    try:
+        pypdf.constants.MAX_STRING_LENGTH = 500 * 1024 * 1024
+    except Exception:
+        pass
+    try:
+        from pypdf._utils import MAX_OBJECT_SIZE
+    except Exception:
+        pass
 
     reader = PdfReader(pdf_path)
+    pages_text = []
+    skipped = 0
+    for i, page in enumerate(reader.pages):
+        try:
+            text = page.extract_text() or ""
+        except Exception:
+            text = ""
+            skipped += 1
+        pages_text.append(text)
+
+    if skipped:
+        print(f"  [!] {skipped} page(s) could not be extracted and were skipped.")
+
+    cache_path = _get_cache_path(pdf_path)
+    with open(cache_path, "w", encoding="utf-8") as f:
+        import json
+        json.dump(pages_text, f, ensure_ascii=False)
+    return pages_text
+
+
+def _load_cache(pdf_path):
+    cache_path = _get_cache_path(pdf_path)
+    if not os.path.exists(cache_path):
+        return None
+    try:
+        import json
+        with open(cache_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _get_pages_text(pdf_path, force_rebuild=False):
+    if not force_rebuild:
+        cached = _load_cache(pdf_path)
+        if cached is not None:
+            return cached, True
+    pages = _build_cache(pdf_path)
+    return pages, False
+
+
+def _process_single_pdf_to_text(pdf_path, ranges, use_filter,
+                                 filter_pattern, raw_query,
+                                 extract_style, words_around,
+                                 pages_text=None):
+    if pages_text is None:
+        try:
+            from pypdf import PdfReader
+            import pypdf
+        except ImportError:
+            return None, 0
+        try:
+            pypdf.constants.MAX_STRING_LENGTH = 500 * 1024 * 1024
+        except Exception:
+            pass
+        reader = PdfReader(pdf_path)
+        def get_page(i):
+            try:
+                return reader.pages[i].extract_text() or ""
+            except Exception:
+                return ""
+    else:
+        get_page = lambda i: pages_text[i] if i < len(pages_text) else ""
 
     if not use_filter:
         parts = []
         for (s, e) in ranges:
             parts.append(f"\n{'='*60}\n  Pages {s} – {e}\n{'='*60}\n")
             for i in range(s - 1, e):
-                page_text = reader.pages[i].extract_text() or ""
-                parts.append(f"\n--- Page {i+1} ---\n{page_text}")
+                parts.append(f"\n--- Page {i+1} ---\n{get_page(i)}")
         return "".join(parts), 0
     else:
         parts = []
@@ -887,7 +963,7 @@ def _process_single_pdf_to_text(pdf_path, ranges, use_filter,
         for (s, e) in ranges:
             for i in range(s - 1, e):
                 page_num = i + 1
-                page_text = reader.pages[i].extract_text() or ""
+                page_text = get_page(i)
                 if not filter_pattern.search(page_text):
                     continue
                 total_hits += 1
@@ -911,7 +987,6 @@ def _process_single_pdf_to_text(pdf_path, ranges, use_filter,
             f"{'─'*60}\n"
         )
         return header + "\n".join(parts), total_hits
-
 
 def feature_pdf_to_text():
     print("\n--- PDF to Text ---")
@@ -1017,13 +1092,25 @@ def feature_pdf_to_text():
     results = {}
     for pdf_path, ranges in ranges_per_pdf.items():
         pdf_name = os.path.basename(pdf_path)
-        print(f"  ⏳ {pdf_name} ...", end=" ", flush=True)
-        content, hit_count = _process_single_pdf_to_text(
+        pages_text = None
+
+        if use_filter:
+            cached_data, from_cache = _get_pages_text(pdf_path)
+            if from_cache:
+                print(f"  ⚡ {pdf_name} (using cached text) ...", end=" ", flush=True)
+            else:
+                print(f"  ⏳ {pdf_name} (converting & caching) ...", end=" ", flush=True)
+            pages_text = cached_data
+        else:
+            print(f"  ⏳ {pdf_name} ...", end=" ", flush=True)
+
+        result_content, hit_count = _process_single_pdf_to_text(
             pdf_path, ranges, use_filter,
             filter_pattern, raw_query,
-            extract_style, words_around
+            extract_style, words_around,
+            pages_text=pages_text
         )
-        results[pdf_path] = {"content": content, "hits": hit_count, "name": pdf_name}
+        results[pdf_path] = {"content": result_content, "hits": hit_count, "name": pdf_name}
         if use_filter:
             print(f"{hit_count} page(s) matched.")
         else:
@@ -1262,7 +1349,364 @@ def feature_pdf_compress():
 
     input("\nPress Enter to return to menu...")
 
+# ─────────────────────────────────────────────────────────
+# FEATURE 8: TAGS & NAMES MANAGER (COPY / REMOVE)
+# ─────────────────────────────────────────────────────────
 
+def feature_tags_manager():
+    import shutil # تم استدعاء المكتبة هنا لعدم الحاجة لتعديل بداية الملف
+    
+    print("\n--- Tags & Names Manager ---")
+    
+    # المسارات الثابتة بناءً على طلبك
+    JSON_PATHS = [
+        r"C:\Users\Stark\Download\myhome\video_rating_app\utilities\elo_videos_A1000 elo pic.json",
+        r"C:\Users\Stark\Download\myhome\video_rating_app\utilities\elo_videos_A1000 elo tik.json",
+        r"C:\Users\Stark\Download\myhome\video_rating_app\utilities\elo_videos_Dib.json"
+    ]
+    SOURCE_DIR = r"C:\Users\Stark\Download\myhome\video_rating_app\NS\TikTok\ELO TIK"
+    TARGET_DIR = r"C:\Users\Stark\Download\myhome\video_rating_app\NS\TikTok\Tags Copy"
+
+    # التأكد من وجود مجلد الهدف، وإذا لم يكن موجوداً نقوم بإنشائه
+    os.makedirs(TARGET_DIR, exist_ok=True)
+
+    action = questionary.select(
+        "ما الذي تريد فعله؟",
+        choices=[
+            "1. نسخ الصور/الفيديوهات بناءً على الوسوم (Tags) أو الاسم",
+            "2. حذف وسوم معينة بناءً على الملفات الموجودة في مجلد Tags Copy",
+            "رجوع"
+        ]
+    ).ask()
+
+    if action == "رجوع" or not action:
+        return
+
+    # اختيار ملفات JSON
+    json_choices = [questionary.Choice(os.path.basename(p), value=p) for p in JSON_PATHS]
+    json_choices.append(questionary.Choice("اختيار جميع الملفات الثلاثة (All)", value="ALL"))
+    
+    selected_json = questionary.select(
+        "اختر ملف الـ JSON الذي تريد قراءة البيانات منه:",
+        choices=json_choices
+    ).ask()
+
+    files_to_process = JSON_PATHS if selected_json == "ALL" else [selected_json]
+    
+    # دالة مساعدة لقراءة ملفات JSON وتجميع البيانات
+    def load_json_databases(paths):
+        combined_data = {}
+        for path in paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        combined_data[path] = data
+                except Exception as e:
+                    print(f"[!] خطأ في قراءة {os.path.basename(path)}: {e}")
+            else:
+                print(f"[!] الملف غير موجود: {os.path.basename(path)}")
+        return combined_data
+
+    db_data = load_json_databases(files_to_process)
+    if not db_data:
+        print("لم يتم العثور على أي بيانات صحيحة.")
+        input("اضغط Enter للعودة...")
+        return
+
+    # ---------------------------------------------------------
+    # الخيار 1: البحث والنسخ
+    # ---------------------------------------------------------
+    if action.startswith("1"):
+        search_by = questionary.select(
+            "هل تريد التصنيف والبحث بحسب:",
+            choices=["الوسوم (Tags)", "الاسم (Name)"]
+        ).ask()
+
+        unique_items = set()
+        
+        # استخراج جميع الوسوم أو الأسماء المتاحة
+        for file_path, data in db_data.items():
+            for key, val in data.items():
+                if search_by == "الوسوم (Tags)":
+                    tags_str = val.get("tags", "")
+                    if tags_str:
+                        # تقسيم الوسوم إذا كانت مفصولة بفاصلة
+                        tags_list = [t.strip() for t in tags_str.split(',') if t.strip()]
+                        unique_items.update(tags_list)
+                else:
+                    name_str = val.get("name", "")
+                    if name_str:
+                        unique_items.add(name_str.strip())
+
+        if not unique_items:
+            print(f"\nلا يوجد أي {search_by} مسجل في ملفات الـ JSON المحددة.")
+            input("اضغط Enter للعودة...")
+            return
+
+        print(f"\n--- قائمة {search_by} المتاحة ---")
+        for item in sorted(list(unique_items)):
+            print(f"- {item}")
+        
+        target_value = input(f"\nاكتب الـ {search_by} الذي تريد نسخه من القائمة أعلاه: ").strip()
+        
+        # البحث عن الأحجام (Sizes) المطابقة لطلب المستخدم
+        target_sizes = set()
+        for file_path, data in db_data.items():
+            for key, val in data.items():
+                match = False
+                if search_by == "الوسوم (Tags)":
+                    tags_list = [t.strip() for t in val.get("tags", "").split(',') if t.strip()]
+                    if target_value in tags_list:
+                        match = True
+                else:
+                    if target_value == val.get("name", "").strip():
+                        match = True
+                
+                if match and "file_size" in val:
+                    target_sizes.add(val["file_size"])
+
+        if not target_sizes:
+            print("لم يتم العثور على ملفات تطابق هذا المدخل.")
+            input("اضغط Enter للعودة...")
+            return
+            
+        print(f"\nتم العثور على {len(target_sizes)} ملف (أحجام مطابقة) في قاعدة البيانات. جاري البحث في المجلدات...")
+
+        # مسح جميع الملفات في المجلد الرئيسي والمجلدات الفرعية
+        found_count = 0
+        for root, dirs, files in os.walk(SOURCE_DIR):
+            for filename in files:
+                full_path = os.path.join(root, filename)
+                try:
+                    size = os.path.getsize(full_path)
+                    if size in target_sizes:
+                        dest_path = os.path.join(TARGET_DIR, filename)
+                        # نسخ الملف إذا لم يكن موجوداً مسبقاً
+                        if not os.path.exists(dest_path):
+                            shutil.copy2(full_path, dest_path)
+                            print(f"✅ تم نسخ: {filename}")
+                            found_count += 1
+                        else:
+                            print(f"⏭️ تم التخطي (موجود مسبقاً): {filename}")
+                except Exception as e:
+                    pass
+        
+        print(f"\nتم الانتهاء! تم نسخ {found_count} ملف إلى المجلد: Tags Copy")
+        input("اضغط Enter للعودة...")
+
+    # ---------------------------------------------------------
+    # الخيار 2: الحذف العكسي للوسوم
+    # ---------------------------------------------------------
+    elif action.startswith("2"):
+        if not os.path.exists(TARGET_DIR):
+            print("مجلد Tags Copy غير موجود.")
+            input("اضغط Enter للعودة...")
+            return
+
+        # 1. جمع أحجام الملفات الموجودة في مجلد Tags Copy
+        print("جاري فحص الملفات في مجلد Tags Copy...")
+        tags_copy_sizes = set()
+        for filename in os.listdir(TARGET_DIR):
+            full_path = os.path.join(TARGET_DIR, filename)
+            if os.path.isfile(full_path):
+                tags_copy_sizes.add(os.path.getsize(full_path))
+
+        if not tags_copy_sizes:
+            print("مجلد Tags Copy فارغ. لا يوجد شيء لمطابقته.")
+            input("اضغط Enter للعودة...")
+            return
+
+        # 2. مطابقة الأحجام مع JSON واستخراج الوسوم الموجودة فيها فقط
+        matched_tags = set()
+        for file_path, data in db_data.items():
+            for key, val in data.items():
+                if val.get("file_size") in tags_copy_sizes:
+                    tags_str = val.get("tags", "")
+                    if tags_str:
+                        tags_list = [t.strip() for t in tags_str.split(',') if t.strip()]
+                        matched_tags.update(tags_list)
+
+        if not matched_tags:
+            print("\nالملفات الموجودة في المجلد ليس لديها أي وسوم مسجلة في ملف الـ JSON.")
+            input("اضغط Enter للعودة...")
+            return
+
+        print("\n--- الوسوم (Tags) الموجودة حالياً في هذه الملفات ---")
+        for t in sorted(list(matched_tags)):
+            print(f"- {t}")
+
+        tag_to_remove = input("\nاكتب الوسم الذي تريد حذفه من هذه الملفات: ").strip()
+
+        if tag_to_remove not in matched_tags:
+            print("الوسم الذي أدخلته غير موجود في القائمة.")
+            input("اضغط Enter للعودة...")
+            return
+
+        # 3. تحديث البيانات وحذف الوسم
+        updated_files_count = 0
+        for file_path, data in db_data.items():
+            file_modified = False
+            for key, val in data.items():
+                if val.get("file_size") in tags_copy_sizes:
+                    tags_str = val.get("tags", "")
+                    if tags_str:
+                        tags_list = [t.strip() for t in tags_str.split(',') if t.strip()]
+                        if tag_to_remove in tags_list:
+                            tags_list.remove(tag_to_remove)
+                            # إعادة دمج الوسوم المتبقية بفاصلة
+                            val["tags"] = ", ".join(tags_list)
+                            file_modified = True
+                            updated_files_count += 1
+            
+            # حفظ التعديلات إذا تم تغيير أي شيء في هذا الملف
+            if file_modified:
+                try:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, indent=4, ensure_ascii=False)
+                    print(f"💾 تم حفظ التعديلات في: {os.path.basename(file_path)}")
+                except Exception as e:
+                    print(f"❌ خطأ أثناء الحفظ في {os.path.basename(file_path)}: {e}")
+
+        print(f"\nتم الانتهاء! تمت إزالة الوسم '{tag_to_remove}' من {updated_files_count} صورة/فيديو بنجاح.")
+        input("اضغط Enter للعودة...")
+        
+        
+# ─────────────────────────────────────────────────────────
+# FEATURE 9: SMART VIDEO SCREENSHOTS
+# ─────────────────────────────────────────────────────────
+
+def get_sharpness(image):
+    import cv2
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    return cv2.Laplacian(gray, cv2.CV_64F).var()
+
+def save_image_unicode(image, path):
+    import cv2
+    import numpy as np
+    is_success, im_buf_arr = cv2.imencode(".jpg", image)
+    if is_success:
+        im_buf_arr.tofile(path)
+
+def extract_smart_screenshots(video_path, output_dir, num_screenshots):
+    import cv2
+    cap = cv2.VideoCapture(video_path)
+    
+    if not cap.isOpened():
+        print(f"  [!] Could not open video: {os.path.basename(video_path)}")
+        return
+
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    
+    if total_frames <= 0 or fps <= 0:
+        print(f"  [!] Invalid video data: {os.path.basename(video_path)}")
+        cap.release()
+        return
+
+    safe_start = int(total_frames * 0.05)
+    safe_end = int(total_frames * 0.95)
+    safe_duration = safe_end - safe_start
+
+    if safe_duration <= 0 or num_screenshots <= 0:
+        print(f"  [!] Video is too short to extract {num_screenshots} screenshots.")
+        cap.release()
+        return
+
+    interval = safe_duration // num_screenshots
+
+    target_frames =[]
+    for i in range(num_screenshots):
+        target_frame = safe_start + (i * interval) + (interval // 2)
+        target_frames.append(target_frame)
+
+    print(f"  -> Processing: {os.path.basename(video_path)} ...", end=" ", flush=True)
+
+    saved_count = 0
+    for i, center_frame in enumerate(target_frames):
+        best_frame_img = None
+        highest_sharpness = -1.0
+        sample_offsets =[-10, -5, 0, 5, 10]
+        
+        for offset in sample_offsets:
+            check_frame = center_frame + offset
+            if check_frame < 0 or check_frame >= total_frames:
+                continue
+                
+            cap.set(cv2.CAP_PROP_POS_FRAMES, check_frame)
+            ret, frame = cap.read()
+            
+            if ret:
+                sharpness = get_sharpness(frame)
+                if sharpness > highest_sharpness:
+                    highest_sharpness = sharpness
+                    best_frame_img = frame
+
+        if best_frame_img is not None:
+            screenshot_name = f"screenshot_{i+1:02d}.jpg"
+            screenshot_path = os.path.join(output_dir, screenshot_name)
+            save_image_unicode(best_frame_img, screenshot_path)
+            saved_count += 1
+
+    cap.release()
+    print(f"Done! ({saved_count} saved)")
+
+def feature_smart_screenshots():
+    print("\n--- Smart Video Screenshots ---")
+    
+    try:
+        import cv2
+        import numpy as np
+    except ImportError:
+        print("[!] Missing required libraries.")
+        print("    Please run: pip install opencv-python numpy")
+        input("\nPress Enter to return to menu...")
+        return
+
+    default_dir = r"C:\Users\Stark\Download\myhome\video_rating_app\NS\TikTok\Tags Copy"
+    
+    print(f"\nEnter the folder path containing the videos")
+    print(f"(Press Enter to use default: {default_dir})")
+    target_dir = input("> ").strip().strip('"').strip("'")
+    
+    if not target_dir:
+        target_dir = default_dir
+
+    if not os.path.isdir(target_dir):
+        print(f"\n[!] Error: The directory '{target_dir}' does not exist.")
+        input("Press Enter to return to menu...")
+        return
+
+    print("\nEnter the number of screenshots per video")
+    print("(Press Enter to use default: 10)")
+    raw_count = input("> ").strip()
+    num_screenshots = int(raw_count) if raw_count.isdigit() else 10
+
+    video_extensions = ('.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv')
+    
+    video_files =[]
+    for file in os.listdir(target_dir):
+        if file.lower().endswith(video_extensions):
+            video_files.append(file)
+
+    if not video_files:
+        print("\n[!] No video files found in the specified directory.")
+        input("Press Enter to return to menu...")
+        return
+
+    print(f"\nFound {len(video_files)} video(s). Starting extraction...\n")
+
+    for video_file in video_files:
+        video_path = os.path.join(target_dir, video_file)
+        video_name_without_ext = os.path.splitext(video_file)[0]
+        
+        output_folder = os.path.join(target_dir, video_name_without_ext)
+        os.makedirs(output_folder, exist_ok=True)
+        
+        extract_smart_screenshots(video_path, output_folder, num_screenshots)
+
+    print("\n✅ All screenshots extracted successfully!")
+    input("Press Enter to return to menu...")
 # ─────────────────────────────────────────────────────────
 # MAIN LOOP
 # ─────────────────────────────────────────────────────────
@@ -1276,12 +1720,12 @@ def main():
     except Exception:
         downloads_path = "Could not find Downloads folder"
 
-    default_paths = [
+    default_paths =[
         ("Default Downloads Folder", downloads_path),
         ("ELO TIK Main", r"C:\Users\Stark\Download\myhome\video_rating_app\NS\TikTok\ELO TIK"),
     ]
 
-    path_choices = [
+    path_choices =[
         questionary.Choice(title=f"{name}: {path}", value=path)
         for name, path in default_paths
     ]
@@ -1317,6 +1761,9 @@ def main():
                 "5. PDF Split (cut pages / ranges)",
                 "6. PDF to Text",
                 "7. PDF Compress / Reduce Size",
+                questionary.Separator("─── Database & Media ───"),
+                "8. Tags & Names Manager (Copy / Remove) 🆕",
+                "9. Smart Video Screenshots 🆕",
                 "Exit"
             ]
         ).ask()
@@ -1335,10 +1782,13 @@ def main():
             feature_pdf_to_text()
         elif answer == "7. PDF Compress / Reduce Size":
             feature_pdf_compress()
+        elif answer == "8. Tags & Names Manager (Copy / Remove) 🆕":
+            feature_tags_manager()
+        elif answer == "9. Smart Video Screenshots 🆕":
+            feature_smart_screenshots()
         elif answer == "Exit":
             print("Goodbye!")
             sys.exit()
-
 
 if __name__ == "__main__":
     try:

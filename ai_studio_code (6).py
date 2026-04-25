@@ -1,94 +1,131 @@
 import os
-import librosa
-import numpy as np
-# START: MODIFIED SECTION
-from moviepy import VideoFileClip
-# END: MODIFIED SECTION
+import shutil
+import cv2  # For video dimensions
+from PIL import Image  # For image dimensions
+from collections import defaultdict
 
-# START: CONFIGURATION
-FOLDER_PATH = r"C:\Users\Stark\Download\myhome\video_rating_app\NS\TikTok\ELO TIK"
-# END: CONFIGURATION
+# ================= إعدادات المسار =================
+# ضع المسار الخاص بك هنا
+SOURCE_DIR = r"C:\Users\Stark\Download\myhome\video_rating_app\NS\TikTok\ELO TIK\A1000 elo tik"
 
-def extract_audio_features(video_path):
+# أسماء المجلدات التي سيتم إنشاؤها
+FOLDER_SIZE_ONLY = os.path.join(SOURCE_DIR, "_Check_By_Size")
+FOLDER_EXACT_MATCH = os.path.join(SOURCE_DIR, "_Check_By_Size_And_Dim")
+
+# امتدادات الصور والفيديو المدعومة
+IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
+VIDEO_EXTS = {'.mp4', '.mov', '.avi', '.mkv', '.webm'}
+
+def get_dimensions(file_path):
+    """
+    دالة لاستخراج أبعاد الملف (صورة أو فيديو)
+    تعيد (العرض, الطول) أو None إذا فشلت
+    """
+    ext = os.path.splitext(file_path)[1].lower()
+    
     try:
-        temp_audio = "temp_audio.wav"
-        clip = VideoFileClip(video_path)
+        if ext in IMAGE_EXTS:
+            with Image.open(file_path) as img:
+                return img.size # returns (width, height)
         
-        if clip.audio is None:
-            print(f"No audio found in {video_path}")
-            clip.close()
-            return None
-            
-        # استخدام subclipped للنسخة الحديثة
-        end_time = min(30, clip.duration)
-        subclip = clip.subclipped(0, end_time)
-        
-        # START: MODIFIED SECTION
-        # حذفنا verbose=False لأنها لم تعد مدعومة في النسخة الجديدة
-        # نكتفي بـ logger=None لإخفاء شريط التقدم
-        subclip.audio.write_audiofile(temp_audio, logger=None)
-        # END: MODIFIED SECTION
-        
-        subclip.close()
-        clip.close()
-
-        # تحليل الصوت
-        y, sr = librosa.load(temp_audio)
-        chroma = librosa.feature.chroma_stft(y=y, sr=sr)
-        
-        # تنظيف الملف المؤقت
-        if os.path.exists(temp_audio):
-            os.remove(temp_audio)
-            
-        return np.mean(chroma, axis=1)
-        
+        elif ext in VIDEO_EXTS:
+            cap = cv2.VideoCapture(file_path)
+            if cap.isOpened():
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                cap.release()
+                return (width, height)
     except Exception as e:
-        print(f"Error processing audio for {video_path}: {e}")
-        if os.path.exists("temp_audio.wav"): 
+        print(f"Error reading dimensions for {file_path}: {e}")
+    
+    return None
+
+def copy_files(file_list, destination_folder, prefix_type="Size"):
+    """
+    دالة لنسخ الملفات إلى المجلد الجديد مع إعادة تسميتها لتجنب التصادم
+    """
+    if not os.path.exists(destination_folder):
+        os.makedirs(destination_folder)
+
+    for i, file_path in enumerate(file_list):
+        filename = os.path.basename(file_path)
+        file_size = os.path.getsize(file_path)
+        
+        # نضع حجم الملف في بداية الاسم لكي تظهر الملفات المتشابهة بجانب بعضها عند الترتيب بالاسم
+        # مثال: [1024bytes]_1_video.mp4
+        new_name = f"[{file_size}b]_{i}_{filename}"
+        dest_path = os.path.join(destination_folder, new_name)
+        
+        try:
+            shutil.copy2(file_path, dest_path)
+            print(f"Copied to {prefix_type}: {new_name}")
+        except Exception as e:
+            print(f"Failed to copy {filename}: {e}")
+
+def main():
+    print("--- Start Scanning ---")
+    
+    # 1. تجميع الملفات حسب الحجم (Size Map)
+    size_map = defaultdict(list)
+    
+    for root, dirs, files in os.walk(SOURCE_DIR):
+        # نتجاهل مجلدات النتائج حتى لا نعيد فحصها إذا شغلت السكريبت مرتين
+        if "_Check_By_" in root:
+            continue
+            
+        for file in files:
+            file_path = os.path.join(root, file)
             try:
-                os.remove("temp_audio.wav")
-            except:
-                pass
-        return None
+                size = os.path.getsize(file_path)
+                if size > 0: # تجاهل الملفات الفارغة
+                    size_map[size].append(file_path)
+            except OSError:
+                continue
 
-def check_audio_similarity(folder_path):
-    print(f"--- TEST 3: Audio Fingerprinting in {folder_path} ---")
+    # فلتر النتائج: نريد فقط الأحجام التي تكررت أكثر من مرة
+    potential_duplicates = {k: v for k, v in size_map.items() if len(v) > 1}
     
-    video_files = [f for f in os.listdir(folder_path) if f.endswith(('.mp4', '.mov', '.avi', '.mkv'))]
-    
-    if len(video_files) < 2:
-        print("Error: Need at least 2 videos to compare.")
-        return
+    print(f"Found {len(potential_duplicates)} groups of files with identical sizes.")
 
-    audio_features = {}
-    
-    for video_file in video_files:
-        full_path = os.path.join(folder_path, video_file)
-        print(f"Extracting audio features for: {video_file}...")
-        features = extract_audio_features(full_path)
-        if features is not None:
-            audio_features[video_file] = features
+    # 2. المعالجة والنسخ
+    files_to_copy_size_only = []
+    files_to_copy_exact = []
 
-    print("\n--- Comparison Result ---")
-    files = list(audio_features.keys())
-    if len(files) < 2: return
+    for size, paths in potential_duplicates.items():
+        # أضف المجموعة لقائمة "الحجم فقط"
+        # نقوم بتسطيح القائمة (flatten) لاحقاً، هنا نجمع كل المسارات
+        files_to_copy_size_only.extend(paths)
 
-    file1 = files[0]
-    file2 = files[1]
-    
-    feat1 = audio_features[file1]
-    feat2 = audio_features[file2]
-    
-    dist = np.linalg.norm(feat1 - feat2)
-    
-    print(f"Comparing '{file1}' AND '{file2}'")
-    print(f"Audio Distance Score: {dist:.4f}")
-    
-    # كلما قل الرقم زاد التشابه
-    if dist < 0.1: 
-        print("CONCLUSION: MATCH (Audio is very similar)")
+        # الآن نفحص الأبعاد داخل هذه المجموعة
+        dim_map = defaultdict(list)
+        for path in paths:
+            dims = get_dimensions(path)
+            if dims:
+                # المفتاح هنا هو (الحجم + الأبعاد)
+                dim_map[dims].append(path)
+            else:
+                # إذا لم نستطع قراءة الأبعاد، نضعها في مفتاح "unknown"
+                dim_map["unknown"].append(path)
+
+        # إذا وجدنا ملفات تتطابق في الحجم والأبعاد، نضيفها للقائمة الثانية
+        for dim_key, dim_paths in dim_map.items():
+            if len(dim_paths) > 1:
+                files_to_copy_exact.extend(dim_paths)
+
+    # 3. تنفيذ النسخ الفعلي
+    if files_to_copy_size_only:
+        print(f"\nCopying {len(files_to_copy_size_only)} files to Size-Only folder...")
+        copy_files(files_to_copy_size_only, FOLDER_SIZE_ONLY, "SizeOnly")
     else:
-        print("CONCLUSION: NO MATCH (Audio differs)")
+        print("No duplicates found by size.")
+
+    if files_to_copy_exact:
+        print(f"\nCopying {len(files_to_copy_exact)} files to Exact-Match (Size+Dim) folder...")
+        copy_files(files_to_copy_exact, FOLDER_EXACT_MATCH, "Exact")
+    else:
+        print("No exact matches found.")
+
+    print("\n--- Done! Check the folders inside your directory ---")
 
 if __name__ == "__main__":
-    check_audio_similarity(FOLDER_PATH)
+    main()
